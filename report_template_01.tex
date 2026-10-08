@@ -1,0 +1,256 @@
+%=====================================================================
+% 機械学習 第1回 演習問題 提出用テンプレート
+%
+% 使い方
+%   1. 下の \学籍番号, \氏名, \提出日 を自分の情報に書き換える
+%   2. 各問題の「解答」枠の中に解答を書く（枠の外の問題文は変更しない）
+%   3. コンパイルして PDF を作成し、PDF を提出する
+%
+% コンパイル方法（ターミナル）
+%   uplatex report_template_01.tex && dvipdfmx report_template_01.dvi
+%
+% Overleaf を使う場合
+%   Menu > Compiler を "LaTeX" にし、プロジェクトに latexmkrc という名前の
+%   ファイルを作って次の3行を書く：
+%     $latex = 'uplatex';
+%     $dvipdf = 'dvipdfmx %O -o %D %S';
+%     $pdf_mode = 3;
+%
+% ファイル名は  ML01_学籍番号.pdf  として提出すること（例：ML01_2312345.pdf）
+%=====================================================================
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{pdfborder={0 0 0}}
+
+%---- 自分の情報を書く -------------------------------------------------
+\newcommand{\学籍番号}{0000000}
+\newcommand{\氏名}{氏名を書く}
+\newcommand{\提出日}{2026年10月1日}
+%----------------------------------------------------------------------
+
+% 解答枠（枠の中に解答を書く）
+\newenvironment{answer}{\begin{itembox}[l]{解答}}{\end{itembox}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE 機械学習　第1回 演習問題}\\[2mm]
+  {\large 提出課題}\\[6mm]
+  \begin{tabular}{ll}
+    学籍番号： & \学籍番号 \\
+    氏名：     & \氏名 \\
+    提出日：   & \提出日 \\
+  \end{tabular}
+\end{center}
+
+\vspace{4mm}
+\noindent
+\textbf{注意}
+\begin{itemize}
+  \item 解答は「解答」の枠内に書くこと。枠外の問題文は変更しないこと。
+  \item 計算問題は結果だけでなく途中の式も書くこと。
+  \item 判定問題（正しい／誤り）は理由を必ず書くこと。
+  \item 数式の書き方は末尾の「LaTeX の書き方」を参照すること。
+\end{itemize}
+
+\section*{問題}
+
+\begin{enumerate}
+  \item \textbf{記法の確認}\quad
+    次の各主張が正しいか否かを判定し、その理由を述べよ。
+    \begin{enumerate}
+      \item $\bm{x} \in \mathbb{R}^3$ かつ $\mathcal{X} \subseteq \mathbb{R}^3$ であれば、
+        常に $\bm{x} \in \mathcal{X}$ が成り立つ。
+      \item $h : \mathbb{R}^2 \to \{0, 1\}$ は、2次元入力に対する2値分類の仮説を表す。
+      \item $\mathcal{Y} = \{0, 1\}$ のとき、直積 $\mathcal{Y} \times \mathcal{Y}$ の要素の個数は $4$ である。
+      \item $h(\cdot\,; \bm{w})$ と $h(\bm{x}; \bm{w})$ は、どちらも関数そのものを指す記法である。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item （正しい／誤り）理由：
+        \item （正しい／誤り）理由：
+        \item （正しい／誤り）理由：
+        \item （正しい／誤り）理由：
+      \end{enumerate}
+    \end{answer}
+
+  \item \textbf{パラメータ次元}\quad
+    次の各仮説空間のパラメータ次元 $p$ を求めよ。
+    \begin{enumerate}
+      \item 入力 $\bm{x} \in \mathbb{R}^5$ に対する線形モデル $h(\bm{x}; \bm{w}) = w_0 + \bm{w}_{1:5}^\top \bm{x}$
+      \item 入力 $x \in \mathbb{R}$ に対する3次多項式モデル
+      \item 入力 $\bm{x} = (x_1, x_2)^\top \in \mathbb{R}^2$ に対して、
+        2次以下のすべての単項式 $1, x_1, x_2, x_1^2, x_1 x_2, x_2^2$ の線形結合で表されるモデル
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $p = $
+        \item $p = $
+        \item $p = $
+      \end{enumerate}
+    \end{answer}
+
+  \item \textbf{仮説空間の包含関係}\quad
+    $\mathcal{H}_M$ を $M$ 次多項式仮説空間とする。
+    $\mathcal{H}_1 \subset \mathcal{H}_2$（$\mathcal{H}_1$ は $\mathcal{H}_2$ の真部分集合）であることを、
+    次の2点を示すことで証明せよ。
+    \begin{enumerate}
+      \item 任意の $h \in \mathcal{H}_1$ は $\mathcal{H}_2$ の要素でもある。
+      \item $\mathcal{H}_2$ の要素であって $\mathcal{H}_1$ の要素ではない関数が存在する。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+        \item
+      \end{enumerate}
+    \end{answer}
+
+  \item \textbf{経験損失の計算}\quad
+    訓練データ $D = \{(1, 3),\; (2, 5),\; (3, 6)\}$ が与えられている
+    （各組は $(x_i, y_i)$ を表す）。
+    2つの仮説
+    \begin{equation*}
+      h_a(x) = 2x + 1, \qquad h_b(x) = 1.5x + 1.5
+    \end{equation*}
+    について、二乗損失に基づく経験損失 $L_D(h_a)$, $L_D(h_b)$ をそれぞれ計算し、
+    どちらの仮説が訓練データに対して良いかを判定せよ。
+    \begin{answer}
+      \begin{align*}
+        L_D(h_a) &= \\
+        L_D(h_b) &=
+      \end{align*}
+      判定：
+    \end{answer}
+
+  \item \textbf{0-1損失}\quad
+    5個の訓練データに対する真のラベルと仮説 $h$ の予測が次のように与えられている。
+    \begin{center}
+      \begin{tabular}{c|ccccc}
+        $i$ & 1 & 2 & 3 & 4 & 5 \\
+        \hline
+        $y_i$ & 1 & 0 & 1 & 1 & 0 \\
+        $h(\bm{x}_i)$ & 1 & 0 & 0 & 1 & 1 \\
+      \end{tabular}
+    \end{center}
+    0-1損失に基づく経験損失 $L_D(h)$ を求めよ。
+    また、この値が一般に何と呼ばれる量に一致するかを述べよ。
+    \begin{answer}
+      \begin{equation*}
+        L_D(h) =
+      \end{equation*}
+      この値は（　　　　）に一致する。
+    \end{answer}
+
+  \item \textbf{$\min$ と $\arg\min$}\quad
+    問4の設定で、仮説空間を $\mathcal{H} = \{h_a, h_b\}$ の2要素からなる集合とする。
+    このとき
+    \begin{equation*}
+      \min_{h \in \mathcal{H}} L_D(h), \qquad h^* = \arg\min_{h \in \mathcal{H}} L_D(h)
+    \end{equation*}
+    をそれぞれ求めよ。両者の違いを一言で説明せよ。
+    \begin{answer}
+      \begin{align*}
+        \min_{h \in \mathcal{H}} L_D(h) &= \\
+        h^* = \arg\min_{h \in \mathcal{H}} L_D(h) &=
+      \end{align*}
+      両者の違い：
+    \end{answer}
+
+  \item \textbf{経験損失と汎化誤差}\quad
+    平面上の3点 $(x_1, y_1), (x_2, y_2), (x_3, y_3)$（$x_i$ は互いに異なる）が与えられたとき、
+    これらをすべて通る2次多項式 $h \in \mathcal{H}_2$ がただ一つ存在する。
+    \begin{enumerate}
+      \item この $h$ の二乗損失に基づく経験損失 $L_D(h)$ を求めよ。
+      \item この $h$ の汎化誤差 $L_{\mathrm{gen}}(h)$ も $0$ であると言えるか。
+        理由とともに述べよ。
+      \item 一般に $N$ 個のデータ点（$x_i$ は互いに異なる）が与えられたとき、
+        経験損失を $0$ にできる多項式の次数 $M$ の最小値はいくらか。
+        この事実と過学習の関係を説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+        \item
+        \item
+      \end{enumerate}
+    \end{answer}
+\end{enumerate}
+
+\clearpage
+\section*{LaTeX の書き方（参考）}
+
+このテンプレートで使う数式の書き方をまとめる。
+数式は \verb|$ ... $| で囲む（行の中に書く場合）か、
+\verb|\begin{equation*} ... \end{equation*}| で囲む（1行独立させる場合）。
+
+\begin{center}
+\small
+\begin{tabular}{l|l}
+\hline
+表示 & 書き方 \\
+\hline\hline
+$\bm{x}$（ベクトル） & \verb|\bm{x}| \\
+$\mathcal{H}$, $\mathcal{X}$（集合） & \verb|\mathcal{H}|, \verb|\mathcal{X}| \\
+$\mathbb{R}$, $\mathbb{R}^3$ & \verb|\mathbb{R}|, \verb|\mathbb{R}^3| \\
+$\bm{x} \in \mathcal{X}$ & \verb|\bm{x} \in \mathcal{X}| \\
+$\bm{x} \notin \mathcal{X}$ & \verb|\bm{x} \notin \mathcal{X}| \\
+$\mathcal{X} \subseteq \mathbb{R}^3$, $\mathcal{H}_1 \subset \mathcal{H}_2$ & \verb|\mathcal{X} \subseteq \mathbb{R}^3|, \verb|\mathcal{H}_1 \subset \mathcal{H}_2| \\
+$h : \mathcal{X} \to \mathcal{Y}$ & \verb|h : \mathcal{X} \to \mathcal{Y}| \\
+$\{0, 1\}$, $\mathcal{Y} \times \mathcal{Y}$ & \verb|\{0, 1\}|, \verb|\mathcal{Y} \times \mathcal{Y}| \\
+$\{\, h \mid h \in \mathcal{H} \,\}$ & \verb|\{\, h \mid h \in \mathcal{H} \,\}| \\
+$\bm{x}^\top$（転置） & \verb|\bm{x}^\top| \\
+$w_0$, $x_1^2$（添字・べき） & \verb|w_0|, \verb|x_1^2| \\
+$h(\bm{x}; \bm{w})$, $h(\cdot\,; \bm{w})$ & \verb|h(\bm{x}; \bm{w})|, \verb|h(\cdot\,; \bm{w})| \\
+$\dfrac{1}{N}$（分数） & \verb|\frac{1}{N}| \\
+$\displaystyle\sum_{i=1}^{N} (y_i - h(x_i))^2$ & \verb|\sum_{i=1}^{N} (y_i - h(x_i))^2| \\
+$L_D(h)$, $L_{\mathrm{gen}}(h)$ & \verb|L_D(h)|, \verb|L_{\mathrm{gen}}(h)| \\
+$\displaystyle\min_{h \in \mathcal{H}} L_D(h)$ & \verb|\min_{h \in \mathcal{H}} L_D(h)| \\
+$\displaystyle h^* = \arg\min_{h \in \mathcal{H}} L_D(h)$ & \verb|h^* = \arg\min_{h \in \mathcal{H}} L_D(h)| \\
+$a \neq b$, $a \leq b$, $a \geq b$ & \verb|a \neq b|, \verb|a \leq b|, \verb|a \geq b| \\
+$\cdots$, $\ldots$ & \verb|\cdots|, \verb|\ldots| \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{計算過程を複数行で書く例}（\verb|align*| 環境。\verb|&| の位置で揃い、\verb|\\| で改行する）：
+\begin{verbatim}
+\begin{align*}
+  L_D(h) &= \frac{1}{3} \sum_{i=1}^{3} (y_i - h(x_i))^2 \\
+         &= \frac{(3-3)^2 + (5-5)^2 + (6-7)^2}{3} \\
+         &= \frac{1}{3}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  L_D(h) &= \frac{1}{3} \sum_{i=1}^{3} (y_i - h(x_i))^2 \\
+         &= \frac{(3-3)^2 + (5-5)^2 + (6-7)^2}{3} \\
+         &= \frac{1}{3}
+\end{align*}
+
+\noindent
+\textbf{場合分けの例}：
+\begin{verbatim}
+\begin{equation*}
+  L(y, h(\bm{x})) =
+  \begin{cases}
+    0 & (y = h(\bm{x})) \\
+    1 & (y \neq h(\bm{x}))
+  \end{cases}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  L(y, h(\bm{x})) =
+  \begin{cases}
+    0 & (y = h(\bm{x})) \\
+    1 & (y \neq h(\bm{x}))
+  \end{cases}
+\end{equation*}
+
+\end{document}

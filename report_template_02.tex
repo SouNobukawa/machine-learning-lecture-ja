@@ -1,0 +1,401 @@
+%=====================================================================
+% 機械学習 第2回 演習問題 提出用テンプレート
+%
+% 使い方
+%   1. 下の \学籍番号, \氏名, \提出日 を自分の情報に書き換える
+%   2. 各問題の「解答」枠の中に解答を書く（枠の外の問題文は変更しない）
+%   3. コンパイルして PDF を作成し、PDF を提出する
+%
+% コンパイル方法（ターミナル）
+%   uplatex report_template_02.tex && dvipdfmx report_template_02.dvi
+%
+% Overleaf を使う場合
+%   Menu > Compiler を "LaTeX" にし、プロジェクトに latexmkrc という名前の
+%   ファイルを作って次の3行を書く：
+%     $latex = 'uplatex';
+%     $dvipdf = 'dvipdfmx %O -o %D %S';
+%     $pdf_mode = 3;
+%
+% ファイル名は  ML02_学籍番号.pdf  として提出すること（例：ML02_2312345.pdf）
+%=====================================================================
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{pdfborder={0 0 0}}
+
+%---- 自分の情報を書く -------------------------------------------------
+\newcommand{\学籍番号}{0000000}
+\newcommand{\氏名}{氏名を書く}
+\newcommand{\提出日}{2026年10月8日}
+%----------------------------------------------------------------------
+
+% 解答枠（枠の中に解答を書く）
+\newenvironment{answer}{\begin{itembox}[l]{解答}}{\end{itembox}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE 機械学習　第2回 演習問題}\\[2mm]
+  {\large 提出課題（ベクトルと内積）}\\[6mm]
+  \begin{tabular}{ll}
+    学籍番号： & \学籍番号 \\
+    氏名：     & \氏名 \\
+    提出日：   & \提出日 \\
+  \end{tabular}
+\end{center}
+
+\vspace{4mm}
+\noindent
+\textbf{注意}
+\begin{itemize}
+  \item 解答は「解答」の枠内に書くこと。枠外の問題文は変更しないこと。
+  \item 計算問題は結果だけでなく途中の式も書くこと。
+  \item 証明問題では、内積やノルムのどの性質（対称性・加法性・斉次性・正定値性・
+    コーシー・シュワルツの不等式など）を用いたかを明記すること。
+  \item 数式の書き方は末尾の「LaTeX の書き方」を参照すること。
+\end{itemize}
+
+\section*{問題}
+
+\begin{enumerate}
+  \item \textbf{ノルムと内積の計算}\quad
+    $\bm{x} = (2, -1, 2)^\top$、$\bm{y} = (1, 2, 2)^\top \in \mathbb{R}^3$ とする。
+    \begin{enumerate}
+      \item $\|\bm{x}\|$ と $\|\bm{y}\|$ を求めよ。
+      \item $\bm{x}^\top \bm{y}$ を求めよ。
+      \item $\bm{x}$ と $\bm{y}$ のコサイン類似度を求めよ。
+      \item $\bm{x}$ を正規化した単位ベクトル $\bm{u}$ を求め、$\|\bm{u}\| = 1$ を確認せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{align*}
+            \|\bm{x}\| &= \\
+            \|\bm{y}\| &=
+          \end{align*}
+        \item
+          \begin{equation*}
+            \bm{x}^\top \bm{y} =
+          \end{equation*}
+        \item
+          \begin{equation*}
+            \mathrm{cossim}(\bm{x}, \bm{y}) =
+          \end{equation*}
+        \item
+          \begin{equation*}
+            \bm{u} = \frac{\bm{x}}{\|\bm{x}\|} =
+          \end{equation*}
+          確認：
+      \end{enumerate}
+    \end{answer}
+
+  \item \textbf{直交性}\quad
+    $\bm{a} = (1, 2)^\top$ とする。
+    \begin{enumerate}
+      \item $\bm{a}$ と直交するベクトルを1つ求めよ。
+      \item $\bm{a}$ と直交するベクトル全体の集合を、集合の記法を用いて表せ。
+      \item $\bm{x} = (3, 1)^\top$ と $\bm{a}$ のなす角 $\theta$ について、
+        $\cos\theta$ を求めよ。$\theta$ は鋭角か鈍角か。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 直交条件：$\bm{a}^\top \bm{v} = 0$ より、
+          \begin{equation*}
+            \bm{v} =
+          \end{equation*}
+        \item
+          \begin{equation*}
+            \{\, \bm{v} \in \mathbb{R}^2 \mid \phantom{XXXXXXXXXX} \,\}
+          \end{equation*}
+        \item
+          \begin{equation*}
+            \cos\theta =
+          \end{equation*}
+          $\theta$ は（　　　　）である。理由：
+      \end{enumerate}
+    \end{answer}
+
+  \item \textbf{内積の性質の証明}\quad
+    任意の $\bm{x}, \bm{y} \in \mathbb{R}^d$ に対して、次の等式を内積の性質を用いて証明せよ。
+    \begin{equation*}
+      \|\bm{x} + \bm{y}\|^2 = \|\bm{x}\|^2 + 2\,\bm{x}^\top \bm{y} + \|\bm{y}\|^2
+    \end{equation*}
+    また、この結果を用いて、$\bm{x} \perp \bm{y}$ のとき
+    $\|\bm{x} + \bm{y}\|^2 = \|\bm{x}\|^2 + \|\bm{y}\|^2$（三平方の定理）が成り立つことを示せ。
+    \begin{answer}
+      \textbf{前半の証明}\quad
+      （各行で使った性質を右側の \verb|&&\text{（...）}| に書くこと）
+      \begin{align*}
+        \|\bm{x} + \bm{y}\|^2 &= && \text{（　　　　）} \\
+                              &= && \text{（　　　　）} \\
+                              &= && \text{（　　　　）}
+      \end{align*}
+
+      \medskip
+      \textbf{後半の証明}\quad
+      $\bm{x} \perp \bm{y}$ とは
+      \begin{equation*}
+        \phantom{XXXXXXXXXXXXXX}
+      \end{equation*}
+      であるから、
+      \begin{equation*}
+        \|\bm{x} + \bm{y}\|^2 =
+      \end{equation*}
+    \end{answer}
+
+  \item \textbf{三角不等式}\quad
+    問3の結果とコーシー・シュワルツの不等式を用いて、
+    三角不等式 $\|\bm{x} + \bm{y}\| \leq \|\bm{x}\| + \|\bm{y}\|$ を証明せよ。
+    \begin{answer}
+      \textbf{方針}\quad
+
+      \medskip
+      \textbf{証明}\quad
+      問3の結果より
+      \begin{equation*}
+        \|\bm{x} + \bm{y}\|^2 =
+      \end{equation*}
+      ここで
+      \begin{equation*}
+        \bm{x}^\top \bm{y} \leq
+      \end{equation*}
+      であるから、
+      \begin{align*}
+        \|\bm{x} + \bm{y}\|^2 &\leq \\
+                              &=
+      \end{align*}
+      よって
+      \begin{equation*}
+        \|\bm{x} + \bm{y}\| \leq \|\bm{x}\| + \|\bm{y}\|
+      \end{equation*}
+      （最後に平方根をとってよい理由：　　　　　　）
+    \end{answer}
+
+  \item \textbf{コサイン類似度と長さ}\quad
+    $\bm{a} = (3, 4)^\top$、$\bm{b} = (6, 8)^\top$、$\bm{c} = (4, 3)^\top$ とする。
+    \begin{enumerate}
+      \item 内積 $\bm{a}^\top \bm{b}$ と $\bm{a}^\top \bm{c}$ をそれぞれ求めよ。
+      \item コサイン類似度 $\mathrm{cossim}(\bm{a}, \bm{b})$ と
+        $\mathrm{cossim}(\bm{a}, \bm{c})$ をそれぞれ求めよ。
+      \item 内積で比較した場合とコサイン類似度で比較した場合で、
+        $\bm{a}$ により「似ている」のはどちらのベクトルか。
+        結果が異なる理由を、長さと向きの観点から説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{align*}
+            \bm{a}^\top \bm{b} &= \\
+            \bm{a}^\top \bm{c} &=
+          \end{align*}
+        \item ノルム：$\|\bm{a}\| = \phantom{XXX}$、$\|\bm{b}\| = \phantom{XXX}$、$\|\bm{c}\| = \phantom{XXX}$
+          \begin{align*}
+            \mathrm{cossim}(\bm{a}, \bm{b}) &= \\
+            \mathrm{cossim}(\bm{a}, \bm{c}) &=
+          \end{align*}
+        \item
+      \end{enumerate}
+    \end{answer}
+
+  \item \textbf{線形モデルと内積}\quad
+    第1回の例2の線形モデル $h(\bm{x}) = 0.5 x_1 - 0.3 x_2 + 3$ を考える。
+    \begin{enumerate}
+      \item バイアス項を吸収した記法 $h(\bm{x}) = \bm{w}^\top \tilde{\bm{x}}$ で表すとき、
+        $\bm{w}$ と $\tilde{\bm{x}}$ をそれぞれ書け。
+      \item $\bm{x} = (25, 10)^\top$ に対する予測値を、内積の計算として求めよ。
+      \item $h(\bm{x}) = 0$ を満たす $\bm{x}$ の集合は平面上でどのような図形になるか。
+        また、$\bm{w}_{1:2} = (0.5, -0.3)^\top$ とその図形の関係を述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \bm{w} = \begin{pmatrix} \\ \\ \end{pmatrix}, \qquad
+            \tilde{\bm{x}} = \begin{pmatrix} \\ \\ \end{pmatrix}
+          \end{equation*}
+        \item
+          \begin{align*}
+            h(\bm{x}) = \bm{w}^\top \tilde{\bm{x}} &= \\
+                                                   &=
+          \end{align*}
+        \item 図形：
+          \begin{equation*}
+            \phantom{XXXXXXXXXXXXXXXXXXXX}
+          \end{equation*}
+          $\bm{w}_{1:2}$ との関係：
+      \end{enumerate}
+    \end{answer}
+
+  \item \textbf{ニューロンと決定境界}\quad
+    重み $\bm{w} = (2, -1)^\top$、バイアス $b = -1$ のニューロンを考える。
+    活性化関数はステップ関数（$z > 0$ なら $1$、そうでなければ $0$）とする。
+    \begin{enumerate}
+      \item 入力 $\bm{x} = (2, 1)^\top$ に対する $z = \bm{w}^\top \bm{x} + b$ と出力を求めよ。
+      \item 入力 $\bm{x} = (0, 3)^\top$ に対する $z$ と出力を求めよ。
+      \item 決定境界 $\bm{w}^\top \bm{x} + b = 0$ を $x_2$ について解き、直線の式として書け。
+      \item $\bm{w}$ がこの直線の法線ベクトルであることを、
+        直線上の異なる2点を取って内積を計算することで確認せよ。
+      \item 活性化関数を恒等写像 $\sigma(z) = z$ とし、このニューロンを2段重ねると
+        1段の場合と同じ表現力しか持たないことを、式を書いて説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $z = \phantom{XXXXXXXXXX}$、出力 $a = \phantom{XXX}$
+        \item $z = \phantom{XXXXXXXXXX}$、出力 $a = \phantom{XXX}$
+        \item
+          \begin{equation*}
+            x_2 =
+          \end{equation*}
+        \item 直線上の2点：$\bm{p} = \phantom{XXXXX}$、$\bm{q} = \phantom{XXXXX}$
+          \begin{equation*}
+            \bm{w}^\top (\bm{q} - \bm{p}) =
+          \end{equation*}
+          よって
+        \item
+          \begin{align*}
+            z_1 &= \\
+            z_2 &= \\
+                &=
+          \end{align*}
+          よって
+      \end{enumerate}
+    \end{answer}
+
+  \item \textbf{Attention のスコア計算}\quad
+    Query $\bm{q} = (2, 0)^\top$ と、3つの Key
+    $\bm{k}_1 = (1, 0)^\top$、$\bm{k}_2 = (0, 2)^\top$、$\bm{k}_3 = (1, 1)^\top$ が与えられている。
+    \begin{enumerate}
+      \item 各スコア $\bm{q}^\top \bm{k}_i$（$i = 1, 2, 3$）を求めよ。
+      \item ソフトマックスによる重み $\alpha_i$ を求めよ
+        （$\exp(2) \approx 7.39$、$\exp(0) = 1$ を用いてよい）。
+      \item 最も注目される Key はどれか。その理由を内積の幾何学的意味から説明せよ。
+      \item $d_k$ が大きいとき、スコアを $\sqrt{d_k}$ で割る理由を説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{align*}
+            \mathrm{score}_1 &= \\
+            \mathrm{score}_2 &= \\
+            \mathrm{score}_3 &=
+          \end{align*}
+        \item 分母：$\sum_{j=1}^{3} \exp(\mathrm{score}_j) = \phantom{XXXXXXXX}$
+          \begin{align*}
+            \alpha_1 &= \\
+            \alpha_2 &= \\
+            \alpha_3 &=
+          \end{align*}
+          検算（総和が $1$ か）：
+        \item 最も注目される Key：
+          \begin{center}
+            \begin{tabular}{c|c|c|c}
+              \hline
+              & $\|\bm{k}_i\|$ & $\cos\theta_i$ & スコア \\
+              \hline\hline
+              $\bm{k}_1$ & & & \\
+              $\bm{k}_2$ & & & \\
+              $\bm{k}_3$ & & & \\
+              \hline
+            \end{tabular}
+          \end{center}
+          理由：
+        \item
+      \end{enumerate}
+    \end{answer}
+\end{enumerate}
+
+\clearpage
+\section*{LaTeX の書き方（参考）}
+
+第2回の課題で使う数式の書き方をまとめる。
+数式は \verb|$ ... $| で囲む（行の中に書く場合）か、
+\verb|\begin{equation*} ... \end{equation*}| で囲む（1行独立させる場合）。
+
+\begin{center}
+\small
+\begin{tabular}{l|l}
+\hline
+表示 & 書き方 \\
+\hline\hline
+$\bm{x}$（ベクトル） & \verb|\bm{x}| \\
+$\|\bm{x}\|$（ノルム） & \verb+\|\bm{x}\|+ \\
+$\bm{x}^\top \bm{y}$（内積） & \verb|\bm{x}^\top \bm{y}| \\
+$\bm{x} \perp \bm{y}$（直交） & \verb|\bm{x} \perp \bm{y}| \\
+$\cos\theta$, $\theta$ & \verb|\cos\theta|, \verb|\theta| \\
+$\mathrm{cossim}(\bm{x}, \bm{y})$ & \verb|\mathrm{cossim}(\bm{x}, \bm{y})| \\
+$\tilde{\bm{x}}$（拡張入力） & \verb|\tilde{\bm{x}}| \\
+$\bm{w}_{1:d}$（スライス） & \verb|\bm{w}_{1:d}| \\
+$\sqrt{5}$, $\sqrt{d_k}$ & \verb|\sqrt{5}|, \verb|\sqrt{d_k}| \\
+$\dfrac{a}{b}$（分数） & \verb|\frac{a}{b}| \\
+$\displaystyle\sum_{i=1}^{d} x_i y_i$ & \verb|\sum_{i=1}^{d} x_i y_i| \\
+$\exp(2)$, $\sigma(z)$, $\alpha_i$ & \verb|\exp(2)|, \verb|\sigma(z)|, \verb|\alpha_i| \\
+$\leq$, $\geq$, $\neq$, $\approx$ & \verb|\leq|, \verb|\geq|, \verb|\neq|, \verb|\approx| \\
+$\in$, $\subseteq$, $\mathbb{R}^d$ & \verb|\in|, \verb|\subseteq|, \verb|\mathbb{R}^d| \\
+$\{\, \bm{v} \mid \bm{a}^\top\bm{v} = 0 \,\}$ & \verb+\{\, \bm{v} \mid ... \,\}+ \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{縦ベクトルの書き方}（\verb|pmatrix| 環境）：
+\begin{verbatim}
+\begin{equation*}
+  \bm{w} = \begin{pmatrix} 3 \\ 0.5 \\ -0.3 \end{pmatrix}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  \bm{w} = \begin{pmatrix} 3 \\ 0.5 \\ -0.3 \end{pmatrix}
+\end{equation*}
+
+\noindent
+\textbf{計算過程を複数行で書く例}（\verb|align*| 環境。\verb|&| の位置で揃い、\verb|\\| で改行する）：
+\begin{verbatim}
+\begin{align*}
+  \|\bm{x}\| &= \sqrt{2^2 + (-1)^2 + 2^2} \\
+             &= \sqrt{4 + 1 + 4} \\
+             &= \sqrt{9} = 3
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \|\bm{x}\| &= \sqrt{2^2 + (-1)^2 + 2^2} \\
+             &= \sqrt{4 + 1 + 4} \\
+             &= \sqrt{9} = 3
+\end{align*}
+
+\noindent
+\textbf{証明で「どの性質を使ったか」を右側に書く例}（\verb|&&\text{...}| を使う）：
+\begin{verbatim}
+\begin{align*}
+  \|\bm{x} + \bm{y}\|^2
+    &= (\bm{x} + \bm{y})^\top (\bm{x} + \bm{y}) && \text{（ノルムと内積の関係）} \\
+    &= \bm{x}^\top\bm{x} + 2\bm{x}^\top\bm{y} + \bm{y}^\top\bm{y} && \text{（加法性と対称性）}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \|\bm{x} + \bm{y}\|^2
+    &= (\bm{x} + \bm{y})^\top (\bm{x} + \bm{y}) && \text{（ノルムと内積の関係）} \\
+    &= \bm{x}^\top\bm{x} + 2\bm{x}^\top\bm{y} + \bm{y}^\top\bm{y} && \text{（加法性と対称性）}
+\end{align*}
+
+\noindent
+\textbf{不等式の変形を書く例}：
+\begin{verbatim}
+\begin{align*}
+  \|\bm{x} + \bm{y}\|^2 &\leq \|\bm{x}\|^2 + 2\|\bm{x}\|\|\bm{y}\| + \|\bm{y}\|^2 \\
+                        &= (\|\bm{x}\| + \|\bm{y}\|)^2
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \|\bm{x} + \bm{y}\|^2 &\leq \|\bm{x}\|^2 + 2\|\bm{x}\|\|\bm{y}\| + \|\bm{y}\|^2 \\
+                        &= (\|\bm{x}\| + \|\bm{y}\|)^2
+\end{align*}
+
+\end{document}

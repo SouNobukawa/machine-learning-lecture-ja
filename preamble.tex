@@ -1,0 +1,37 @@
+%\documentclass{jsarticle}
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\usepackage[dvipdfmx]{graphicx}
+\setcounter{tocdepth}{3}
+\usepackage{tcolorbox}
+\usepackage{float}
+\usepackage{moreverb}
+\usepackage{lscape}
+%\pagestyle{empty}
+\usepackage{wrapfig}
+\usepackage{url}
+%\usepackage{EasyLayout}
+%\usepackage[T1]{fontenc}
+%\usepackage{stix}
+\usepackage{comment}
+\usepackage{ascmac}
+%\usepackage{fancybx}
+
+\hypersetup{%
+    pdfborder = {0 0 0}
+}
+
+\pagestyle{myheadings}
+
+\makeatletter
+\newcommand{\subsubsubsection}{\@startsection{paragraph}{4}{\z@}%
+  {1.0\Cvs \@plus.5\Cdp \@minus.2\Cdp}%
+  {.1\Cvs \@plus.3\Cdp}%
+  {\reset@font\sffamily\normalsize}
+}
+\makeatother
+\setcounter{secnumdepth}{4}

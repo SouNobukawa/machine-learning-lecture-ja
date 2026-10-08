@@ -1,0 +1,560 @@
+%=====================================================================
+% 機械学習 第3回 演習問題 提出用テンプレート
+%
+% 使い方
+%   1. 下の \学籍番号, \氏名, \提出日 を自分の情報に書き換える
+%      （\提出期限 は書き換えない）
+%   2. 各問題の「解答」枠の中に解答を書く（枠の外の問題文は変更しない）
+%   3. コンパイルして PDF を作成し、PDF を提出する
+%
+% コンパイル方法（ターミナル）
+%   uplatex report_template_03.tex && dvipdfmx report_template_03.dvi
+%
+% Overleaf を使う場合
+%   Menu > Compiler を "LaTeX" にし、プロジェクトに latexmkrc という名前の
+%   ファイルを作って次の3行を書く：
+%     $latex = 'uplatex';
+%     $dvipdf = 'dvipdfmx %O -o %D %S';
+%     $pdf_mode = 3;
+%
+% 提出期限：2026年10月12日（月）
+% ファイル名は  ML03_学籍番号.pdf  として提出すること（例：ML03_2312345.pdf）
+%=====================================================================
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{pdfborder={0 0 0}}
+
+%---- 提出期限（書き換えない）------------------------------------------
+\newcommand{\提出期限}{2026年10月12日（月）}
+%---- 自分の情報を書く -------------------------------------------------
+\newcommand{\学籍番号}{0000000}
+\newcommand{\氏名}{氏名を書く}
+\newcommand{\提出日}{2026年10月12日}
+%----------------------------------------------------------------------
+
+% 解答枠（枠の中に解答を書く）
+\newenvironment{answer}{\begin{itembox}[l]{解答}}{\end{itembox}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE 機械学習　第3回 演習問題}\\[2mm]
+  {\large 提出課題（行列と線形変換）}\\[4mm]
+  {\large\textbf{提出期限：\提出期限}}\\[6mm]
+  \begin{tabular}{ll}
+    学籍番号： & \学籍番号 \\
+    氏名：     & \氏名 \\
+    提出日：   & \提出日 \\
+  \end{tabular}
+\end{center}
+
+\vspace{4mm}
+\noindent
+\textbf{注意}
+\begin{itemize}
+  \item 解答は「解答」の枠内に書くこと。枠外の問題文は変更しないこと。
+  \item 計算問題は結果だけでなく途中の式も書くこと。
+  \item 行列の積やベクトルの次元を答える問題では、\textbf{何行何列か}を必ず明記すること。
+  \item 証明問題では、定義のどの部分を使ったか（行列とベクトルの積の定義、
+    線形独立の定義、転置の定義など）を明記すること。
+  \item 「意味を説明せよ」という問いには、計算結果だけでなく\textbf{日本語の説明}を書くこと。
+  \item 数式の書き方は末尾の「LaTeX の書き方」を参照すること。
+\end{itemize}
+
+\section*{問題}
+
+\begin{enumerate}
+
+%=====================================================================
+  \item \textbf{行列とベクトルの積}\quad
+    \begin{equation*}
+      \bm{A} = \begin{pmatrix} 2 & 0 & 1 \\ -1 & 3 & 2 \end{pmatrix}, \qquad
+      \bm{x} = \begin{pmatrix} 1 \\ 2 \\ -1 \end{pmatrix}
+    \end{equation*}
+    とする。
+    \begin{enumerate}
+      \item $\bm{A}$ は何行何列の行列か。$\bm{A}\bm{x}$ は何次元のベクトルか。
+      \item $\bm{A}\bm{x}$ を「行との内積」として計算せよ。
+      \item $\bm{A}\bm{x}$ を「列の線形結合」として計算し、(b) と一致することを確認せよ。
+      \item $\bm{A}^\top$ を書け。また $\bm{A}^\top$ は何行何列か。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\bm{A}$ は（　　）行（　　）列。$\bm{A}\bm{x} \in \mathbb{R}^{(\ \ )}$ で
+          （　　）次元。\\
+          理由（積が定義される条件）：
+        \item $\bm{A}$ の第 $i$ 行を $\bm{r}_i$ とすると
+          \begin{align*}
+            \bm{r}_1^\top \bm{x} &= \\
+            \bm{r}_2^\top \bm{x} &=
+          \end{align*}
+          よって
+          \begin{equation*}
+            \bm{A}\bm{x} =
+          \end{equation*}
+        \item $\bm{A}$ の列を $\bm{c}_1, \bm{c}_2, \bm{c}_3$ とすると
+          \begin{align*}
+            \bm{A}\bm{x} &= \phantom{XX}\bm{c}_1 + \phantom{XX}\bm{c}_2 + \phantom{XX}\bm{c}_3 \\
+                         &=
+          \end{align*}
+          (b) と一致（する・しない）。
+        \item
+          \begin{equation*}
+            \bm{A}^\top =
+          \end{equation*}
+          $\bm{A}^\top$ は（　　）行（　　）列。
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{線形写像}\quad
+    \begin{enumerate}
+      \item $f(\bm{x}) = \bm{A}\bm{x}$ が線形写像であること、
+        すなわち $f(\bm{x}+\bm{y}) = f(\bm{x}) + f(\bm{y})$ と $f(c\bm{x}) = cf(\bm{x})$ を、
+        行列とベクトルの積の定義から証明せよ。
+      \item $g(\bm{x}) = \bm{A}\bm{x} + \bm{b}$（$\bm{b} \neq \bm{0}$）は線形写像でないことを、
+        $g(\bm{0})$ を計算して示せ。このような写像を何と呼ぶか。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item \textbf{方針}\quad 示すべきはベクトルの等式なので、
+          両辺の第（　　）成分が等しいことを示せばよい。\\
+          用いる定義：$(\bm{A}\bm{x})_i = $ \\[2mm]
+          \textbf{加法性}
+          \begin{align*}
+            \bigl(\bm{A}(\bm{x}+\bm{y})\bigr)_i &= && \text{（　　　　）} \\
+                                                &= && \text{（　　　　）} \\
+                                                &= && \text{（　　　　）}
+          \end{align*}
+          \textbf{斉次性}
+          \begin{align*}
+            \bigl(\bm{A}(c\bm{x})\bigr)_i &= && \text{（　　　　）} \\
+                                          &= && \text{（　　　　）}
+          \end{align*}
+          すべての $i$ について成り立つので、ベクトルとして等しい。\hfill $\blacksquare$
+        \item 線形写像が必ず満たす性質：$f(\bm{0}) = $ \phantom{XXXX}
+          （理由：斉次性で $c = $ \phantom{XX} とする）\\[2mm]
+          一方
+          \begin{equation*}
+            g(\bm{0}) =
+          \end{equation*}
+          であるから、$g$ は線形写像で（ある・ない）。\\
+          このような写像の名称：\phantom{XXXXXXXXXXXX}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{計画行列}\quad
+    3軒の物件について、広さ（$\mathrm{m}^2$）と駅からの距離（分）が
+    $(20, 5)$、$(35, 10)$、$(50, 3)$ であり、
+    家賃（万円）が $12, 15, 20$ であるとする。
+    \begin{enumerate}
+      \item バイアス項を含む計画行列 $\bm{X}$ と、目的変数のベクトル $\bm{y}$ を書け。
+      \item $\bm{X}$ は何行何列か。また、行と列はそれぞれ何を表すか。
+      \item $\bm{w} = (3, 0.5, -0.3)^\top$ のとき、予測ベクトル $\hat{\bm{y}} = \bm{X}\bm{w}$ を求めよ。
+      \item この $\bm{w}$ に対する経験損失 $\frac{1}{N}\|\bm{y} - \bm{X}\bm{w}\|^2$ を求めよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \bm{X} = \phantom{XXXXXXXXXXXXXXXX}
+            \qquad
+            \bm{y} = \phantom{XXXXXXXX}
+          \end{equation*}
+        \item （　　）行（　　）列。\\
+          行が表すもの：\\[1mm]
+          列が表すもの：\\[1mm]
+          第 $0$ 列が表すもの：
+        \item
+          \begin{align*}
+            \hat{y}_1 &= \\
+            \hat{y}_2 &= \\
+            \hat{y}_3 &=
+          \end{align*}
+          よって $\hat{\bm{y}} = $
+        \item 残差ベクトル
+          \begin{equation*}
+            \bm{y} - \hat{\bm{y}} =
+          \end{equation*}
+          \begin{align*}
+            \|\bm{y} - \hat{\bm{y}}\|^2 &= \\
+            L_D(\bm{w}) = \frac{1}{N}\|\bm{y} - \hat{\bm{y}}\|^2 &=
+          \end{align*}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{列空間}\quad
+    \begin{equation*}
+      \bm{X} = \begin{pmatrix} 1 & 2 \\ 1 & 4 \\ 1 & 6 \end{pmatrix}
+    \end{equation*}
+    とする。
+    \begin{enumerate}
+      \item $\mathrm{Col}(\bm{X})$ の要素を、$\bm{w} = (w_0, w_1)^\top$ を用いて具体的に書き下せ。
+      \item $\mathrm{Col}(\bm{X})$ は $\mathbb{R}^3$ の中でどのような図形か。その次元はいくつか。
+      \item $\bm{y} = (1, 2, 4)^\top$ は $\mathrm{Col}(\bm{X})$ に属するか。
+        属さない場合、それは何を意味するか。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 列を $\bm{c}_0, \bm{c}_1$ とすると $\bm{X}\bm{w} = $
+          \begin{equation*}
+            \mathrm{Col}(\bm{X}) = \left\{\, \phantom{XXXXXXXXXXXXXXXXXX}
+              \;\middle|\; w_0, w_1 \in \mathbb{R} \,\right\}
+          \end{equation*}
+        \item $\bm{c}_0$ と $\bm{c}_1$ は平行で（ある・ない）。理由：\\[1mm]
+          図形：\phantom{XXXXXXXXXXXXXXXX}　次元：（　　）
+        \item $\bm{X}\bm{w} = \bm{y}$ を成分で書くと
+          \begin{equation*}
+            \phantom{XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX}
+          \end{equation*}
+          はじめの2式から $w_1 = $ \phantom{XXX}, $w_0 = $ \phantom{XXX} \\
+          第3式に代入すると \phantom{XXXXXXXXXX} となり、（成り立つ・成り立たない）。\\[1mm]
+          よって $\bm{y}$ は $\mathrm{Col}(\bm{X})$ に（属する・属さない）。\\
+          意味：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{ランクと多重共線性}\quad
+    \begin{equation*}
+      \bm{X} = \begin{pmatrix} 1 & 2 & 4 \\ 1 & 3 & 6 \\ 1 & 5 & 10 \end{pmatrix}
+    \end{equation*}
+    とする。
+    \begin{enumerate}
+      \item 第3列と第2列の関係を述べよ。
+      \item $\bm{X}\bm{v} = \bm{0}$ を満たす $\bm{v} \neq \bm{0}$ を1つ求めよ。
+      \item $\mathrm{rank}(\bm{X})$ を求めよ。
+      \item $\bm{w}^* = (1, 2, 1)^\top$ が経験損失を最小にするとき、
+        同じ予測を与える別のパラメータを1つ挙げよ。
+        この事実は、最適なパラメータの一意性について何を意味するか。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 列を $\bm{c}_0, \bm{c}_1, \bm{c}_2$ とすると、
+          \begin{equation*}
+            \bm{c}_2 = \phantom{XXXXXX}
+          \end{equation*}
+        \item (a) の関係を線形結合の形に書き直すと \phantom{XXXXXXXXXXXX} であるから
+          \begin{equation*}
+            \bm{v} =
+          \end{equation*}
+          確認：$\bm{X}\bm{v} = $
+        \item 線形独立な列の最大個数を考えると
+          \begin{equation*}
+            \mathrm{rank}(\bm{X}) = \phantom{XX}
+          \end{equation*}
+          理由：
+        \item $\bm{X}\bm{v} = \bm{0}$ より、任意の $t$ に対して $\bm{X}(\bm{w}^* + t\bm{v}) = $ \phantom{XXXXXX} \\
+          $t = 1$ として
+          \begin{equation*}
+            \bm{w}^{**} = \bm{w}^* + \bm{v} =
+          \end{equation*}
+          確認（両方の予測を計算する）：
+          \begin{align*}
+            \bm{X}\bm{w}^*   &= \\
+            \bm{X}\bm{w}^{**} &=
+          \end{align*}
+          一意性についての意味：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{仮説空間と列空間}\quad
+    $N$ 件のデータに対する線形モデルを考える。
+    \begin{enumerate}
+      \item $N = 100$、$d = 3$（バイアス項を含めて4列）のとき、
+        $\mathrm{Col}(\bm{X})$ は $\mathbb{R}^{100}$ の中の高々何次元の部分空間か。
+      \item 真の値のベクトル $\bm{y} \in \mathbb{R}^{100}$ が
+        $\mathrm{Col}(\bm{X})$ に属さないとき、経験損失を $0$ にできるか。理由とともに述べよ。
+      \item 第1回の問7では「$N$ 個のデータ点に対し $M = N-1$ 次の多項式なら経験損失を $0$ にできる」
+        ことを見た。この事実を、列空間の次元という観点から説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\mathrm{rank}(\bm{X}) \leq \phantom{XXXXXXXX}$ であるから、高々（　　）次元。
+        \item （できる・できない）\\
+          理由（予測 $\hat{\bm{y}}$ がどこにあるか、$\bm{y}$ がどこにあるかを使って説明する）：\\[8mm]
+          達成できる最小値は \phantom{XXXXXXXXXXXXXXXX} であり、そのときの予測は
+          $\bm{y}$ の \phantom{XXXXXXXX} である。
+        \item $M = N-1$ 次多項式に対する計画行列は
+          \begin{equation*}
+            \bm{X} = \phantom{XXXXXXXXXXXXXXXXXXXXXX} \in \mathbb{R}^{(\ \ ) \times (\ \ )}
+          \end{equation*}
+          $x_i$ が互いに異なるとき $\mathrm{rank}(\bm{X}) = $ \phantom{XX} であり、
+          $\mathrm{Col}(\bm{X}) = $ \phantom{XXXXXX} となる。\\[1mm]
+          次数を上げることは、列空間について何をすることか：\\[6mm]
+          過学習との関係：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{フロベニウスノルム}\quad
+    \begin{equation*}
+      \bm{A} = \begin{pmatrix} 3 & 0 \\ 4 & 12 \end{pmatrix}, \qquad
+      \bm{B} = \begin{pmatrix} 3 & 1 \\ 4 & 12 \end{pmatrix}
+    \end{equation*}
+    とする。
+    \begin{enumerate}
+      \item $\|\bm{A}\|_F$ を求めよ。
+      \item $\bm{A}$ の各列のノルム $\|\bm{c}_1\|, \|\bm{c}_2\|$ を求め、
+        $\|\bm{A}\|_F^2 = \|\bm{c}_1\|^2 + \|\bm{c}_2\|^2$ が成り立つことを確認せよ。
+      \item $\|\bm{A} - \bm{B}\|_F$ を求めよ。この値は何を意味するか。
+      \item $\mathrm{tr}(\bm{A}^\top \bm{A})$ を計算し、$\|\bm{A}\|_F^2$ と一致することを確認せよ。
+      \item ニューラルネットワークの学習において
+        $L_D(\bm{W}) + \lambda \|\bm{W}\|_F^2$ を最小化することの意味を、
+        $\lambda$ を大きくした場合に $\bm{W}$ がどうなるかとあわせて説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \|\bm{A}\|_F =
+          \end{equation*}
+        \item
+          \begin{align*}
+            \|\bm{c}_1\| &= \\
+            \|\bm{c}_2\| &=
+          \end{align*}
+          確認：$\|\bm{c}_1\|^2 + \|\bm{c}_2\|^2 = $ \phantom{XXXXXX} $= \|\bm{A}\|_F^2$
+        \item
+          \begin{equation*}
+            \bm{A} - \bm{B} = \phantom{XXXXXXXXXX}, \qquad \|\bm{A}-\bm{B}\|_F =
+          \end{equation*}
+          意味：
+        \item
+          \begin{equation*}
+            \bm{A}^\top \bm{A} =
+          \end{equation*}
+          \begin{equation*}
+            \mathrm{tr}(\bm{A}^\top \bm{A}) =
+          \end{equation*}
+        \item 第1項が表すもの：\\[3mm]
+          第2項が表すもの：\\[3mm]
+          $\lambda$ を大きくすると $\bm{W}$ は：\\[3mm]
+          $\lambda \to \infty$ のとき $\bm{W} \to $ \phantom{XXXX}、$\lambda = 0$ のときは \\[3mm]
+          過学習との関係：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{行列の積と内積}\quad
+    \begin{equation*}
+      \bm{A} = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix} \in \mathbb{R}^{2 \times 2},
+      \qquad
+      \bm{B} = \begin{pmatrix} 1 & 2 & 0 \\ 1 & 0 & 3 \end{pmatrix} \in \mathbb{R}^{2 \times 3}
+    \end{equation*}
+    とする。
+    \begin{enumerate}
+      \item 積 $\bm{A}\bm{B}$ は何行何列の行列か。また、積 $\bm{B}\bm{A}$ は定義されるか。
+      \item $\bm{A}$ の第 $i$ 行を $\bm{r}_i^\top$、$\bm{B}$ の第 $j$ 列を $\bm{c}_j$ とするとき、
+        $(\bm{A}\bm{B})_{ij} = \bm{r}_i^\top \bm{c}_j$ が成り立つことを、
+        行列の積の定義 $(\bm{A}\bm{B})_{ij} = \sum_{k} a_{ik} b_{kj}$ から示せ。
+      \item $\bm{A}\bm{B}$ を計算せよ。$6$ 個の成分がそれぞれどの行とどの列の内積か明記すること。
+      \item $\bm{B}^\top \bm{A}^\top$ を計算し、$(\bm{A}\bm{B})^\top$ と一致することを確認せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\bm{A}\bm{B}$ は（　　）行（　　）列。\\
+          $\bm{B}\bm{A}$ は（定義される・定義されない）。理由：
+        \item $\bm{r}_i$ と $\bm{c}_j$ はどちらも（　　）次元ベクトルなので内積がとれる。
+          \begin{align*}
+            \bm{r}_i^\top \bm{c}_j &= \sum_{k=1}^{n} \phantom{XXXXXXXX} \\
+                                   &= \phantom{XXXXXXXX} \\
+                                   &= (\bm{A}\bm{B})_{ij}
+          \end{align*}
+          \hfill $\blacksquare$
+        \item $\bm{r}_1 = $ \phantom{XXXX}, $\bm{r}_2 = $ \phantom{XXXX},
+          $\bm{c}_1 = $ \phantom{XXXX}, $\bm{c}_2 = $ \phantom{XXXX}, $\bm{c}_3 = $ \phantom{XXXX}
+          \begin{align*}
+            (\bm{A}\bm{B})_{11} &= \bm{r}_1^\top\bm{c}_1 = &
+            (\bm{A}\bm{B})_{12} &= \bm{r}_1^\top\bm{c}_2 = \\
+            (\bm{A}\bm{B})_{13} &= \bm{r}_1^\top\bm{c}_3 = &
+            (\bm{A}\bm{B})_{21} &= \bm{r}_2^\top\bm{c}_1 = \\
+            (\bm{A}\bm{B})_{22} &= \bm{r}_2^\top\bm{c}_2 = &
+            (\bm{A}\bm{B})_{23} &= \bm{r}_2^\top\bm{c}_3 =
+          \end{align*}
+          \begin{equation*}
+            \bm{A}\bm{B} =
+          \end{equation*}
+          この結果になる理由（$\bm{A}$ がどんな行列か）：
+        \item
+          \begin{equation*}
+            \bm{B}^\top = \phantom{XXXXXXXX}, \qquad \bm{A}^\top = \phantom{XXXXXXXX}
+          \end{equation*}
+          \begin{equation*}
+            \bm{B}^\top \bm{A}^\top = \phantom{XXXXXXXX}, \qquad (\bm{A}\bm{B})^\top = \phantom{XXXXXXXX}
+          \end{equation*}
+          一般の公式：$(\bm{A}\bm{B})^\top = $ \phantom{XXXXXXXX}
+          （順序が入れ替わる理由を次元から説明する）：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{固有値と固有ベクトル}\quad
+    \begin{equation*}
+      \bm{A} = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix},
+      \qquad
+      \bm{B} = \begin{pmatrix} 1 & 2 \\ 2 & 4 \end{pmatrix}
+    \end{equation*}
+    とする。
+    \begin{enumerate}
+      \item $\bm{A}$ の特性方程式 $\det(\bm{A} - \lambda\bm{I}_2) = 0$ を書き下し、
+        固有値 $\lambda_1 > \lambda_2$ を求めよ。
+      \item 各固有値に対応する固有ベクトルを1つずつ求めよ。
+      \item (b) で求めた固有ベクトル $\bm{v}$ について $\bm{A}\bm{v}$ を実際に計算し、
+        向きが変わらず長さが $\lambda$ 倍になっていることを確認せよ。
+      \item $\bm{B}$ の固有値を求めよ。固有値 $0$ をもつことを確認し、
+        それが $\mathrm{rank}(\bm{B})$ および $\bm{B}$ の列の線形従属性と
+        どう対応しているかを説明せよ。
+      \item (d) の固有値 $0$ に対応する固有ベクトル $\bm{v}$ を求め、
+        $\bm{B}\bm{v} = \bm{0}$ を確認せよ。
+        第3.5.5項の議論に照らして、この $\bm{v}$ が何を意味するかを述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \bm{A} - \lambda\bm{I}_2 =
+          \end{equation*}
+          \begin{align*}
+            \det(\bm{A} - \lambda\bm{I}_2) &= \\
+                                           &= 0
+          \end{align*}
+          $\lambda_1 = $ \phantom{XXX}, \quad $\lambda_2 = $ \phantom{XXX}
+        \item $\lambda_1$ のとき：$(\bm{A} - \lambda_1\bm{I}_2)\bm{v} = \bm{0}$ より
+          \phantom{XXXXXXXXXX}、よって $\bm{v}_1 = $ \phantom{XXXXXX} \\[2mm]
+          $\lambda_2$ のとき：\phantom{XXXXXXXXXX}、よって $\bm{v}_2 = $ \phantom{XXXXXX}
+        \item
+          \begin{align*}
+            \bm{A}\bm{v}_1 &= \phantom{XXXXXXXXXXXX} = \phantom{XX}\bm{v}_1 \\
+            \bm{A}\bm{v}_2 &= \phantom{XXXXXXXXXXXX} = \phantom{XX}\bm{v}_2
+          \end{align*}
+          長さの確認：$\|\bm{v}_1\| = $ \phantom{XXX}, $\|\bm{A}\bm{v}_1\| = $ \phantom{XXX}
+          （　　）倍
+        \item
+          \begin{align*}
+            \det(\bm{B} - \lambda\bm{I}_2) &= \\
+                                           &= 0
+          \end{align*}
+          $\lambda = $ \phantom{XXXXXX} \\[2mm]
+          $\bm{B}$ の列の関係：\phantom{XXXXXXXXXXXX}　→　$\mathrm{rank}(\bm{B}) = $ \phantom{XX} \\[2mm]
+          「ランク落ち」と「固有値 $0$ をもつ」の対応：
+        \item $\bm{B}\bm{v} = \bm{0}$ を成分で書くと \phantom{XXXXXXXXXXXX}、よって
+          \begin{equation*}
+            \bm{v} =
+          \end{equation*}
+          確認：$\bm{B}\bm{v} = $ \phantom{XXXXXX} \\[2mm]
+          $\bm{B}$ を計画行列と見たときの $\bm{v}$ の意味：
+      \end{enumerate}
+    \end{answer}
+
+\end{enumerate}
+
+\pagebreak
+
+\section*{LaTeX の書き方（参考）}
+
+第3回の課題で使う数式の書き方をまとめる。
+数式は \verb|$ ... $| で囲む（行の中に書く場合）か、
+\verb|\begin{equation*} ... \end{equation*}| で囲む（1行独立させる場合）。
+
+\begin{center}
+\small
+\begin{tabular}{l|l}
+\hline
+表示 & 書き方 \\
+\hline\hline
+$\bm{A}$（行列） & \verb|\bm{A}| \\
+$\bm{x}$（ベクトル） & \verb|\bm{x}| \\
+$a_{ij}$（成分） & \verb|a_{ij}| \\
+$\bm{A}^\top$（転置） & \verb|\bm{A}^\top| \\
+$\bm{r}_i$, $\bm{c}_j$（行・列） & \verb|\bm{r}_i|, \verb|\bm{c}_j| \\
+$\bm{I}_2$（単位行列） & \verb|\bm{I}_2| \\
+$\det(\bm{A} - \lambda\bm{I}_2)$ & \verb|\det(\bm{A} - \lambda\bm{I}_2)| \\
+$\hat{\bm{y}}$（予測ベクトル） & \verb|\hat{\bm{y}}| \\
+$\bm{w}^*$（最適パラメータ） & \verb|\bm{w}^*| \\
+$\mathrm{Col}(\bm{X})$（列空間） & \verb|\mathrm{Col}(\bm{X})| \\
+$\mathrm{rank}(\bm{X})$（ランク） & \verb|\mathrm{rank}(\bm{X})| \\
+$\|\bm{A}\|_F$（フロベニウスノルム） & \verb+\|\bm{A}\|_F+ \\
+$\mathrm{tr}(\bm{A}^\top\bm{A})$（トレース） & \verb|\mathrm{tr}(\bm{A}^\top\bm{A})| \\
+$\lambda$, $\bm{v}$（固有値・固有ベクトル） & \verb|\lambda|, \verb|\bm{v}| \\
+$\mathbb{R}^{m \times n}$ & \verb|\mathbb{R}^{m \times n}| \\
+$\displaystyle\sum_{k=1}^{n} a_{ik} b_{kj}$ & \verb|\sum_{k=1}^{n} a_{ik} b_{kj}| \\
+$\{\, \bm{X}\bm{w} \mid \bm{w} \in \mathbb{R}^{d+1} \,\}$ & \verb+\{\, \bm{X}\bm{w} \mid ... \,\}+ \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{行列の書き方}（\verb|pmatrix| 環境。\verb|&| で列を区切り、\verb|\\| で行を変える）：
+\begin{verbatim}
+\begin{equation*}
+  \bm{X} = \begin{pmatrix} 1 & 20 & 5 \\ 1 & 35 & 10 \\ 1 & 50 & 3 \end{pmatrix}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  \bm{X} = \begin{pmatrix} 1 & 20 & 5 \\ 1 & 35 & 10 \\ 1 & 50 & 3 \end{pmatrix}
+\end{equation*}
+
+\noindent
+\textbf{縦ベクトルの書き方}（列が1つだけの行列と考える）：
+\begin{verbatim}
+\begin{equation*}
+  \bm{y} = \begin{pmatrix} 12 \\ 15 \\ 20 \end{pmatrix}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  \bm{y} = \begin{pmatrix} 12 \\ 15 \\ 20 \end{pmatrix}
+\end{equation*}
+
+\noindent
+横に書いて転置を付ける方法もある（紙面を節約できる）：
+\verb|$\bm{y} = (12, 15, 20)^\top$| → $\bm{y} = (12, 15, 20)^\top$
+
+\medskip
+\noindent
+\textbf{計算過程を複数行で書く例}（\verb|align*| 環境。\verb|&| の位置で揃う）：
+\begin{verbatim}
+\begin{align*}
+  \bm{A}\bm{x} &= 1\begin{pmatrix} 2 \\ -1 \end{pmatrix}
+                  + 2\begin{pmatrix} 0 \\ 3 \end{pmatrix} \\
+               &= \begin{pmatrix} 2 \\ 5 \end{pmatrix}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \bm{A}\bm{x} &= 1\begin{pmatrix} 2 \\ -1 \end{pmatrix}
+                  + 2\begin{pmatrix} 0 \\ 3 \end{pmatrix} \\
+               &= \begin{pmatrix} 2 \\ 5 \end{pmatrix}
+\end{align*}
+
+\noindent
+\textbf{証明で「どの定義を使ったか」を右側に書く例}（\verb|&&\text{...}| を使う）：
+\begin{verbatim}
+\begin{align*}
+  \bigl(\bm{A}(\bm{x}+\bm{y})\bigr)_i
+    &= \sum_{j} a_{ij}(x_j + y_j) && \text{（積の定義）} \\
+    &= \sum_{j} a_{ij}x_j + \sum_{j} a_{ij}y_j && \text{（分配法則）}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \bigl(\bm{A}(\bm{x}+\bm{y})\bigr)_i
+    &= \sum_{j} a_{ij}(x_j + y_j) && \text{（積の定義）} \\
+    &= \sum_{j} a_{ij}x_j + \sum_{j} a_{ij}y_j && \text{（分配法則）}
+\end{align*}
+
+\noindent
+\textbf{注意}：テンプレート中の \verb|\phantom{XXXX}| は答えを書く空白である。
+解答を書くときはこの部分を自分の答えで置き換えること。
+
+\end{document}
