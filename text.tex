@@ -3123,6 +3123,29 @@ $\bm{w}$ が $\mathbb{R}^{d+1}$ 全体を動くとき、$\bm{X}\bm{w}$ は
 \textbf{純粋に幾何学的な問題}である。
 パラメータの話が、距離の話になった。
 
+この対応を図\ref{fig:ch4-rewrite}に示す。
+図の $\bm{w}^{(1)}, \bm{w}^{(2)}, \bm{w}^{(3)}$ は、パラメータの選び方を3通り例示したものである。
+特別な値ではなく、$\mathbb{R}^{d+1}$ のどこにとってもよい。
+
+$\bm{w}$ を一つ選ぶことは、左の図で点を一つ選ぶことである。
+その $\bm{w}$ に $\bm{X}$ を掛けると、右の図の列空間 $\mathrm{Col}(\bm{X})$ の上に
+点 $\bm{X}\bm{w}$ が一つ定まる。
+$\bm{w}$ を動かせば右の点も動くが、どう動かしても $\mathrm{Col}(\bm{X})$ の外には出られない。
+したがって問題は
+「$\mathrm{Col}(\bm{X})$ 上のどの点が $\bm{y}$ に最も近いか」に帰着する。
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch4_rewrite}
+  \caption{式\eqref{eq:ch4-rewrite}の読み替え。左はパラメータの空間、右は予測の空間であり、
+  $\bm{X}$ を掛ける操作が両者を結んでいる。
+  $\bm{w}^{(1)}, \bm{w}^{(2)}, \bm{w}^{(3)}$ はパラメータの選び方の例であり、
+  それぞれが右の $\mathrm{Col}(\bm{X})$ 上の1点に対応する。
+  パラメータをどう選ぶかという問いが、$\mathrm{Col}(\bm{X})$ 上のどの点が $\bm{y}$ に近いかという
+  距離の問いに置き換わる。}
+  \label{fig:ch4-rewrite}
+\end{figure}
+
 \subsubsection{直交性の原理}
 
 幾何学的な直感を述べよう。
@@ -3165,24 +3188,90 @@ $\bm{v} \in \mathrm{Col}(\bm{X})$ を任意にとる。
   \;\geq\; \|\bm{y} - \bm{v}^*\|^2
   \label{eq:ch4-pythagoras}
 \end{equation}
-を得る。等号が成り立つのは $\|\bm{v}^* - \bm{v}\| = 0$、すなわち $\bm{v} = \bm{v}^*$ のときだけである。
+を得る。
+
+最後の不等号は、第2項 $\|\bm{v}^* - \bm{v}\|^2$ が\textbf{つねに $0$ 以上}であることから従う
+（ノルムの非負性、第2.2.2項）。
+右辺の第1項 $\|\bm{y} - \bm{v}^*\|^2$ は $\bm{v}$ に依存しない定数なので、
+$\bm{v}$ をどう選んでも $\|\bm{y} - \bm{v}\|^2$ はこの定数より小さくなれない。
+
+等号が成り立つのは第2項が $0$ になるとき、
+すなわち $\|\bm{v}^* - \bm{v}\| = 0$、言い換えれば $\bm{v} = \bm{v}^*$ のときだけである
+（ノルムが $0$ になるのは零ベクトルのときに限る、という非負性の後半を使った）。
 よって $\bm{v}^*$ が唯一の最小点である。
 
 \paragraph{必要性}
-逆に、ある $\bm{u} \in \mathrm{Col}(\bm{X})$ に対して
-$\bm{u}^\top(\bm{y} - \bm{v}^*) = c \neq 0$ であったとする。
-$\bm{u} \neq \bm{0}$ としてよい。
-$t$ を実数として $\bm{v}_t = \bm{v}^* + t\bm{u} \in \mathrm{Col}(\bm{X})$ を考えると
+示したい主張を記号で置く。
 \begin{align*}
-  \|\bm{y} - \bm{v}_t\|^2
-    &= \|(\bm{y} - \bm{v}^*) - t\bm{u}\|^2 \\
-    &= \|\bm{y} - \bm{v}^*\|^2 - 2t\,\bm{u}^\top(\bm{y} - \bm{v}^*) + t^2\|\bm{u}\|^2 \\
-    &= \|\bm{y} - \bm{v}^*\|^2 - 2tc + t^2\|\bm{u}\|^2
+  P &: \text{誤差 $\bm{y} - \bm{v}^*$ が $\mathrm{Col}(\bm{X})$ のすべてのベクトルと直交する} \\
+  Q &: \text{$\bm{v}^*$ が $\|\bm{y} - \bm{v}\|$ を最小にする}
 \end{align*}
-となる。$t$ を $c$ と同じ符号でごく小さくとれば $-2tc < 0$ が $t^2\|\bm{u}\|^2$ を上回り、
-$\|\bm{y} - \bm{v}_t\| < \|\bm{y} - \bm{v}^*\|$ となる。
-すなわち $\bm{v}^*$ は最小点ではない。
-対偶をとれば、最小点では直交条件が成り立つ。\hfill $\blacksquare$
+必要性とは $Q \Rightarrow P$ のことである。
+これを直接示すのは難しいので、\textbf{対偶} $\lnot P \Rightarrow \lnot Q$、すなわち
+\begin{center}
+「直交しないベクトルが一つでもあれば、$\bm{v}^*$ より近い点が作れる」
+\end{center}
+を示す。対偶が真であれば元の主張も真である。
+
+\medskip
+そこで、ある $\bm{u} \in \mathrm{Col}(\bm{X})$ に対して
+\begin{equation*}
+  \bm{u}^\top(\bm{y} - \bm{v}^*) = c \neq 0
+\end{equation*}
+であったとする（$\lnot P$ の仮定）。
+このとき $\bm{u} \neq \bm{0}$ である。$\bm{u} = \bm{0}$ なら内積は $0$ になり、$c \neq 0$ に反するからである。
+
+列空間は部分空間なので、任意の実数 $t$ に対して
+$\bm{v}_t = \bm{v}^* + t\bm{u}$ もまた $\mathrm{Col}(\bm{X})$ に属する。
+$\bm{u}$ の方向に $\bm{v}^*$ をずらした点である。
+この点での誤差を、第2回で示した展開
+$\|\bm{a}-\bm{b}\|^2 = \|\bm{a}\|^2 - 2\bm{a}^\top\bm{b} + \|\bm{b}\|^2$ を使って計算すると
+\begin{align}
+  \|\bm{y} - \bm{v}_t\|^2
+    &= \|(\bm{y} - \bm{v}^*) - t\bm{u}\|^2 \notag \\
+    &= \|\bm{y} - \bm{v}^*\|^2 - 2t\,\bm{u}^\top(\bm{y} - \bm{v}^*) + t^2\|\bm{u}\|^2 \notag \\
+    &= \|\bm{y} - \bm{v}^*\|^2 + g(t),
+      \qquad g(t) = t^2\|\bm{u}\|^2 - 2ct
+  \label{eq:ch4-necessity}
+\end{align}
+となる。$\bm{v}^*$ より誤差を小さくできるかは、\textbf{$g(t)$ を負にできるか}だけで決まる。
+
+$g$ は $t$ の下に凸な2次関数であり、$g(0) = 0$ である。
+$g'(t) = 2t\|\bm{u}\|^2 - 2c = 0$ より $t = c/\|\bm{u}\|^2$ で最小になる。
+この値を代入すると
+\begin{equation}
+  g\!\left( \frac{c}{\|\bm{u}\|^2} \right)
+   = \frac{c^2}{\|\bm{u}\|^2} - \frac{2c^2}{\|\bm{u}\|^2}
+   = -\frac{c^2}{\|\bm{u}\|^2} \;<\; 0
+  \label{eq:ch4-gmin}
+\end{equation}
+である。$c \neq 0$ より分子は正、$\bm{u} \neq \bm{0}$ より分母は正だからである。
+したがって、この $t$ に対して
+\begin{equation*}
+  \|\bm{y} - \bm{v}_t\|^2
+   = \|\bm{y} - \bm{v}^*\|^2 - \frac{c^2}{\|\bm{u}\|^2}
+   \;<\; \|\bm{y} - \bm{v}^*\|^2
+\end{equation*}
+となる。$\bm{v}^*$ より $\bm{y}$ に近い点が $\mathrm{Col}(\bm{X})$ の中に実際に見つかったので、
+$\bm{v}^*$ は最小点ではない。すなわち $\lnot Q$ である。
+
+\medskip
+これで $\lnot P \Rightarrow \lnot Q$ が示された。対偶をとると
+\begin{center}
+$Q \Rightarrow P$：\quad $\bm{v}^*$ が最小点ならば、誤差は $\mathrm{Col}(\bm{X})$ のすべてのベクトルと直交する
+\end{center}
+となり、これが示したかった必要性である。\hfill $\blacksquare$
+
+\medskip
+\noindent
+なお、最適な $t = c/\|\bm{u}\|^2$ には意味がある。これは
+\begin{equation*}
+  t\bm{u} = \frac{\bm{u}^\top(\bm{y} - \bm{v}^*)}{\|\bm{u}\|^2}\,\bm{u}
+\end{equation*}
+と書けるので、\textbf{誤差 $\bm{y}-\bm{v}^*$ を $\bm{u}$ の方向へ正射影したベクトル}そのものである
+（第2.4.3項）。
+直交していない分だけ $\bm{u}$ 方向に動けば、その分だけ誤差が縮む。
+ここでも正射影が顔を出している。
 
 \begin{figure}[H]
   \centering

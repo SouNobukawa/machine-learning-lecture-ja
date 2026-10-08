@@ -870,6 +870,66 @@ def fig_eigen_ml():
     save(fig, "ch3_eigen_ml")
 
 # ---------------------------------------------------------------- chapter 4
+def fig_param_to_distance():
+    """The same choice seen twice: pick a w on the left, land on a point on the right."""
+    fig, axes = plt.subplots(1, 2, figsize=(6.3, 3.0),
+                             gridspec_kw={"width_ratios": [1.0, 1.45]})
+    cols = [NAVY, GREEN, "#B5651D"]
+    labs = [r"$\boldsymbol{w}^{(1)}$", r"$\boldsymbol{w}^{(2)}$", r"$\boldsymbol{w}^{(3)}$"]
+
+    # ---- left: the parameter space, nothing special about any point
+    ax = axes[0]
+    ax.add_patch(plt.Rectangle((-1.5, -1.3), 3.0, 2.6, facecolor="#FAFAF6",
+                               edgecolor=GRAY, lw=1.0, ls="--"))
+    ax.text(-1.42, 1.10, r"$\mathbb{R}^{d+1}$（パラメータの空間）", color=GRAY, fontsize=8)
+    W = [(-0.75, 0.52), (0.62, 0.70), (0.18, -0.72)]
+    for (x, y), c, lab in zip(W, cols, labs):
+        ax.scatter(x, y, s=48, color=c, zorder=5)
+        ax.text(x + 0.10, y + 0.16, lab, color=c, fontsize=9)
+    ax.text(0.0, -1.62, "どの $\\boldsymbol{w}$ を選ぶか", ha="center", fontsize=9, color=INK_T)
+    ax.set_xlim(-1.8, 1.8); ax.set_ylim(-2.0, 1.6)
+    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+
+    # ---- right: the output space, where the choice becomes a distance
+    ax = axes[1]
+    P = np.array([[-2.0, -0.95], [2.0, -1.45], [2.8, 0.45], [-1.2, 0.95]])
+    ax.add_patch(plt.Polygon(P, closed=True, facecolor="#DCE6F1", edgecolor=NAVY,
+                             lw=1.0, alpha=0.85, zorder=1))
+    ax.text(1.42, -1.14, r"$\mathrm{Col}(\boldsymbol{X})$", color=NAVY, fontsize=8.5)
+    ax.text(-2.5, 1.95, r"$\mathbb{R}^{N}$（予測の空間）", color=GRAY, fontsize=8)
+
+    y = np.array([0.55, 1.75])
+    V = [np.array([-1.05, -0.28]), np.array([1.35, -0.42]), np.array([0.30, -0.02])]
+    for v, c in zip(V, cols):
+        ax.plot([v[0], y[0]], [v[1], y[1]], color=c, lw=1.1, ls=":", zorder=3)
+        ax.scatter(*v, s=48, color=c, zorder=5)
+    ax.text(V[0][0] - 0.52, V[0][1] - 0.46, r"$\boldsymbol{X}\boldsymbol{w}^{(1)}$",
+            color=cols[0], fontsize=9)
+    ax.text(V[1][0] + 0.12, V[1][1] - 0.38, r"$\boldsymbol{X}\boldsymbol{w}^{(2)}$",
+            color=cols[1], fontsize=9)
+    ax.text(V[2][0] - 0.30, V[2][1] - 0.52, r"$\boldsymbol{X}\boldsymbol{w}^{(3)}$",
+            color=cols[2], fontsize=9)
+    ax.scatter(*y, s=60, color=RED, zorder=6)
+    ax.text(y[0] + 0.16, y[1] - 0.05, r"$\boldsymbol{y}$", color=RED, fontsize=11)
+    ax.text(0.5, -1.98, "どれが $\\boldsymbol{y}$ に最も近いか", ha="center", fontsize=9, color=INK_T)
+    ax.set_xlim(-2.6, 3.2); ax.set_ylim(-2.35, 2.25)
+    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+
+    # the map between the two pictures
+    fig.subplots_adjust(wspace=0.08)
+    from matplotlib.patches import FancyArrowPatch
+    fig.add_artist(FancyArrowPatch((0.368, 0.50), (0.447, 0.50),
+                                   transform=fig.transFigure, arrowstyle="-|>",
+                                   mutation_scale=18, lw=1.7, color=INK_T))
+    fig.text(0.408, 0.565, r"$\boldsymbol{X}\boldsymbol{w}$", fontsize=11,
+             ha="center", va="bottom", color=INK_T)
+    save(fig, "ch4_rewrite")
+
+
 def fig_ls_projection():
     """Least squares as a projection, and the Pythagorean reason it is optimal."""
     fig, axes = plt.subplots(1, 2, figsize=(6.3, 3.0))
@@ -1025,4 +1085,5 @@ if __name__ == "__main__":
     fig_neuron_diagram(); fig_layer_diagram(); fig_attention_flow(); fig_embedding()
     fig_span(); fig_independence(); fig_linearmap(); fig_matmul(); fig_colspace_sweep(); fig_colspace(); fig_flat_valley()
     fig_eigen(); fig_eigen_ml()
-    fig_ls_projection(); fig_ls_gradient(); fig_pseudoinverse()
+    fig_param_to_distance(); fig_ls_projection()
+    fig_ls_gradient(); fig_pseudoinverse()
