@@ -1,8 +1,13 @@
 %\documentclass{jsarticle}
 \documentclass[a4paper,dvipdfmx]{jsarticle}
 \usepackage{amsmath}
+% Number equations, figures and tables within each section (e.g. (4.3), 図4.1)
+\numberwithin{equation}{section}
+\numberwithin{figure}{section}
+\numberwithin{table}{section}
 \usepackage{amssymb}
 \usepackage{bm}
+\usepackage[dvipdfmx]{xcolor}
 \usepackage[dvipdfmx]{hyperref}
 \usepackage{pxjahyper}
 \usepackage[dvipdfmx]{graphicx}
@@ -21,8 +26,15 @@
 \usepackage{ascmac}
 %\usepackage{fancybx}
 
+\definecolor{linknavy}{RGB}{31,58,95}
 \hypersetup{%
-    pdfborder = {0 0 0}
+    pdfborder = {0 0 0},
+    colorlinks = true,      % colored link text instead of boxes
+    linkcolor  = linknavy,  % TOC entries, \ref, \eqref
+    citecolor  = linknavy,
+    urlcolor   = linknavy,
+    linktoc    = all,       % both the title and the page number are clickable
+    bookmarksnumbered = true
 }
 
 \pagestyle{myheadings}

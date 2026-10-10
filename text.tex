@@ -1802,7 +1802,7 @@ $\bm{A} \in \mathbb{R}^{m \times n}$ の第 $i$ 行の成分を並べたベク�
 および第 $j$ 列の成分を並べたベクトルを、それぞれ
 \begin{align}
   \bm{r}_i &= (a_{i1},\; a_{i2},\; \ldots,\; a_{in})^\top \;\in\; \mathbb{R}^{n}
-    &&(i = 1, \ldots, m) \\
+    &&(i = 1, \ldots, m) \label{eq:row-vector} \\
   \bm{c}_j &= (a_{1j},\; a_{2j},\; \ldots,\; a_{mj})^\top \;\in\; \mathbb{R}^{m}
     &&(j = 1, \ldots, n)
 \end{align}
@@ -1820,12 +1820,12 @@ $\bm{A}$ の第 $i$ 行そのものは、$\bm{r}_i$ を横に倒した $\bm{r}_i
 
 \subsubsubsection{なぜ $\bm{r}_i$ に転置が付くのか}
 
-式(97)で $\bm{r}_i$ に $\top$ が付いていることに戸惑うかもしれない。
+式\eqref{eq:row-vector}で $\bm{r}_i$ に $\top$ が付いていることに戸惑うかもしれない。
 これは第2.1.1項の約束によるものである。
 本書ではベクトルをすべて\textbf{列ベクトル}として扱い、
 紙面では横に並べて書いて $\top$ を付けることで
 「これは縦に並んだ列ベクトルである」と示す、という約束であった。
-したがって式(97)は
+したがって式\eqref{eq:row-vector}は
 \begin{equation}
   \bm{r}_i = \begin{pmatrix} a_{i1} \\ a_{i2} \\ \vdots \\ a_{in} \end{pmatrix} \in \mathbb{R}^n
 \end{equation}
@@ -1835,7 +1835,7 @@ $\bm{A}$ の第 $i$ 行そのものは、$\bm{r}_i$ を横に倒した $\bm{r}_i
 $\bm{r}_i$ ではなく\textbf{その転置 $\bm{r}_i^\top$} が第 $i$ 行に一致する。
 つまり $\top$ は2つの役割で現れており、混同しないよう注意してほしい。
 \begin{itemize}
-  \item 式(97)の $\top$：横書きの組が\textbf{列}ベクトルであることを示す（表記上の約束）
+  \item 式\eqref{eq:row-vector}の $\top$：横書きの組が\textbf{列}ベクトルであることを示す（表記上の約束）
   \item $\bm{r}_i^\top$ の $\top$：列ベクトル $\bm{r}_i$ を\textbf{横に倒す}操作（第 $i$ 行そのもの）
 \end{itemize}
 
@@ -3371,6 +3371,26 @@ $\nabla f(\bm{w})$ は、その点で\textbf{$f$ が最も急に増える向き}
 したがって $-\nabla f(\bm{w})$ は最も急に減る向きであり、
 これが第5回で学ぶ\textbf{勾配降下法}の原理になる。
 
+図\ref{fig:gradient-concept}で具体例を見ておこう。
+$f(w_1, w_2) = w_1^2 + 2w_2^2$ の偏微分は
+$\partial f/\partial w_1 = 2w_1$、$\partial f/\partial w_2 = 4w_2$ であり、
+左図のように、それぞれ曲面を $w_1$ 軸・$w_2$ 軸に平行に切った断面曲線の傾きである。
+点 $\bm{w} = (1, 0.5)^\top$ ではどちらも $2$ なので $\nabla f(\bm{w}) = (2, 2)^\top$ となる。
+右図はこれを等高線の上に描いたもので、2つの偏微分がそのまま矢印の成分になっている。
+勾配はつねに等高線と直交し、等高線が密な（＝急な）場所ほど長い。
+$w_2$ 方向の係数が大きいため等高線は横長の楕円になり、
+同じ距離だけ動いても $w_2$ 方向の方が $f$ は速く増える。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch4_gradient_concept}
+  \caption{$f(w_1, w_2) = w_1^2 + 2w_2^2$ における偏微分と勾配。
+  左：偏微分は曲面を各軸に平行に切った断面（青・赤の曲線）の傾き（破線）である。
+  右：同じ関数の等高線と勾配ベクトル。点 $(1, 0.5)^\top$ での勾配 $(2, 2)^\top$ は
+  2つの偏微分を成分に持ち、灰色の矢印も含めすべて等高線に直交する。}
+  \label{fig:gradient-concept}
+\end{figure}
+
 関数が滑らかで下に凸なとき、最小点では $\nabla f(\bm{w}) = \bm{0}$ となる。
 どの向きに動いても増えも減りもしない、という状態である。
 
@@ -3411,7 +3431,11 @@ $\bm{A}$ が対称なら $\bm{A}^\top = \bm{A}$ なので、これは $2(\bm{A}\
 
 \subsubsection{経験損失を展開して微分する}
 
-$\|\bm{z}\|^2 = \bm{z}^\top\bm{z}$ を使って $L_D$ を展開する。
+$L_D(\bm{w}) = \frac{1}{N}\|\bm{y} - \bm{X}\bm{w}\|^2$（式\eqref{eq:ch4-setup}）を展開する。
+ここで $N$ はデータ件数である。
+係数 $\frac{1}{N}$ を毎回書くのは煩わしいので、両辺を $N$ 倍した $N \cdot L_D(\bm{w})$ を扱う。
+定数倍しても最小点は変わらないので（第4.1.1項）、勾配を $\bm{0}$ とおく議論には影響しない。
+$\|\bm{z}\|^2 = \bm{z}^\top\bm{z}$ を使うと
 \begin{align}
   N \cdot L_D(\bm{w})
     &= (\bm{y} - \bm{X}\bm{w})^\top (\bm{y} - \bm{X}\bm{w}) \notag \\
@@ -3460,20 +3484,153 @@ $\nabla L_D = \bm{0}$ は、厳密には「接平面が水平な点」（\textbf
 それだけでは最小・最大・鞍点のどれかは分からない。
 ここで最小だと言い切れるのは、$L_D$ が下に凸だからである。
 
-1変数の $f(w) = aw^2 - 2bw + c$ が下に凸である条件は $a > 0$ であった。
-多変数では、2階微分を並べた\textbf{ヘッセ行列}（Hessian matrix）が
-半正定値であることが対応する。式\eqref{eq:ch4-expand}をもう一度微分すると
+1変数の $f(w) = aw^2 - 2bw + c$ では、2階微分 $f''(w) = 2a$ の符号がすべてを決めていた。
+$a > 0$ なら下に凸で停留点はただ一つの最小点、
+$a = 0$ なら曲がっておらず（直線）停留点は最小点とは限らず、
+$a < 0$ なら上に凸で停留点は最大点である。
+
+多変数で $f''$ の役割を果たすのが、2階偏微分を並べた次の行列である。
+
+\begin{itembox}[l]{定義：ヘッセ行列}
+$f : \mathbb{R}^p \to \mathbb{R}$ が2回微分可能なとき、
+すべての2階偏微分を $p \times p$ に並べた行列
+\begin{equation}
+  \nabla^2 f(\bm{w}) =
+  \begin{pmatrix}
+    \dfrac{\partial^2 f}{\partial w_1^2} &
+    \dfrac{\partial^2 f}{\partial w_1 \partial w_2} & \cdots &
+    \dfrac{\partial^2 f}{\partial w_1 \partial w_p} \\[2ex]
+    \dfrac{\partial^2 f}{\partial w_2 \partial w_1} &
+    \dfrac{\partial^2 f}{\partial w_2^2} & \cdots &
+    \dfrac{\partial^2 f}{\partial w_2 \partial w_p} \\
+    \vdots & \vdots & \ddots & \vdots \\[1ex]
+    \dfrac{\partial^2 f}{\partial w_p \partial w_1} &
+    \dfrac{\partial^2 f}{\partial w_p \partial w_2} & \cdots &
+    \dfrac{\partial^2 f}{\partial w_p^2}
+  \end{pmatrix}
+  \in \mathbb{R}^{p \times p}
+\end{equation}
+を $f$ の\textbf{ヘッセ行列}（Hessian matrix）と呼ぶ。
+$(i, j)$ 成分は $\partial^2 f / \partial w_i \partial w_j$、
+すなわち「$w_j$ で偏微分してから $w_i$ で偏微分したもの」である。
+$f$ が滑らかなら偏微分の順序は交換できる
+（$\partial^2 f / \partial w_i \partial w_j = \partial^2 f / \partial w_j \partial w_i$）ので、
+ヘッセ行列は\textbf{対称行列}である。
+勾配 $\nabla f$ が「1階微分を並べたベクトル」であったのに対し、
+ヘッセ行列は「2階微分を並べた行列」であり、$\nabla^2$ はその意味の記号である。
+\end{itembox}
+
+$p = 1$ のときヘッセ行列は $1 \times 1$ 行列 $(f'')$ にほかならない。
+ただし多変数では「曲がり方」が方向ごとに異なりうる。
+点 $\bm{w}$ から向き $\bm{v} \in \mathbb{R}^p$ に沿って進んだときの $f$ の曲がり方、
+すなわち $g(t) = f(\bm{w} + t\bm{v})$ の2階微分は
+\begin{equation}
+  g''(0) = \bm{v}^\top \bigl( \nabla^2 f(\bm{w}) \bigr) \bm{v}
+  \label{eq:ch4-directional-curvature}
+\end{equation}
+で与えられる。
+つまり「ヘッセ行列に $\bm{v}$ を挟んだもの」は\textbf{向き $\bm{v}$ での2階微分}である。
+これが、第2.3.2項で定義した正定値・半正定値が
+ここで登場する理由である。
+
+\begin{itembox}[l]{定義（再掲）：正定値と半正定値}
+対称行列 $\bm{A} \in \mathbb{R}^{p \times p}$ について
+\begin{align*}
+  \text{正定値（positive definite）：} \quad
+    & \bm{v}^\top \bm{A}\bm{v} > 0 \quad (\text{すべての } \bm{v} \neq \bm{0}) \\
+  \text{半正定値（positive semi-definite）：} \quad
+    & \bm{v}^\top \bm{A}\bm{v} \geq 0 \quad (\text{すべての } \bm{v})
+\end{align*}
+等号 $\bm{v}^\top \bm{A}\bm{v} = 0$ を $\bm{v} \neq \bm{0}$ に対して許すかどうかが両者を分ける。
+\end{itembox}
+
+\paragraph{直感的な意味}
+ヘッセ行列に限らず、正定値・半正定値は次の3通りに捉えるとよい。
+図\ref{fig:definiteness}に、正定値な $\bm{A}$ と半正定値止まりの $\bm{B}$ を並べて3つの見方を示した。
+
+\textbf{「正の数」の行列版。}
+1変数で $a > 0$ は「$a v^2 > 0$ がすべての $v \neq 0$ で成り立つ」と言い換えられる。
+$\bm{v}^\top \bm{A}\bm{v} = \sum_{i}\sum_{j} a_{ij} v_i v_j$ は $a v^2$ の多変数版（2次形式）であり、
+これがつねに正になる $\bm{A}$ が正定値、つねに非負になる $\bm{A}$ が半正定値である。
+つまり正定値は「正の数」、半正定値は「非負の数」の行列への拡張であり、
+$a > 0$ と $a \geq 0$ の違いがそのまま両者の違いにあたる。
+例えば
+\begin{equation*}
+  \bm{A} = \begin{pmatrix} 1 & 0 \\ 0 & 2 \end{pmatrix}
+  \;\Longrightarrow\; \bm{v}^\top \bm{A}\bm{v} = v_1^2 + 2 v_2^2, \qquad
+  \bm{B} = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}
+  \;\Longrightarrow\; \bm{v}^\top \bm{B}\bm{v} = v_1^2
+\end{equation*}
+で、$\bm{A}$ は正定値（図\ref{fig:gradient-concept}左のお椀の形がまさに $\bm{v}^\top \bm{A}\bm{v}$ のグラフである）、
+$\bm{B}$ は半正定値だが正定値ではない。
+$\bm{B}$ では $\bm{v} = (0, 1)^\top$ のように $v_2$ 方向へ動いても値が変わらず、
+グラフはお椀ではなく、$v_2$ 方向に平らな\textbf{樋（とい）の形}になる。
+この「値が変わらない向き」が、第2.3.2項で述べた「つぶれた方向」である。
+
+\textbf{向きをほぼ保つ変換。}
+$\bm{v}^\top \bm{A}\bm{v} = \bm{v}^\top (\bm{A}\bm{v})$ は、
+$\bm{v}$ と、それを $\bm{A}$ で変換した $\bm{A}\bm{v}$ との内積である。
+第2回の内積の意味から、これが正であることは
+$\bm{v}$ と $\bm{A}\bm{v}$ のなす角が $90^\circ$ 未満であることを意味する。
+すなわち正定値な $\bm{A}$ は、どのベクトルも $90^\circ$ 以上は回さない
+（おおまかに向きを保つ）変換である。
+半正定値では、ちょうど $90^\circ$ 回す場合や、$\bm{A}\bm{v} = \bm{0}$ につぶす場合までが許される。
+
+\textbf{固有値で見る。}
+対称行列 $\bm{A}$ については、正定値であることは固有値がすべて正であること、
+半正定値であることは固有値がすべて非負であることと同値である（第3.7節）。
+固有値 $0$ に対応する固有ベクトルの向きが、上で述べた「つぶれた方向」にほかならない。
+上の例では $\bm{A}$ の固有値は $1, 2$、$\bm{B}$ の固有値は $1, 0$ である。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch4_definiteness}
+  \caption{正定値（上段：$\bm{A} = \mathrm{diag}(1,2)$）と半正定値（下段：$\bm{B} = \mathrm{diag}(1,0)$）の3つの見方。
+  左：2次形式 $\bm{v}^\top\bm{A}\bm{v}$ のグラフはお椀、$\bm{v}^\top\bm{B}\bm{v}$ は $v_2$ 方向に平らな樋になる。
+  中：$\bm{v}$（青）と $\bm{A}\bm{v}$（赤）のなす角はつねに $90^\circ$ 未満だが、
+  $\bm{B}$ は $\bm{v} = (0,1)^\top$ を $\bm{0}$ につぶす。
+  右：$\bm{A}$ の等高線は閉じた楕円で固有値はすべて正、
+  $\bm{B}$ は固有値 $0$ の固有ベクトルの向きに沿って値が一定で、等高線が閉じない。}
+  \label{fig:definiteness}
+\end{figure}
+
+\paragraph{ヘッセ行列の場合}
+$\bm{A}$ がヘッセ行列のとき、式\eqref{eq:ch4-directional-curvature}より
+$\bm{v}^\top \bm{A}\bm{v}$ は向き $\bm{v}$ での曲がり方なので、上の直感は次のように翻訳される。
+\begin{itemize}
+  \item \textbf{正定値}：どの向きに進んでも $f$ は上に曲がる（お椀の形）。
+    停留点は\textbf{ただ一つの}最小点である。
+  \item \textbf{半正定値}：どの向きにも下には曲がらないが、
+    $\bm{v}^\top \bm{A}\bm{v} = 0$ となる「平らな向き」があってよい（樋の形）。
+    停留点は最小点ではあるが、平らな向きに沿って最小点が\textbf{無数に}連なりうる。
+\end{itemize}
+
+$L_D$ の場合を見よう。式\eqref{eq:ch4-expand}をもう一度微分すると
 \begin{equation}
   \nabla^2 L_D(\bm{w}) = \frac{2}{N}\,\bm{X}^\top\bm{X}
 \end{equation}
 であり、これは $\bm{w}$ によらない定行列である。
-そして任意の $\bm{v}$ に対して
+そして任意の $\bm{v} \in \mathbb{R}^{d+1}$ に対して
 \begin{equation}
   \bm{v}^\top (\bm{X}^\top\bm{X}) \bm{v} = (\bm{X}\bm{v})^\top (\bm{X}\bm{v}) = \|\bm{X}\bm{v}\|^2 \geq 0
   \label{eq:ch4-psd}
 \end{equation}
-であるから、$\bm{X}^\top\bm{X}$ は\textbf{半正定値}である（第2.3.2項）。
-よって $L_D$ は下に凸であり、停留点は\textbf{大域的な最小点}である。
+であるから、$\bm{X}^\top\bm{X}$ は少なくとも\textbf{半正定値}である。
+よって $L_D$ はどの向きにも下に曲がらず（下に凸）、停留点は\textbf{大域的な最小点}である。
+これで「勾配が $\bm{0}$ の点が最小点だ」と言い切ってよい理由が確かめられた。
+
+さらに式\eqref{eq:ch4-psd}を見ると、
+等号 $\|\bm{X}\bm{v}\|^2 = 0$ が成り立つのは $\bm{X}\bm{v} = \bm{0}$ のときだけである。
+したがって $\bm{X}^\top\bm{X}$ が正定値か半正定値にとどまるかは、
+$\bm{X}\bm{v} = \bm{0}$ となる $\bm{v} \neq \bm{0}$ が存在するかどうか、
+すなわち $\bm{X}$ がフルランクかどうかで決まる。
+\begin{itemize}
+  \item $\bm{X}$ がフルランク：$\bm{X}^\top\bm{X}$ は\textbf{正定値}。
+    最小点は一意に定まる（第4.5.3項）。
+  \item $\bm{X}$ がランク落ち：$\bm{X}^\top\bm{X}$ は\textbf{半正定値だが正定値ではない}。
+    $\bm{X}\bm{v} = \bm{0}$ の向きには $L_D$ が平らで、
+    最小点がその向きに沿って無数に並ぶ（第3回の図\ref{fig:flat-valley}、第4.7節）。
+\end{itemize}
 
 式\eqref{eq:ch4-psd}は本章で何度も使う。覚えておく価値がある。
 「$\bm{X}^\top\bm{X}$ に $\bm{v}$ を挟んだものは $\bm{X}\bm{v}$ の長さの二乗」という事実である。
@@ -3677,8 +3834,13 @@ $\bm{c}_0^\top\bm{r} = 0$ は $\sum_i r_i = 0$、すなわち\textbf{残差の�
    = \frac{1}{3}\left( \frac{1}{36} + \frac{4}{36} + \frac{1}{36} \right)
    = \frac{1}{3} \cdot \frac{1}{6} = \frac{1}{18} \approx 0.056
 \end{equation*}
-である。第1回の演習問題で試した $h_a(x) = 2x+1$ や $h_b(x) = 1.5x + 1.5$ よりも小さい。
-当然である。$\bm{w}^*$ はすべての直線の中で最良なのだから。
+である。第1回の演習問題で試した2つの直線
+$h_a(x) = 2x+1$（$L_D = 1/3$）や $h_b(x) = 1.5x + 1.5$（$L_D = 1/12$）よりも小さい。
+これは当然である。$\bm{w}^*$ はすべての直線の中で経験損失を最小にするものであり、
+しかも $\bm{X}$ がフルランクなので最小点は $\bm{w}^*$ ただ一つである（第4.5.3項）。
+したがって $\bm{w}^*$ と異なる直線 $h_a$, $h_b$ の経験損失は、必ず $L_D(\bm{w}^*)$ より大きい。
+第1回では $h_a$ と $h_b$ の2つを比べて $h_b$ を選んだが、
+それは「与えられた候補の中での最良」であって、直線全体の中での最良ではなかったわけである。
 
 
 \subsection{ハット行列（射影行列）}
@@ -3719,6 +3881,9 @@ $\bm{X}^\top\bm{X}$ が対称なのでその逆行列も対称であり、
 \end{equation*}
 
 \paragraph{(2) 冪等性：$\bm{H}^2 = \bm{H}$}
+「冪等」は「べきとう」と読む（idempotent）。
+「冪」は累乗（べき乗）の意味で、何乗しても等しい、すなわち
+$\bm{H}^2 = \bm{H}^3 = \cdots = \bm{H}$ となる性質を指す。
 \begin{equation*}
   \bm{H}^2
    = \bm{X}(\bm{X}^\top\bm{X})^{-1}\underbrace{\bm{X}^\top\bm{X}(\bm{X}^\top\bm{X})^{-1}}_{\bm{I}}\bm{X}^\top
@@ -3770,27 +3935,95 @@ $\mathrm{tr}(\bm{A}\bm{B}) = \mathrm{tr}(\bm{B}\bm{A})$ という性質を使う
 行列 $\bm{X} \in \mathbb{R}^{N \times (d+1)}$ に対して
 \begin{equation}
   \mathrm{Null}(\bm{X}) = \{\, \bm{v} \in \mathbb{R}^{d+1} \mid \bm{X}\bm{v} = \bm{0} \,\}
+  \label{eq:null-space}
 \end{equation}
 を $\bm{X}$ の\textbf{零空間}（null space）または\textbf{核}（kernel）と呼ぶ。
 これは $\mathbb{R}^{d+1}$ の部分空間である。
 \end{itembox}
 
-$\bm{X}$ がフルランクなら $\mathrm{Null}(\bm{X}) = \{\bm{0}\}$ であり、
-ランクが落ちていれば $\bm{0}$ でない元を含む。
+記法を確認しておく（第1.2.1項）。
+$\{\, \cdots \mid \cdots \,\}$ は集合を表す書き方で、
+縦棒「$\mid$」を「ただし」と読み、
+\textbf{左側に集める要素の形}、\textbf{右側にその要素が満たすべき条件}を書く。
+式\eqref{eq:null-space}は
+「$\mathbb{R}^{d+1}$ のベクトル $\bm{v}$ のうち、$\bm{X}\bm{v} = \bm{0}$ を満たすものをすべて集めた集合」
+と読む。
+つまり $\mathrm{Null}(\bm{X})$ は一つのベクトルでも数でもなく、
+\textbf{条件 $\bm{X}\bm{v} = \bm{0}$ に合格するベクトルの集まり}である。
+$\bm{v} = \bm{0}$ はつねに条件を満たすので、零空間は少なくとも $\bm{0}$ を含む。
+また $\bm{v}_1, \bm{v}_2$ が条件を満たせば
+$\bm{X}(a\bm{v}_1 + b\bm{v}_2) = a\bm{X}\bm{v}_1 + b\bm{X}\bm{v}_2 = \bm{0}$ なので、
+その線形結合も条件を満たす。これが「部分空間である」の意味であり、
+第3.5.2項で列空間について確かめたのと同じ議論である。
 
-いま $\bm{w}^*$ が正規方程式の解の一つだとすると、
-任意の $\bm{v} \in \mathrm{Null}(\bm{X})$ に対して
+具体例を一つ挙げる。$\bm{X}$ の2つの列が $\bm{c}_1$ と $\bm{c}_2 = 2\bm{c}_1$ のように比例していれば、
+$\bm{v} = (2, -1)^\top$ に対して $\bm{X}\bm{v} = 2\bm{c}_1 - \bm{c}_2 = \bm{0}$ となる。
+その定数倍もすべて条件を満たすので
+\begin{equation*}
+  \mathrm{Null}(\bm{X}) = \{\, t\,(2, -1)^\top \mid t \in \mathbb{R} \,\}
+\end{equation*}
+という直線（1次元の部分空間）になる。
+右側の「$t \in \mathbb{R}$」は、$t$ を実数全体にわたって動かしたときの
+$t\,(2,-1)^\top$ をすべて集める、という意味である。
+
+$\bm{X}$ がフルランクなら $\bm{X}\bm{v} = \bm{0}$ を満たす $\bm{v}$ は $\bm{0}$ だけなので
+$\mathrm{Null}(\bm{X}) = \{\bm{0}\}$（$\bm{0}$ ただ一つからなる集合）であり、
+ランクが落ちていれば上の例のように $\bm{0}$ でない元を含む。
+
+正規方程式 $\bm{X}^\top\bm{X}\bm{w} = \bm{X}^\top\bm{y}$ の解がどれだけあるかを、
+零空間を使って正確に述べる。
+$\bm{w}^*$ を解の一つとする（解が少なくとも一つ存在することは第4.2節で示した。
+$\bm{y}$ の列空間への正射影は必ず存在するからである）。
+示したいのは、「解の全体」と「$\bm{w}^*$ に零空間の元を足したものの全体」が
+集合として一致することである。集合が一致することを示すには、
+\textbf{両方の向きの包含}を示せばよい。
+
+\paragraph{向き1：$\bm{w}^* + \bm{v}$ はすべて解である}
+任意の $\bm{v} \in \mathrm{Null}(\bm{X})$、すなわち $\bm{X}\bm{v} = \bm{0}$ を満たす $\bm{v}$ をとると
 \begin{equation*}
   \bm{X}^\top\bm{X}(\bm{w}^* + \bm{v}) = \bm{X}^\top\bm{X}\bm{w}^* + \bm{X}^\top(\bm{X}\bm{v})
-   = \bm{X}^\top\bm{X}\bm{w}^* = \bm{X}^\top\bm{y}
+   = \bm{X}^\top\bm{X}\bm{w}^* + \bm{0} = \bm{X}^\top\bm{y}
 \end{equation*}
-となるので、$\bm{w}^* + \bm{v}$ もまた解である。
-逆に2つの解の差は零空間に属する。したがって解の全体は
+となる。最後の等号は $\bm{w}^*$ が解であることによる。
+よって $\bm{w}^* + \bm{v}$ も正規方程式を満たす。
+つまり $\bm{w}^*$ に零空間の元を足したものは、すべて解である。
+
+\paragraph{向き2：解はすべて $\bm{w}^* + \bm{v}$ の形をしている}
+逆に、$\bm{w}'$ を任意の解とし、$\bm{v} = \bm{w}' - \bm{w}^*$ とおく。
+示したいのは $\bm{v} \in \mathrm{Null}(\bm{X})$、すなわち $\bm{X}\bm{v} = \bm{0}$ である。
+$\bm{w}'$ も $\bm{w}^*$ も解なので、両辺を引き算すると
+\begin{equation*}
+  \bm{X}^\top\bm{X}\bm{w}' - \bm{X}^\top\bm{X}\bm{w}^* = \bm{X}^\top\bm{y} - \bm{X}^\top\bm{y}
+  \quad\Longrightarrow\quad
+  \bm{X}^\top\bm{X}\bm{v} = \bm{0}
+\end{equation*}
+を得る。ただしここで分かるのは $\bm{X}^\top\bm{X}\bm{v} = \bm{0}$ であって、
+欲しい $\bm{X}\bm{v} = \bm{0}$ そのものではない。
+両者をつなぐのが式\eqref{eq:ch4-psd}である。
+$\bm{X}^\top\bm{X}\bm{v} = \bm{0}$ の両辺に左から $\bm{v}^\top$ を掛けると
+\begin{equation*}
+  0 = \bm{v}^\top \bm{X}^\top\bm{X}\bm{v} = \|\bm{X}\bm{v}\|^2
+\end{equation*}
+となり、ノルムが $0$ のベクトルは $\bm{0}$ だけなので $\bm{X}\bm{v} = \bm{0}$、
+すなわち $\bm{v} \in \mathrm{Null}(\bm{X})$ である。
+よって任意の解 $\bm{w}'$ は $\bm{w}' = \bm{w}^* + \bm{v}$（$\bm{v} \in \mathrm{Null}(\bm{X})$）
+の形に書ける。
+
+\paragraph{結論}
+向き1より「$\bm{w}^* + \bm{v}$ の形のものはすべて解」、
+向き2より「解はすべて $\bm{w}^* + \bm{v}$ の形」なので、両者は一致し、解の全体は
 \begin{equation}
   \{\, \bm{w}^* + \bm{v} \mid \bm{v} \in \mathrm{Null}(\bm{X}) \,\}
   \label{eq:solution-set}
 \end{equation}
-という集合になる。零空間が $1$ 次元なら解は直線状に、$2$ 次元なら平面状に無数に存在する。
+という集合になる。
+なお向き2の計算は、$\bm{X}^\top\bm{X}\bm{v} = \bm{0}$ と $\bm{X}\bm{v} = \bm{0}$ が同値であること、
+すなわち $\mathrm{Null}(\bm{X}^\top\bm{X}) = \mathrm{Null}(\bm{X})$ を示している。
+第4.5.3項で「$\bm{X}$ がフルランク $\Leftrightarrow$ $\bm{X}^\top\bm{X}$ が正則」と述べたのも、
+この事実の言い換えである。これも同じ記法で、
+「$\bm{v}$ を零空間の中で動かしたときの $\bm{w}^* + \bm{v}$ をすべて集めたもの」と読む。
+一つの解 $\bm{w}^*$ を起点に、零空間の向きへ平行移動した点がすべて解だ、ということである。
+零空間が $1$ 次元なら解は直線状に、$2$ 次元なら平面状に無数に存在する。
 
 \begin{figure}[H]
   \centering
@@ -3805,13 +4038,20 @@ $\bm{X}$ がフルランクなら $\mathrm{Null}(\bm{X}) = \{\bm{0}\}$ であり
 解が無数にあるとき、「正しい答え」は原理的に決まらない。
 どれを選んでも訓練データへの当てはまりは同じだからである。
 そこで\textbf{追加の基準}を持ち込む。最も標準的なのが
-「解の中でノルムが最小のものを選ぶ」という基準である。
+「解の中で、\textbf{パラメータベクトル $\bm{w}$ のノルム $\|\bm{w}\|$ が最小のもの}を選ぶ」という基準である。
+ここでのノルムは誤差 $\|\bm{y} - \bm{X}\bm{w}\|$ のことではない。
+誤差はどの解でも同じ最小値なので、それでは選べない。
+比べるのは解そのもの、すなわち係数を並べたベクトル $\bm{w} = (w_0, w_1, \ldots, w_d)^\top$ の長さであり、
+「係数の値が全体として小さい解を選ぶ」という意味である。
+この「$\|\bm{w}\|$ を小さく保つ」という発想は、第6回のリッジ回帰（正則化）と同じものである。
+両者の関係は第4.7.5項で述べる。
 
 \begin{itembox}[l]{定義：ムーア・ペンローズ擬似逆行列}
 任意の行列 $\bm{X} \in \mathbb{R}^{N \times (d+1)}$ に対して、
 次の性質をもつ行列 $\bm{X}^{+} \in \mathbb{R}^{(d+1) \times N}$ がただ一つ存在する。
 \begin{equation}
   \bm{w}^{+} = \bm{X}^{+}\bm{y}
+  \label{eq:pinv-def}
 \end{equation}
 は、$\|\bm{y} - \bm{X}\bm{w}\|$ を最小にする $\bm{w}$ のうちで
 $\|\bm{w}\|$ が最小のものである。
@@ -3838,12 +4078,38 @@ $\|\bm{w}\|$ が最小のものである。
 \subsubsection{フルランクのときは何が起こるか}
 
 $\bm{X}$ がフルランクなら零空間は $\{\bm{0}\}$ なので解は一つしかなく、
-「最小ノルムのものを選ぶ」という条件は何も制限しない。実際
+「最小ノルムのものを選ぶ」という条件は何も制限しない。
+このとき擬似逆行列は具体的に書き下せる：
 \begin{equation}
   \bm{X}^{+} = (\bm{X}^\top\bm{X})^{-1}\bm{X}^\top
   \label{eq:pinv-fullrank}
 \end{equation}
-となり、式\eqref{eq:ls-solution}と一致する。
+
+式\eqref{eq:pinv-fullrank}は、擬似逆行列の定義（式\eqref{eq:pinv-def}）から次のように導かれる。
+定義により $\bm{X}^{+}\bm{y} = \bm{w}^{+}$ であり、$\bm{w}^{+}$ とは
+「$\|\bm{y} - \bm{X}\bm{w}\|$ を最小にする $\bm{w}$ のうち $\|\bm{w}\|$ が最小のもの」であった。
+$\bm{X}$ がフルランクのとき、$\|\bm{y} - \bm{X}\bm{w}\|$ を最小にする $\bm{w}$ は
+式\eqref{eq:ls-solution}の $\bm{w}^* = (\bm{X}^\top\bm{X})^{-1}\bm{X}^\top\bm{y}$ ただ一つである（第4.5.3項）。
+候補が一つしかないのだから、その中でノルム最小のものも $\bm{w}^*$ 自身、すなわち $\bm{w}^{+} = \bm{w}^*$ である。
+したがって
+\begin{equation*}
+  \bm{X}^{+}\bm{y} = \bm{w}^{+} = \bm{w}^* = (\bm{X}^\top\bm{X})^{-1}\bm{X}^\top\bm{y}
+\end{equation*}
+がどんな $\bm{y}$ に対しても成り立つ
+（1つ目の等号は定義\eqref{eq:pinv-def}、2つ目はフルランクによる一意性、3つ目は式\eqref{eq:ls-solution}）。
+$\bm{y}$ は任意なので、これは行列として $\bm{X}^{+} = (\bm{X}^\top\bm{X})^{-1}\bm{X}^\top$ ということである。
+
+ペンローズ条件の側から確かめることもできる。
+$\bm{P} = (\bm{X}^\top\bm{X})^{-1}\bm{X}^\top$ とおくと
+$\bm{P}\bm{X} = (\bm{X}^\top\bm{X})^{-1}\bm{X}^\top\bm{X} = \bm{I}$ なので、
+第1式 $\bm{X}\bm{P}\bm{X} = \bm{X}\bm{I} = \bm{X}$、
+第2式 $\bm{P}\bm{X}\bm{P} = \bm{I}\bm{P} = \bm{P}$、
+第4式 $(\bm{P}\bm{X})^\top = \bm{I}^\top = \bm{I} = \bm{P}\bm{X}$ が成り立つ。
+第3式は $\bm{X}\bm{P} = \bm{X}(\bm{X}^\top\bm{X})^{-1}\bm{X}^\top = \bm{H}$ がハット行列であり、
+その対称性は第4.6.2項で示した。
+4条件を満たす行列は唯一なので、やはり $\bm{X}^{+} = \bm{P}$ である。
+
+いずれにせよ式\eqref{eq:pinv-fullrank}は式\eqref{eq:ls-solution}と一致する。
 つまり擬似逆行列は、\textbf{これまでの話を特別な場合として含む一般化}である。
 
 さらに $\bm{X}$ が正方かつ正則なら $\bm{X}^{+} = \bm{X}^{-1}$ となる。
@@ -3889,9 +4155,23 @@ $\bm{w}^{+\top}\bm{v} = 0.6 \cdot (-2) + 1.2 \cdot 1 = 0$。
 「どれも同じなら、なぜ小さいものを選ぶのか」という問いには、
 第6回の正則化が答えを与える。
 
-結論だけ先取りすると、損失に $\lambda\|\bm{w}\|^2$ という罰則を加えたリッジ回帰の解は、
-$\lambda$ を $0$ に近づけていくと\textbf{最小ノルム解に収束する}。
-つまり最小ノルム解は「ごくわずかに正則化した解」の極限である。
+結論だけ先取りする。リッジ回帰は、経験損失に罰則 $\lambda\|\bm{w}\|^2$（$\lambda > 0$）を加えた
+\begin{equation*}
+  \|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2
+\end{equation*}
+を最小にする。罰則の中身は、まさに本節で比べていた $\|\bm{w}\|$ である。
+第4.3節と同じ手順で勾配を $\bm{0}$ とおくと（公式\eqref{eq:grad-quad}を $\lambda\bm{w}^\top\bm{I}\bm{w}$ にも使う）、
+解は
+\begin{equation*}
+  \bm{w}_\lambda = (\bm{X}^\top\bm{X} + \lambda\bm{I})^{-1}\bm{X}^\top\bm{y}
+\end{equation*}
+となる。ここで $\bm{X}^\top\bm{X} + \lambda\bm{I}$ は、$\bm{X}$ がランク落ちしていても\textbf{つねに正則}である。
+任意の $\bm{v} \neq \bm{0}$ に対して
+$\bm{v}^\top(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{v} = \|\bm{X}\bm{v}\|^2 + \lambda\|\bm{v}\|^2 > 0$
+となり、正定値だからである（第4.5.3項）。
+つまり罰則を加えた瞬間に「解が無数にある」という問題は消え、解はつねに一意に定まる。
+そして $\lambda$ を $0$ に近づけていくと、$\bm{w}_\lambda$ は\textbf{最小ノルム解 $\bm{w}^{+}$ に収束する}。
+最小ノルム解は「ごくわずかに正則化した解」の極限なのである。
 
 第3.6節で述べたとおり、重みが大きいと入力のわずかな違いが出力の大きな違いに増幅され、
 ノイズを拾いやすくなる。同じ当てはまりなら重みは小さいほうがよい、というのは

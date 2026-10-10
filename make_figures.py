@@ -1078,6 +1078,171 @@ def fig_pseudoinverse():
     save(fig, "ch4_pseudoinverse")
 
 
+def fig_gradient_concept():
+    """Partial derivatives as slopes of slices, and the gradient as a vector normal to contours."""
+    def f(a, b):
+        return a ** 2 + 2 * b ** 2
+
+    p = np.array([1.0, 0.5])                        # the point we look at; grad f = (2, 2)
+    fig = plt.figure(figsize=(8.0, 3.6))
+
+    # --- left: the surface, sliced along each axis through p
+    ax = fig.add_subplot(1, 2, 1, projection="3d")
+    g = np.linspace(-1.6, 1.6, 60)
+    A, B = np.meshgrid(g, g)
+    ax.plot_surface(A, B, f(A, B), color="#C9D7EA", alpha=0.3, lw=0, antialiased=True)
+    ax.plot_wireframe(A, B, f(A, B), rstride=6, cstride=6, color=NAVY, lw=0.25, alpha=0.25)
+    # slices through p; lifted slightly so the surface does not hide them
+    t = np.linspace(-1.6, 1.6, 80)
+    ax.plot(t, np.full_like(t, p[1]), f(t, p[1]) + 0.04, color=NAVY, lw=2.2)     # w2 fixed
+    ax.plot(np.full_like(t, p[0]), t, f(p[0], t) + 0.04, color=RED, lw=2.2)      # w1 fixed
+    s = np.linspace(-0.8, 0.8, 2)
+    z0 = f(*p) + 0.04
+    ax.plot(p[0] + s, np.full_like(s, p[1]), z0 + 2 * s, color=NAVY, lw=1.6, ls="--")
+    ax.plot(np.full_like(s, p[0]), p[1] + s, z0 + 2 * s, color=RED, lw=1.6, ls="--")
+    ax.scatter(*p, z0, s=34, color="k", depthshade=False)
+    ax.text2D(0.02, 0.93, r"青：$w_2 = 0.5$ で切った断面，傾き $\partial f/\partial w_1 = 2w_1 = 2$",
+              transform=ax.transAxes, color=NAVY, fontsize=7.5)
+    ax.text2D(0.02, 0.87, r"赤：$w_1 = 1$ で切った断面，傾き $\partial f/\partial w_2 = 4w_2 = 2$",
+              transform=ax.transAxes, color=RED, fontsize=7.5)
+    ax.set_xlabel(r"$w_1$", fontsize=8, labelpad=-4)
+    ax.set_ylabel(r"$w_2$", fontsize=8, labelpad=-4)
+    ax.set_zlabel(r"$f$", fontsize=8, labelpad=-6)
+    ax.tick_params(labelsize=6, pad=-2)
+    ax.set_zlim(0, 8)
+    ax.view_init(elev=24, azim=-48)
+    ax.set_title(r"偏微分 ＝ 軸に沿った断面の傾き", fontsize=9.5)
+
+    # --- right: contours and the gradient vectors
+    ax = fig.add_subplot(1, 2, 2)
+    g = np.linspace(-1.8, 1.8, 300)
+    A, B = np.meshgrid(g, g)
+    cs = ax.contour(A, B, f(A, B), levels=[0.25, 0.75, 1.5, 2.5, 4.0, 6.0],
+                    colors=NAVY, linewidths=0.8, alpha=0.7)
+    ax.clabel(cs, fmt="%g", fontsize=6.5, inline=True)
+    k = 0.2                                         # display scale of the arrows
+    for q in (np.array([-1.2, 0.3]), np.array([0.5, -0.8]), np.array([-0.6, -0.5]),
+              np.array([1.3, -0.3]), np.array([0.2, 0.9]), np.array([-0.3, 0.2])):
+        grad = np.array([2 * q[0], 4 * q[1]])
+        ax.annotate("", xy=tuple(q + k * grad), xytext=tuple(q),
+                    arrowprops=dict(arrowstyle="-|>", color=GRAY, lw=1.3))
+        ax.scatter(*q, s=12, color=GRAY, zorder=5)
+    grad = np.array([2.0, 2.0])
+    ax.annotate("", xy=tuple(p + k * grad), xytext=tuple(p),
+                arrowprops=dict(arrowstyle="-|>", color="k", lw=2.0), zorder=7)
+    ax.annotate("", xy=(p[0] + k * grad[0], p[1]), xytext=tuple(p),
+                arrowprops=dict(arrowstyle="-|>", color=NAVY, lw=1.3, ls="--"), zorder=6)
+    ax.annotate("", xy=(p[0] + k * grad[0], p[1] + k * grad[1]),
+                xytext=(p[0] + k * grad[0], p[1]),
+                arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.3, ls="--"), zorder=6)
+    ax.scatter(*p, s=30, color="k", zorder=8)
+    ax.text(p[0] + 0.05, p[1] - 0.32, r"$\boldsymbol{w} = (1,\; 0.5)^\top$", fontsize=8,
+            ha="right", bbox=dict(fc="white", ec="none", pad=1.5))
+    ax.text(p[0] + 0.3, p[1] + 0.55, r"$\nabla f(\boldsymbol{w}) = (2,\; 2)^\top$",
+            fontsize=8.5, bbox=dict(fc="white", ec="none", pad=1.5))
+    ax.text(p[0] + 0.14, p[1] - 0.05, r"$2$", color=NAVY, fontsize=8, va="top")
+    ax.text(p[0] + k * grad[0] + 0.05, p[1] + 0.15, r"$2$", color=RED, fontsize=8)
+    ax.text(0.03, 0.03, "矢印は等高線に直交し、等高線が密なほど長い",
+            transform=ax.transAxes, fontsize=7.5, color="#333333")
+    ax.set_xlabel(r"$w_1$", fontsize=9); ax.set_ylabel(r"$w_2$", fontsize=9)
+    ax.set_title(r"勾配 $\nabla f$ ＝ 最も急に増える向き", fontsize=9.5)
+    ax.set_xlim(-1.8, 2.2); ax.set_ylim(-1.9, 1.9)
+    ax.set_aspect("equal"); ax.grid(alpha=0.25)
+    fig.suptitle(r"$f(w_1, w_2) = w_1^2 + 2w_2^2$", fontsize=10, y=1.0)
+    save(fig, "ch4_gradient_concept")
+
+
+def fig_definiteness():
+    """Positive definite vs semi-definite: bowl/trough, the angle between v and Av, eigen-directions."""
+    mats = [(np.diag([1.0, 2.0]), r"\boldsymbol{A}", "正定値"),
+            (np.diag([1.0, 0.0]), r"\boldsymbol{B}", "半正定値")]
+    fig = plt.figure(figsize=(9.6, 6.2))
+    g = np.linspace(-1.5, 1.5, 70)
+    V1, V2 = np.meshgrid(g, g)
+    for r, (M, name, kind) in enumerate(mats):
+        Q = M[0, 0] * V1 ** 2 + M[1, 1] * V2 ** 2
+        form = (r"$v_1^2 + 2v_2^2$" if r == 0 else r"$v_1^2$")
+
+        # --- column 1: the surface of the quadratic form
+        ax = fig.add_subplot(2, 3, 3 * r + 1, projection="3d")
+        ax.plot_surface(V1, V2, Q, color="#C9D7EA", alpha=0.45, lw=0, antialiased=True)
+        ax.plot_wireframe(V1, V2, Q, rstride=7, cstride=7, color=NAVY, lw=0.3, alpha=0.5)
+        if r == 1:                                   # the flat direction of the trough
+            t = np.linspace(-1.5, 1.5, 2)
+            ax.plot(np.zeros(2), t, np.zeros(2) + 0.02, color=RED, lw=2.2)
+            ax.text2D(0.02, 0.88, r"赤：$v_2$ 方向に動いても値が変わらない",
+                      transform=ax.transAxes, color=RED, fontsize=7.5)
+        ax.set_xlabel(r"$v_1$", fontsize=8, labelpad=-5)
+        ax.set_ylabel(r"$v_2$", fontsize=8, labelpad=-5)
+        ax.tick_params(labelsize=6, pad=-2)
+        ax.set_zlim(0, 4.5)
+        ax.view_init(elev=24, azim=-55)
+        ax.set_title(("お椀：" if r == 0 else "樋：") + r"$\boldsymbol{v}^\top " + name + r"\boldsymbol{v} = $" + form,
+                     fontsize=9)
+
+        # --- column 2: v and Mv never make an angle of 90 degrees or more
+        ax = fig.add_subplot(2, 3, 3 * r + 2)
+        ax.add_patch(plt.Circle((0, 0), 1, fill=False, color=GRAY, lw=0.8, ls=":"))
+        for deg in (20, 55, 90):
+            v = np.array([np.cos(np.radians(deg)), np.sin(np.radians(deg))])
+            Mv = M @ v
+            ax.annotate("", xy=tuple(v), xytext=(0, 0),
+                        arrowprops=dict(arrowstyle="-|>", color=NAVY, lw=1.6))
+            if np.linalg.norm(Mv) > 1e-9:
+                ax.annotate("", xy=tuple(Mv), xytext=(0, 0),
+                            arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.6, ls="--"))
+            else:
+                ax.scatter(0, 0, s=60, color=RED, zorder=6)
+                ax.text(-2.2, -0.45, r"$\boldsymbol{v} = (0,1)^\top \mapsto " + name + r"\boldsymbol{v} = \boldsymbol{0}$",
+                        color=RED, fontsize=8)
+        ax.text(0.78, 0.5, r"$\boldsymbol{v}$", color=NAVY, fontsize=9)
+        if r == 0:
+            ax.text(0.15, 2.05, r"$\boldsymbol{A}\boldsymbol{v}$", color=RED, fontsize=9)
+            ax.text(-2.3, -2.1, r"どの $\boldsymbol{v}$ も $\boldsymbol{A}\boldsymbol{v}$ となす角は $90^\circ$ 未満",
+                    fontsize=7.5, color="#333333")
+        else:
+            ax.text(1.0, 0.1, r"$\boldsymbol{B}\boldsymbol{v}$", color=RED, fontsize=9)
+            ax.text(-2.3, -2.1, r"$\boldsymbol{v} = (0,1)^\top$ はつぶされて $\boldsymbol{0}$ になる",
+                    fontsize=7.5, color="#333333")
+        ax.axhline(0, color=GRAY, lw=0.6); ax.axvline(0, color=GRAY, lw=0.6)
+        ax.set_xlim(-2.4, 2.4); ax.set_ylim(-2.4, 2.4); ax.set_aspect("equal")
+        ax.set_xlabel(r"$v_1$", fontsize=8); ax.set_ylabel(r"$v_2$", fontsize=8)
+        ax.tick_params(labelsize=7)
+        ax.set_title(r"$\boldsymbol{v}$（青）と $" + name + r"\boldsymbol{v}$（赤）のなす角", fontsize=9)
+
+        # --- column 3: contours of the quadratic form and the eigen-directions
+        ax = fig.add_subplot(2, 3, 3 * r + 3)
+        cs = ax.contour(V1, V2, Q, levels=[0.25, 0.75, 1.5, 2.5], colors=NAVY,
+                        linewidths=0.8, alpha=0.7)
+        ax.clabel(cs, fmt="%g", fontsize=6.5, inline=True)
+        for lam, e, col, off in ((M[0, 0], np.array([1.0, 0.0]), NAVY, (0.05, -0.3)),
+                                 (M[1, 1], np.array([0.0, 1.0]), RED, (0.08, 0.0))):
+            ax.annotate("", xy=tuple(e * 1.2), xytext=(0, 0),
+                        arrowprops=dict(arrowstyle="-|>", color=col, lw=1.8))
+            ax.text(e[0] * 1.2 + off[0], e[1] * 1.2 + off[1],
+                    r"$\lambda = %g$" % lam, color=col, fontsize=8.5)
+        if r == 1:
+            ax.text(-1.45, -1.35, r"固有値 $0$ の向き（赤）に沿って値が一定",
+                    fontsize=7.5, color="#333333")
+        else:
+            ax.text(-1.45, -1.35, r"固有値がすべて正：等高線は閉じた楕円",
+                    fontsize=7.5, color="#333333")
+        ax.set_xlim(-1.5, 1.5); ax.set_ylim(-1.5, 1.5); ax.set_aspect("equal")
+        ax.set_xlabel(r"$v_1$", fontsize=8); ax.set_ylabel(r"$v_2$", fontsize=8)
+        ax.tick_params(labelsize=7); ax.grid(alpha=0.25)
+        ax.set_title(r"等高線と固有ベクトル", fontsize=9)
+
+        fig.text(0.005, 0.74 - 0.48 * r,
+                 r"$" + name + r" = \mathrm{diag}(1,\, %d)$" % (2 - 2 * r)
+                 + "\n" + kind, fontsize=9.5, ha="left", va="center",
+                 color=(GREEN if r == 0 else RED), fontweight="bold")
+    fig.subplots_adjust(left=0.1, right=0.99, top=0.95, bottom=0.06, wspace=0.3, hspace=0.35)
+    fig.savefig(OUT / "ch4_definiteness.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "ch4_definiteness.png", bbox_inches="tight", dpi=220)
+    plt.close(fig)
+    print("  figures/ch4_definiteness.pdf + .png")
+
+
 if __name__ == "__main__":
     print("generating figures...")
     fig_fit(); fig_error_curve()
@@ -1086,4 +1251,4 @@ if __name__ == "__main__":
     fig_span(); fig_independence(); fig_linearmap(); fig_matmul(); fig_colspace_sweep(); fig_colspace(); fig_flat_valley()
     fig_eigen(); fig_eigen_ml()
     fig_param_to_distance(); fig_ls_projection()
-    fig_ls_gradient(); fig_pseudoinverse()
+    fig_gradient_concept(); fig_definiteness(); fig_ls_gradient(); fig_pseudoinverse()
