@@ -1243,6 +1243,155 @@ def fig_definiteness():
     print("  figures/ch4_definiteness.pdf + .png")
 
 
+# ---------------------------------------------------------------- chapter 5
+def _gd(grad, w0, eta, steps):
+    """Plain gradient descent; returns the iterates including w0."""
+    w = np.array(w0, float); path = [w.copy()]
+    for _ in range(steps):
+        w = w - eta * grad(w); path.append(w.copy())
+    return np.array(path)
+
+
+def fig_gd_1d():
+    """One variable: the learning rate decides between crawling, converging and blowing up."""
+    f = lambda w: w ** 2
+    g = lambda w: 2 * w
+    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.1))
+    x = np.linspace(-2.6, 2.6, 300)
+    for ax, eta, steps, title in zip(axes, (0.05, 0.3, 1.1), (12, 6, 4),
+                                     (r"小さすぎる（$\eta=0.05$）：少しずつしか進まない",
+                                      r"ちょうどよい（$\eta=0.3$）：素直に底へ",
+                                      r"大きすぎる（$\eta=1.1$）：行き過ぎて発散")):
+        ax.plot(x, f(x), color=NAVY, lw=1.4)
+        p = _gd(g, [2.0], eta, steps)[:, 0]
+        p = p[np.abs(p) < 2.6]
+        ax.plot(p, f(p), "o-", color=RED, ms=4, lw=1.2, zorder=5)
+        for k in range(min(3, len(p) - 1)):
+            ax.annotate("", xy=(p[k + 1], f(p[k + 1])), xytext=(p[k], f(p[k])),
+                        arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.0))
+        ax.scatter([2.0], [4.0], s=40, color="k", zorder=6)
+        ax.text(2.05, 4.4, r"$w^{(0)}$", fontsize=8.5)
+        ax.set_title(title, fontsize=8.5)
+        ax.set_xlabel(r"$w$", fontsize=9); ax.set_ylim(-0.4, 7.0); ax.grid(alpha=0.25)
+    axes[0].set_ylabel(r"$f(w) = w^2$", fontsize=9)
+    save(fig, "ch5_gd_1d")
+
+
+def fig_gd_path():
+    """L_D of the running example: three learning rates, one of them past 2/lambda_max."""
+    X, y = _toy(); N = 3
+    A = (2.0 / N) * X.T @ X; b = (2.0 / N) * X.T @ y
+    grad = lambda w: A @ w - b
+    w0 = np.linspace(-1.0, 4.4, 320); w1 = np.linspace(-0.6, 3.6, 320)
+    W0, W1 = np.meshgrid(w0, w1)
+    L = np.zeros_like(W0)
+    for k in range(3):
+        L += (y[k] - X[k, 0] * W0 - X[k, 1] * W1) ** 2
+    L /= N
+    opt = np.array([5 / 3, 1.5])
+    fig, axes = plt.subplots(1, 3, figsize=(9.8, 3.4))
+    for ax, eta, steps, title in zip(axes, (0.05, 0.15, 0.2), (40, 40, 4),
+                                     (r"$\eta = 0.05$：谷に沿ってゆっくり",
+                                      r"$\eta = 0.15$：ジグザグしながら収束",
+                                      r"$\eta = 0.2 > 2/\lambda_{\max}$：発散")):
+        cs = ax.contour(W0, W1, L, levels=[0.1, 0.4, 1.0, 2.2, 4.5, 8.0, 15.0],
+                        colors=NAVY, linewidths=0.7, alpha=0.6)
+        p = _gd(grad, [0.0, 0.0], eta, steps)
+        ax.plot(p[:, 0], p[:, 1], "-", color=RED, lw=1.0, alpha=0.8)
+        ax.scatter(p[:, 0], p[:, 1], s=9, color=RED, zorder=5)
+        ax.scatter(0, 0, s=36, color="k", zorder=6)
+        ax.scatter(*opt, marker="*", s=130, color="k", zorder=6)
+        ax.text(0.06, -0.38, r"$\boldsymbol{w}^{(0)}$", fontsize=8.5)
+        ax.text(opt[0] + 0.15, opt[1] + 0.2, r"$\boldsymbol{w}^*$", fontsize=9)
+        ax.set_title(title, fontsize=9)
+        ax.set_xlim(w0[0], w0[-1]); ax.set_ylim(w1[0], w1[-1])
+        ax.set_xlabel(r"$w_0$", fontsize=9); ax.grid(alpha=0.25)
+    axes[0].set_ylabel(r"$w_1$", fontsize=9)
+    save(fig, "ch5_gd_path")
+
+
+def fig_scaling():
+    """Standardising x turns the elongated valley into a bowl: one step is enough."""
+    X, y = _toy(); N = 3
+    z = (X[:, 1] - X[:, 1].mean()) / X[:, 1].std()
+    Xs = np.c_[np.ones(3), z]
+    fig, axes = plt.subplots(1, 2, figsize=(8.4, 3.6))
+    for ax, M, eta, steps, title, lims in (
+            (axes[0], X, 0.15, 30, r"元の $x$（$\kappa \approx 46$）：$\eta = 0.15$ で30回",
+             ((-1.0, 4.4), (-0.6, 3.6))),
+            (axes[1], Xs, 0.5, 2, r"標準化した $x$（$\kappa = 1$）：$\eta = 0.5$ で1回",
+             ((-1.0, 7.6), (-2.4, 4.0)))):
+        A = (2.0 / N) * M.T @ M; b = (2.0 / N) * M.T @ y
+        opt = np.linalg.solve(A, b)
+        g0 = np.linspace(*lims[0], 300); g1 = np.linspace(*lims[1], 300)
+        G0, G1 = np.meshgrid(g0, g1)
+        L = sum((y[k] - M[k, 0] * G0 - M[k, 1] * G1) ** 2 for k in range(3)) / N
+        ax.contour(G0, G1, L, levels=[0.1, 0.4, 1.0, 2.2, 4.5, 8.0, 15.0],
+                   colors=NAVY, linewidths=0.7, alpha=0.6)
+        p = _gd(lambda w: A @ w - b, [0.0, 0.0], eta, steps)
+        ax.plot(p[:, 0], p[:, 1], "-", color=RED, lw=1.0, alpha=0.8)
+        ax.scatter(p[:, 0], p[:, 1], s=10, color=RED, zorder=5)
+        ax.scatter(0, 0, s=36, color="k", zorder=6)
+        ax.text(0.08, -0.45, r"$\boldsymbol{w}^{(0)}$", fontsize=8.5)
+        ax.scatter(*opt, marker="*", s=130, color="k", zorder=6)
+        ax.text(opt[0] + 0.15, opt[1] + 0.2, r"$\boldsymbol{w}^*$", fontsize=9)
+        ax.set_title(title, fontsize=9)
+        ax.set_xlim(*lims[0]); ax.set_ylim(*lims[1]); ax.set_aspect("equal")
+        ax.set_xlabel(r"$w_0$", fontsize=9); ax.set_ylabel(r"$w_1$", fontsize=9); ax.grid(alpha=0.25)
+    save(fig, "ch5_scaling")
+
+
+def fig_convex():
+    """Convex: every chord lies above the graph and every tangent below. Non-convex: neither."""
+    fig, axes = plt.subplots(1, 3, figsize=(9.8, 3.2))
+    x = np.linspace(-2.2, 2.2, 400)
+
+    ax = axes[0]
+    f = x ** 2
+    ax.plot(x, f, color=NAVY, lw=1.5)
+    a, b = -1.6, 1.2
+    ax.plot([a, b], [a ** 2, b ** 2], color=RED, lw=1.4)
+    ax.scatter([a, b], [a ** 2, b ** 2], s=30, color=RED, zorder=5)
+    ax.text(-0.35, 2.05, "弦はつねに\nグラフの上", color=RED, fontsize=8.5)
+    c = 0.8
+    ax.plot(x, c ** 2 + 2 * c * (x - c), color=GREEN, lw=1.2, ls="--")
+    ax.text(1.0, -1.1, "接線はつねに\nグラフの下", color=GREEN, fontsize=8.5)
+    ax.set_title(r"凸：$f(x) = x^2$", fontsize=9.5)
+    ax.set_ylim(-1.6, 4.8)
+
+    ax = axes[1]
+    g = 0.25 * x ** 4 - 1.1 * x ** 2 + 0.6 * x + 1.2
+    ax.plot(x, g, color=NAVY, lw=1.5)
+    a, b = -1.3, 1.3
+    ga = 0.25 * a ** 4 - 1.1 * a ** 2 + 0.6 * a + 1.2
+    gb = 0.25 * b ** 4 - 1.1 * b ** 2 + 0.6 * b + 1.2
+    ax.plot([a, b], [ga, gb], color=RED, lw=1.4)
+    ax.scatter([a, b], [ga, gb], s=30, color=RED, zorder=5)
+    ax.text(-0.95, 1.9, "弦がグラフの\n下に来る", color=RED, fontsize=8.5)
+    xs = x[np.argmin(g[x < 0])]; xl = x[x < 0][np.argmin(g[x < 0])]
+    xr = x[x > 0][np.argmin(g[x > 0])]
+    gl = 0.25 * xl ** 4 - 1.1 * xl ** 2 + 0.6 * xl + 1.2
+    gr = 0.25 * xr ** 4 - 1.1 * xr ** 2 + 0.6 * xr + 1.2
+    ax.scatter([xl], [gl], s=50, color="k", zorder=6); ax.text(xl - 1.0, gl - 0.42, "大域的最小", fontsize=8.5)
+    ax.scatter([xr], [gr], s=50, color=GRAY, zorder=6); ax.text(xr - 0.3, gr - 0.55, "局所的最小", fontsize=8.5, color=GRAY)
+    ax.annotate("", xy=(xr - 0.05, gr + 0.25), xytext=(xr + 0.5, gr + 1.2),
+                arrowprops=dict(arrowstyle="-|>", color=GRAY, lw=1.0))
+    ax.text(xr + 0.35, gr + 1.3, "勾配降下法が\nここで止まりうる", fontsize=8, color=GRAY)
+    ax.set_title("凸でない：底が2つある", fontsize=9.5)
+    ax.set_ylim(-1.6, 4.0)
+
+    ax = axes[2]
+    h = np.maximum(np.abs(x) - 1.0, 0.0) ** 2
+    ax.plot(x, h, color=NAVY, lw=1.5)
+    ax.plot([-1, 1], [0, 0], color=RED, lw=3.0, alpha=0.7)
+    ax.text(-0.9, 0.25, "最小点が区間ごと\n（一意でない）", color=RED, fontsize=8.5)
+    ax.set_title("凸だが狭義凸でない：平らな底", fontsize=9.5)
+    ax.set_ylim(-0.3, 1.8)
+    for ax in axes:
+        ax.set_xlabel(r"$x$", fontsize=9); ax.grid(alpha=0.25)
+    save(fig, "ch5_convex")
+
+
 if __name__ == "__main__":
     print("generating figures...")
     fig_fit(); fig_error_curve()
@@ -1252,3 +1401,4 @@ if __name__ == "__main__":
     fig_eigen(); fig_eigen_ml()
     fig_param_to_distance(); fig_ls_projection()
     fig_gradient_concept(); fig_definiteness(); fig_ls_gradient(); fig_pseudoinverse()
+    fig_gd_1d(); fig_gd_path(); fig_scaling(); fig_convex()

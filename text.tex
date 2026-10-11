@@ -101,7 +101,7 @@ Copyright \copyright\ 2026 信川創．無断転載を禁じます．
     \hline
     4 & 最小二乗法（幾何学） & 射影としての回帰、正規方程式 & 勾配の導出 \\
     \hline
-    5 & 最小二乗法（最適化） & 勾配降下法、収束の直感、凸関数の概念 & 凸関数の定義 \\
+    5 & 勾配降下法 & 反復による最小化、学習率と収束、凸関数の概念 & 凸関数の定義 \\
     \hline
     6 & 正則化と汎化 & L2正則化、バイアス--バリアンス、制約付き最適化の導入 & ノルムと制約の幾何学 \\
     \hline
@@ -4351,6 +4351,794 @@ $\bm{X}^\top\bm{X}$ の最小固有値が $0$ に近づく。
         何が問題になるか説明せよ。
       \item $\bm{X}^\top\bm{X} + \lambda\bm{I}_2$（$\lambda > 0$）としたとき、
         条件数はどうなるか。$\lambda$ を大きくすると条件数はどう変わるか。
+    \end{enumerate}
+
+\end{enumerate}
+
+
+%===========================================
+% Chapter 5: Least squares (optimization)
+%===========================================
+\section{勾配降下法}
+
+第4回では、経験損失 $L_D(\bm{w}) = \frac{1}{N}\|\bm{y} - \bm{X}\bm{w}\|^2$ を最小にするパラメータを、
+正規方程式を解くことで\textbf{閉じた式} $\bm{w}^* = (\bm{X}^\top\bm{X})^{-1}\bm{X}^\top\bm{y}$ として求めた。
+一度の計算で答えが出る、きわめて強力な方法である。
+
+しかし、この方法が使える場面は限られている。
+本章では、同じ最小化問題を\textbf{反復計算}で解く方法、すなわち\textbf{勾配降下法}を学ぶ。
+第4回で定義した勾配 $\nabla L_D$ が、ここで主役になる。
+勾配降下法は最小二乗法に限らず、ニューラルネットワークを含むほぼすべての機械学習モデルの
+学習に使われている手法であり、本講義の後半を通じて何度も登場する。
+
+後半では、「勾配降下法はいつ、どれくらいの速さで答えにたどり着くのか」を考える。
+その鍵が\textbf{凸関数}という概念である。
+第2回・第4回で触れた正定値・半正定値が、ここで本来の役割を果たす。
+
+
+\subsection{なぜ反復計算が必要か}
+
+\subsubsection{閉じた式の限界}
+
+正規方程式による解法には、3つの限界がある。
+
+\paragraph{(1) 特徴の数が大きいとき}
+$\bm{X}^\top\bm{X}$ は $(d+1) \times (d+1)$ の行列であり、その逆行列を求める計算量は
+およそ $(d+1)^3$ に比例する。
+$d = 10^3$ なら $10^9$ 回程度の演算で済むが、
+$d = 10^6$（画像の画素数や語彙数の規模）になると $10^{18}$ 回となり、現実的でない。
+行列を保持するメモリも $(d+1)^2$ に比例して増える。
+
+\paragraph{(2) モデルが線形でないとき}
+正規方程式が出てきたのは、$L_D$ が $\bm{w}$ の\textbf{2次関数}だったからである
+（第4.3.4項）。2次関数の勾配は $\bm{w}$ の1次式になるので、勾配 $= \bm{0}$ が連立\textbf{一次}方程式になり、
+逆行列で解けた。
+ニューラルネットワークのように、パラメータに対して非線形なモデルでは、
+勾配 $= \bm{0}$ は非線形の方程式になり、一般に閉じた式では解けない。
+
+\paragraph{(3) データが逐次的に届くとき}
+データが一度にすべて手に入るとは限らない。
+新しいデータが来るたびに $\bm{X}^\top\bm{X}$ を作り直して逆行列を計算するのは無駄が多い。
+
+これらの状況では、「一度の計算で答えを出す」ことをあきらめ、
+「少しずつ答えに近づいていく」方法に切り替える必要がある。
+
+\subsubsection{反復計算という発想}
+
+反復計算の考え方は単純である。
+適当な初期値 $\bm{w}^{(0)}$ から出発し、
+\begin{equation}
+  \bm{w}^{(0)} \;\to\; \bm{w}^{(1)} \;\to\; \bm{w}^{(2)} \;\to\; \cdots
+\end{equation}
+と、各ステップで経験損失が\textbf{減る向き}に少し動かす。
+これを十分な回数くり返せば、最小点の近くにたどり着くだろう、という発想である。
+上付きの $(t)$ は $t$ 回目の反復で得られた値を表す。
+
+霧の中で山を下る状況を想像するとよい。
+谷底（最小点）がどこにあるかは見えないが、足元の傾きは分かる。
+傾きが最も急に下がる向きへ一歩進み、また足元の傾きを調べて一歩進む。
+これをくり返せば、やがて谷底に着く。
+「足元の傾き」にあたるのが勾配であり、第4.3.2項で見たとおり、
+$-\nabla L_D(\bm{w})$ が損失の最も速く減る向きであった。
+
+
+\subsection{勾配降下法}
+
+\subsubsection{1変数の場合}
+
+まず1変数で仕組みを確かめる。第4.3.1項と同じ下に凸な2次関数
+\begin{equation*}
+  f(w) = a w^2 - 2bw + c \qquad (a > 0)
+\end{equation*}
+を考える。最小点は $w^* = b/a$ であった。
+これを「微分して $0$ とおく」のではなく、反復で求めてみる。
+
+点 $w^{(t)}$ での傾きは $f'(w^{(t)}) = 2a w^{(t)} - 2b$ である。
+傾きが正なら右上がりなので左へ、負なら右へ動けば $f$ は減る。
+すなわち「傾きと逆の向きに動く」のが正しい。動く量を傾きに比例させて
+\begin{equation}
+  w^{(t+1)} = w^{(t)} - \eta\, f'(w^{(t)})
+  \label{eq:gd-1d}
+\end{equation}
+と定める。$\eta > 0$ は1歩の大きさを調節する定数で、\textbf{学習率}（learning rate）と呼ぶ。
+記号 $\eta$ は「イータ」と読む。
+
+この更新を実際に追ってみよう。$f'(w) = 2a(w - w^*)$ と書き直せるので
+\begin{equation}
+  w^{(t+1)} - w^* = (w^{(t)} - w^*) - 2a\eta\,(w^{(t)} - w^*) = (1 - 2a\eta)\,(w^{(t)} - w^*)
+  \label{eq:gd-1d-error}
+\end{equation}
+となる。最小点との差が、1回の更新ごとに $(1 - 2a\eta)$ 倍される。
+したがって
+\begin{equation}
+  w^{(t)} - w^* = (1 - 2a\eta)^t\,(w^{(0)} - w^*)
+  \label{eq:gd-1d-rate}
+\end{equation}
+であり、$|1 - 2a\eta| < 1$、すなわち
+\begin{equation}
+  0 < \eta < \frac{1}{a}
+  \label{eq:gd-1d-cond}
+\end{equation}
+のときに限って $w^{(t)} \to w^*$ と収束する。
+$\eta$ が小さいほど $(1 - 2a\eta)$ は $1$ に近く、収束は遅い。
+$\eta$ が $1/(2a)$ を超えると $(1 - 2a\eta)$ は負になり、
+最小点を\textbf{行き過ぎて}反対側に出る（振動しながら近づく）。
+さらに $\eta > 1/a$ では差が毎回拡大し、\textbf{発散}する。
+図\ref{fig:gd-1d}にこの3つの様子を示す。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch5_gd_1d}
+  \caption{$f(w) = w^2$（$a = 1$）に対する勾配降下法。$w^{(0)} = 2$ から出発。
+  学習率が小さいと進みが遅く、適切なら素直に底へ向かい、
+  $1/a = 1$ を超えると行き過ぎを繰り返して発散する。}
+  \label{fig:gd-1d}
+\end{figure}
+
+1変数のうちに、重要な観察を2つしておく。
+第一に、収束の速さは $a$、すなわち $f'' = 2a$ という\textbf{曲がり具合}で決まる。
+第二に、安全な学習率の上限 $1/a$ もまた曲がり具合で決まる。
+多変数ではこの「曲がり具合」が向きによって異なり、それが収束の難しさを生む。
+
+\subsubsection{多変数への拡張}
+
+多変数では、傾き $f'$ の役割を勾配 $\nabla f$ が担う。
+
+\begin{itembox}[l]{定義：勾配降下法}
+微分可能な関数 $f : \mathbb{R}^p \to \mathbb{R}$ を最小化するために、
+初期値 $\bm{w}^{(0)} \in \mathbb{R}^p$ と学習率 $\eta > 0$ を定め、
+\begin{equation}
+  \bm{w}^{(t+1)} = \bm{w}^{(t)} - \eta\, \nabla f(\bm{w}^{(t)})
+  \qquad (t = 0, 1, 2, \ldots)
+  \label{eq:gd}
+\end{equation}
+を反復する方法を\textbf{勾配降下法}（gradient descent）と呼ぶ。
+\end{itembox}
+
+式\eqref{eq:gd}は、$p$ 本の式
+\begin{equation*}
+  w_i^{(t+1)} = w_i^{(t)} - \eta\, \frac{\partial f}{\partial w_i}(\bm{w}^{(t)})
+  \qquad (i = 1, \ldots, p)
+\end{equation*}
+をベクトルにまとめたものである。
+各座標について、1変数のときとまったく同じ更新をしていることになる。
+
+\subsubsection{なぜ勾配と逆向きに進むのか}
+
+第4.3.2項では「$\nabla f$ は最も急に増える向き」と述べた。
+ここでその理由を確かめておく。
+点 $\bm{w}$ から微小なベクトル $\bm{\delta}$ だけ動いたときの $f$ の変化は、
+1変数のときの $f(w + \delta) \approx f(w) + f'(w)\,\delta$ と同様に
+\begin{equation}
+  f(\bm{w} + \bm{\delta}) \;\approx\; f(\bm{w}) + \nabla f(\bm{w})^\top \bm{\delta}
+  \label{eq:taylor1}
+\end{equation}
+と近似できる（各座標について1変数の近似を適用し、足し合わせたものである）。
+$f$ の変化量は、勾配と移動方向の\textbf{内積} $\nabla f(\bm{w})^\top\bm{\delta}$ で決まる。
+
+ここで第2回のコーシー・シュワルツの不等式を思い出そう。
+$\|\bm{\delta}\|$ を一定にしたとき、内積 $\nabla f^\top \bm{\delta}$ が
+最大になるのは $\bm{\delta}$ が $\nabla f$ と同じ向きのとき、
+最小（最も負）になるのは $\bm{\delta}$ が $-\nabla f$ の向きのときである。
+したがって、同じ歩幅なら $-\nabla f$ の向きに進むのが
+$f$ を最も大きく減らす。
+式\eqref{eq:gd}の $\bm{\delta} = -\eta\,\nabla f(\bm{w})$ を式\eqref{eq:taylor1}に代入すると
+\begin{equation}
+  f(\bm{w}^{(t+1)}) \;\approx\; f(\bm{w}^{(t)}) - \eta\, \|\nabla f(\bm{w}^{(t)})\|^2
+  \;\leq\; f(\bm{w}^{(t)})
+  \label{eq:gd-decrease}
+\end{equation}
+となり、$\eta$ が十分小さければ各ステップで $f$ は減少する。
+勾配が $\bm{0}$ でない限り、必ず減る。
+これが勾配降下法の根拠である。
+
+\subsubsection{最小二乗法への適用}
+
+経験損失に適用しよう。第4.3.4項より
+\begin{equation}
+  \nabla L_D(\bm{w}) = \frac{2}{N}\,\bm{X}^\top(\bm{X}\bm{w} - \bm{y})
+  \label{eq:gd-ls-grad}
+\end{equation}
+であるから、更新式は
+\begin{equation}
+  \bm{w}^{(t+1)} = \bm{w}^{(t)} - \frac{2\eta}{N}\,\bm{X}^\top\bigl(\bm{X}\bm{w}^{(t)} - \bm{y}\bigr)
+  \label{eq:gd-ls}
+\end{equation}
+となる。括弧の中 $\bm{X}\bm{w}^{(t)} - \bm{y}$ は現在の予測と真の値の差、すなわち\textbf{残差}（の符号を変えたもの）である。
+残差に $\bm{X}^\top$ を掛けるのは、第4.2.4項で見たとおり「各列（各特徴）との内積を取る」操作であった。
+つまり式\eqref{eq:gd-ls}は、
+「特徴 $j$ と残差の相関が正なら $w_j$ を減らし、負なら増やす」という、きわめて自然な更新である。
+
+1回の更新に必要な計算は、$\bm{X}\bm{w}$（$N(d+1)$ 回の掛け算）と
+$\bm{X}^\top(\cdot)$（同じく $N(d+1)$ 回）だけであり、逆行列は一切出てこない。
+$d$ が大きくても、計算量は $d$ に比例して増えるにすぎない。
+これが反復計算の利点である。
+
+\subsubsection{数値例}
+
+第4回と同じデータ $D = \{(1, 3), (2, 5), (3, 6)\}$ で実際に計算する。
+計画行列と目的変数は
+\begin{equation*}
+  \bm{X} = \begin{pmatrix} 1 & 1 \\ 1 & 2 \\ 1 & 3 \end{pmatrix}, \qquad
+  \bm{y} = \begin{pmatrix} 3 \\ 5 \\ 6 \end{pmatrix}
+\end{equation*}
+であり、正規方程式の解は $\bm{w}^* = (5/3,\; 3/2)^\top$ であった。
+勾配を計算しやすいように
+\begin{equation}
+  \bm{A} = \frac{2}{N}\bm{X}^\top\bm{X} = \frac{2}{3}\begin{pmatrix} 3 & 6 \\ 6 & 14 \end{pmatrix}
+        = \begin{pmatrix} 2 & 4 \\ 4 & 28/3 \end{pmatrix}, \qquad
+  \bm{b} = \frac{2}{N}\bm{X}^\top\bm{y} = \frac{2}{3}\begin{pmatrix} 14 \\ 31 \end{pmatrix}
+        = \begin{pmatrix} 28/3 \\ 62/3 \end{pmatrix}
+  \label{eq:gd-example-Ab}
+\end{equation}
+とおくと $\nabla L_D(\bm{w}) = \bm{A}\bm{w} - \bm{b}$ であり、更新式は
+$\bm{w}^{(t+1)} = \bm{w}^{(t)} - \eta(\bm{A}\bm{w}^{(t)} - \bm{b})$ となる。
+
+初期値 $\bm{w}^{(0)} = (0, 0)^\top$、学習率 $\eta = 0.1$ とする。
+最初の更新は $\bm{A}\bm{w}^{(0)} = \bm{0}$ なので
+\begin{equation*}
+  \bm{w}^{(1)} = \bm{0} - 0.1\,(\bm{0} - \bm{b}) = 0.1\,\bm{b}
+   = \begin{pmatrix} 14/15 \\ 31/15 \end{pmatrix} \approx \begin{pmatrix} 0.933 \\ 2.067 \end{pmatrix}
+\end{equation*}
+2回目は
+\begin{align*}
+  \bm{A}\bm{w}^{(1)} - \bm{b}
+    &= \begin{pmatrix} 2 \cdot 0.933 + 4 \cdot 2.067 \\ 4 \cdot 0.933 + 9.333 \cdot 2.067 \end{pmatrix}
+       - \begin{pmatrix} 9.333 \\ 20.667 \end{pmatrix}
+     = \begin{pmatrix} 10.133 - 9.333 \\ 23.022 - 20.667 \end{pmatrix}
+     = \begin{pmatrix} 0.800 \\ 2.356 \end{pmatrix} \\
+  \bm{w}^{(2)}
+    &= \begin{pmatrix} 0.933 \\ 2.067 \end{pmatrix} - 0.1 \begin{pmatrix} 0.800 \\ 2.356 \end{pmatrix}
+     = \begin{pmatrix} 0.853 \\ 1.831 \end{pmatrix}
+\end{align*}
+である。以降の推移を表\ref{tab:gd-example}にまとめる。
+
+\begin{table}[H]
+  \centering
+  \caption{数値例に対する勾配降下法の推移（$\eta = 0.1$、$\bm{w}^{(0)} = \bm{0}$）。
+  最適値は $\bm{w}^* = (1.667,\; 1.500)^\top$、$L_D(\bm{w}^*) = 1/18 \approx 0.0556$。}
+  \label{tab:gd-example}
+  \begin{tabular}{c|cc|c|cc}
+    \hline
+    $t$ & $w_0^{(t)}$ & $w_1^{(t)}$ & $L_D(\bm{w}^{(t)})$ & $\partial L_D/\partial w_0$ & $\partial L_D/\partial w_1$ \\
+    \hline\hline
+    0   & 0.000 & 0.000 & 23.333 & $-9.333$ & $-20.667$ \\
+    1   & 0.933 & 2.067 & 0.430  & $0.800$  & $2.356$ \\
+    2   & 0.853 & 1.831 & 0.152  & $-0.302$ & $-0.163$ \\
+    3   & 0.884 & 1.847 & 0.144  & $-0.177$ & $0.110$ \\
+    5   & 0.920 & 1.829 & 0.136  & $-0.179$ & $0.079$ \\
+    10  & 1.005 & 1.791 & 0.118  & $-0.159$ & $0.070$ \\
+    20  & 1.148 & 1.728 & 0.094  & $-0.125$ & $0.055$ \\
+    50  & 1.417 & 1.610 & 0.065  & $-0.060$ & $0.026$ \\
+    100 & 1.593 & 1.533 & 0.056  & $-0.018$ & $0.008$ \\
+    \hline
+  \end{tabular}
+\end{table}
+
+表から2つのことが読み取れる。
+第一に、損失は最初の数回で急激に下がる（$23.3 \to 0.43 \to 0.15$）。
+第二に、そこから先は\textbf{非常に遅い}。
+$t = 100$ でもまだ $w_0 = 1.593$ であり、最適値 $1.667$ との差が残っている。
+損失の値は $0.056$ でほぼ最適だが、パラメータの収束は遅い。
+この「最初は速く、あとが遅い」という振る舞いの理由を、第5.3節で明らかにする。
+
+\subsubsection{学習率の役割}
+
+同じ問題を、学習率を変えて解いた経路を図\ref{fig:gd-path}に示す。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch5_gd_path}
+  \caption{数値例の経験損失の等高線と、勾配降下法の経路（$\bm{w}^{(0)} = \bm{0}$）。
+  左：$\eta = 0.05$ では谷に沿ってゆっくり進む。
+  中：$\eta = 0.15$ では谷を横切る向きに行き過ぎてジグザグするが、収束する。
+  右：$\eta = 0.2$ では1歩ごとに振れ幅が拡大し、発散する。}
+  \label{fig:gd-path}
+\end{figure}
+
+1変数のときと同じ3つの振る舞いが見える。
+ただし多変数では、ジグザグの様子に注目してほしい。
+$\eta = 0.15$ の経路は、等高線の\textbf{短い軸の方向}には行き過ぎて往復しているのに、
+\textbf{長い軸の方向}（谷底に沿う向き）にはなかなか進まない。
+谷が細長いほど、この問題は深刻になる。
+
+学習率の選び方は、実務では次のように行う。
+\begin{itemize}
+  \item いくつかの値（$0.001, 0.01, 0.1, \ldots$）を試し、損失が発散せず最も速く下がるものを選ぶ
+  \item 最初は大きめにとり、反復が進むにつれて小さくする（\textbf{学習率の減衰}）
+  \item 勾配の履歴を使って方向ごとに歩幅を自動調整する（Adam などの適応的手法。深層学習で標準的）
+\end{itemize}
+本章では最も基本的な、一定の学習率を使う形だけを扱う。
+
+\subsubsection{終了条件}
+
+反復は無限には続けられないので、どこかで止める必要がある。
+よく使われる判定は次の3つである。
+\begin{enumerate}
+  \item \textbf{勾配が小さい}：$\|\nabla f(\bm{w}^{(t)})\| < \varepsilon$。
+    最小点では勾配が $\bm{0}$ なので、その近くに来た印である。
+  \item \textbf{パラメータが動かない}：$\|\bm{w}^{(t+1)} - \bm{w}^{(t)}\| < \varepsilon$。
+    式\eqref{eq:gd}より、これは 1 と同じ条件を $\eta$ 倍したものである（第3.6節で触れたとおり）。
+  \item \textbf{損失が減らない}：$f(\bm{w}^{(t)}) - f(\bm{w}^{(t+1)}) < \varepsilon$。
+\end{enumerate}
+あるいは単純に、反復回数の上限を決めておく。
+表\ref{tab:gd-example}の例では、$\|\nabla L_D\| < 0.01$ を条件にすると $t \approx 160$ で止まる。
+
+
+\subsection{収束の直感}
+
+勾配降下法はいつ収束し、どれくらいの速さで収束するのか。
+最小二乗法では $L_D$ が2次関数なので、1変数のときと同じように\textbf{厳密に}答えられる。
+そしてその答えは、一般の関数に対する直感をそのまま与えてくれる。
+
+\subsubsection{2次関数に対する厳密な解析}
+
+式\eqref{eq:gd-example-Ab}と同じく $\bm{A} = \frac{2}{N}\bm{X}^\top\bm{X}$、$\bm{b} = \frac{2}{N}\bm{X}^\top\bm{y}$ とおく。
+$\bm{A}$ は $L_D$ のヘッセ行列であり（第4.3.5項）、
+最適解は $\bm{A}\bm{w}^* = \bm{b}$ を満たす（正規方程式の両辺を $2/N$ 倍したもの）。
+更新式は $\bm{w}^{(t+1)} = \bm{w}^{(t)} - \eta(\bm{A}\bm{w}^{(t)} - \bm{b})$ であり、
+$\bm{b} = \bm{A}\bm{w}^*$ を代入すると
+\begin{equation}
+  \bm{w}^{(t+1)} - \bm{w}^*
+   = (\bm{w}^{(t)} - \bm{w}^*) - \eta\bm{A}(\bm{w}^{(t)} - \bm{w}^*)
+   = (\bm{I} - \eta\bm{A})(\bm{w}^{(t)} - \bm{w}^*)
+  \label{eq:gd-error}
+\end{equation}
+を得る。式\eqref{eq:gd-1d-error}の $(1 - 2a\eta)$ が、行列 $(\bm{I} - \eta\bm{A})$ に置き換わった形である。
+誤差ベクトル $\bm{e}^{(t)} = \bm{w}^{(t)} - \bm{w}^*$ は、
+1回の更新ごとに同じ行列 $\bm{I} - \eta\bm{A}$ を掛けられる。
+したがって
+\begin{equation}
+  \bm{e}^{(t)} = (\bm{I} - \eta\bm{A})^t\, \bm{e}^{(0)}
+  \label{eq:gd-error-t}
+\end{equation}
+である。「行列を何度も掛ける」という操作を理解するには、固有値を使うのが最も見通しがよい
+（第3.7節）。
+
+$\bm{A}$ は対称かつ半正定値なので、固有値 $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_p \geq 0$ と、
+互いに直交する固有ベクトル $\bm{v}_1, \ldots, \bm{v}_p$ をもつ。
+初期誤差をこれらの向きに分解して
+\begin{equation*}
+  \bm{e}^{(0)} = c_1 \bm{v}_1 + c_2 \bm{v}_2 + \cdots + c_p \bm{v}_p
+\end{equation*}
+と書く。$(\bm{I} - \eta\bm{A})\bm{v}_i = \bm{v}_i - \eta\lambda_i\bm{v}_i = (1 - \eta\lambda_i)\bm{v}_i$ なので、
+$\bm{v}_i$ の向きの成分は1回の更新で $(1 - \eta\lambda_i)$ 倍される。よって
+\begin{equation}
+  \bm{e}^{(t)} = \sum_{i=1}^{p} c_i\,(1 - \eta\lambda_i)^t\, \bm{v}_i
+  \label{eq:gd-error-eig}
+\end{equation}
+である。\textbf{各固有ベクトルの向きごとに、1変数の式\eqref{eq:gd-1d-rate}がそのまま成り立っている}。
+向き $\bm{v}_i$ での「曲がり具合」が $\lambda_i$ であり（式\eqref{eq:ch4-directional-curvature}）、
+その向きの誤差は $(1 - \eta\lambda_i)^t$ で減る。
+
+\begin{itembox}[l]{定理：2次関数に対する勾配降下法の収束}
+$\bm{A}$ が正定値（固有値がすべて正）のとき、勾配降下法が任意の初期値から $\bm{w}^*$ に収束するための
+必要十分条件は、すべての $i$ について $|1 - \eta\lambda_i| < 1$、すなわち
+\begin{equation}
+  0 < \eta < \frac{2}{\lambda_{\max}}
+  \label{eq:gd-cond}
+\end{equation}
+である。ここで $\lambda_{\max} = \lambda_1$ は $\bm{A}$ の最大固有値である。
+\end{itembox}
+
+条件が\textbf{最大}固有値で決まる点に注意する。
+最も曲がりの急な向きで行き過ぎないように、学習率の上限が決まるのである。
+数値例では $\bm{A}$ の固有値は $\lambda_1 \approx 11.09$、$\lambda_2 \approx 0.240$ であり、
+$2/\lambda_{\max} \approx 0.180$ となる。
+図\ref{fig:gd-path}で $\eta = 0.15$ が収束し $\eta = 0.2$ が発散したのは、このためである。
+
+\subsubsection{条件数と収束の速さ}
+
+収束するとして、その速さはどうか。
+式\eqref{eq:gd-error-eig}より、最も遅く減るのは $|1 - \eta\lambda_i|$ が最も $1$ に近い成分である。
+学習率を式\eqref{eq:gd-cond}の範囲で大きめにとると、$\lambda_{\max}$ の向きはすぐ収束するが、
+$\lambda_{\min}$ の向きは $(1 - \eta\lambda_{\min})$ が $1$ に近いままで、いつまでも残る。
+
+最もよい学習率は、両端の減衰率をそろえる $1 - \eta\lambda_{\min} = -(1 - \eta\lambda_{\max})$、
+すなわち $\eta = 2/(\lambda_{\max} + \lambda_{\min})$ であり、このとき減衰率は
+\begin{equation}
+  \rho = \frac{\lambda_{\max} - \lambda_{\min}}{\lambda_{\max} + \lambda_{\min}}
+       = \frac{\kappa - 1}{\kappa + 1}, \qquad
+  \kappa = \frac{\lambda_{\max}}{\lambda_{\min}}
+  \label{eq:gd-rate}
+\end{equation}
+となる。$\kappa$ は第4.8.1項で導入した\textbf{条件数}である。
+誤差は毎回 $\rho$ 倍されるので、$\varepsilon$ 倍まで縮めるのに必要な反復回数は
+およそ $\log(1/\varepsilon) / \log(1/\rho)$ であり、$\kappa$ が大きいときこれは $\kappa$ に比例する。
+
+\begin{itembox}[l]{収束の速さと条件数}
+2次関数に対する勾配降下法の収束に必要な反復回数は、ヘッセ行列の\textbf{条件数} $\kappa = \lambda_{\max}/\lambda_{\min}$
+にほぼ比例する。$\kappa = 1$（等高線が円）なら1回で収束し、
+$\kappa$ が大きい（等高線が細長い楕円）ほど収束は遅い。
+\end{itembox}
+
+数値例では $\kappa \approx 11.09 / 0.240 \approx 46$ であり、$\rho \approx 0.958$ となる。
+誤差を $1/100$ にするには $\log 100 / \log(1/0.958) \approx 107$ 回の反復が必要で、
+表\ref{tab:gd-example}で $t = 100$ でもまだ差が残っていたのはこのためである。
+これが第3.7.5項で予告した「収束の速さはヘッセ行列の固有値の比で決まる」の正確な意味である。
+
+\subsubsection{ジグザグの正体}
+
+図\ref{fig:gd-path}中央のジグザグも、同じ式から説明できる。
+$\lambda_{\max}$ の向きでは $(1 - \eta\lambda_{\max})$ が負なので、
+誤差の符号が毎回反転する。すなわち谷を横切る向きに行ったり来たりする。
+一方 $\lambda_{\min}$ の向きでは $(1 - \eta\lambda_{\min})$ が $1$ に近い正の数なので、
+谷底に沿ってじりじりとしか進まない。
+この2つが重なって、細長い谷の中をジグザグに進む経路になる。
+
+勾配は等高線に直交する（第4.3.2項）。
+等高線が細長い楕円のとき、谷底から少し外れた点での勾配は、
+谷底の向きではなく\textbf{谷の壁の向き}をほぼ指す。
+だから勾配の逆向きに進んでも、谷底に沿って進むことにはならないのである。
+第3.7.3項の「ほぼ平らな谷」は、正規方程式では解の不安定さとして、
+勾配降下法では収束の遅さとして現れる。同じ条件数の問題である。
+
+\subsubsection{特徴のスケーリング}
+
+条件数が収束を支配するなら、\textbf{条件数を小さくしてから}勾配降下法を適用すればよい。
+最も簡単で効果の大きい方法が、特徴の\textbf{標準化}（standardization）である。
+各特徴 $x_j$ について、平均 $\bar{x}_j$ を引き、標準偏差 $s_j$ で割る：
+\begin{equation}
+  z_{ij} = \frac{x_{ij} - \bar{x}_j}{s_j}
+  \label{eq:standardize}
+\end{equation}
+こうすると各特徴は平均 $0$・分散 $1$ にそろい、$\bm{X}^\top\bm{X}$ の対角成分が均等になる。
+
+数値例でやってみよう。$x = 1, 2, 3$ の平均は $2$、標準偏差は $\sqrt{2/3}$ なので
+$z = (-\sqrt{3/2},\; 0,\; \sqrt{3/2})^\top \approx (-1.225,\; 0,\; 1.225)^\top$ である。
+標準化した計画行列 $\bm{Z} = (\bm{1}\;\; \bm{z})$ について
+\begin{equation*}
+  \bm{Z}^\top\bm{Z} = \begin{pmatrix} 3 & \sum z_i \\ \sum z_i & \sum z_i^2 \end{pmatrix}
+                    = \begin{pmatrix} 3 & 0 \\ 0 & 3 \end{pmatrix}
+\end{equation*}
+となる。平均を引いたので $\sum z_i = 0$、分散を $1$ にしたので $\sum z_i^2 = 3 = N$ である。
+ヘッセ行列 $\frac{2}{N}\bm{Z}^\top\bm{Z} = 2\bm{I}$ の固有値は両方 $2$、条件数は $\kappa = 1$。
+等高線は真円になり、$\eta = 1/2$ とすれば $\bm{I} - \eta\bm{A} = \bm{0}$ なので
+\textbf{1回の更新で}最適解に到達する（図\ref{fig:scaling}）。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/ch5_scaling}
+  \caption{特徴の標準化の効果。左：元の $x$ では等高線が細長く（$\kappa \approx 46$）、
+  $\eta = 0.15$ で30回反復してもまだ届かない。
+  右：$x$ を標準化すると等高線が円になり（$\kappa = 1$）、$\eta = 0.5$ で1回の更新で最適解に着く。
+  横軸・縦軸はそれぞれのモデルでのパラメータ $w_0, w_1$ であり、最適解の値は元のモデルとは異なる。}
+  \label{fig:scaling}
+\end{figure}
+
+もちろん一般のデータで条件数がちょうど $1$ になることはないが、
+特徴ごとの単位の違い（面積は $\mathrm{m}^2$、距離は分、など）に由来する条件数の悪化は、
+標準化でほぼ解消できる。
+勾配降下法を使う前に特徴を標準化するのは、機械学習の実務における基本的な作法である。
+
+
+\subsection{凸関数}
+
+ここまで2次関数を扱ってきた。
+2次関数では停留点がただ一つの最小点であり、勾配降下法はそこに向かって進んだ。
+しかし一般の関数では、勾配が $\bm{0}$ になる点が複数あったり、
+$\bm{0}$ になっても最小点でなかったりする。
+「勾配降下法で見つけた点は本当に最小点か」を保証する概念が凸性である。
+
+\subsubsection{定義}
+
+\begin{itembox}[l]{定義：凸集合}
+集合 $C \subseteq \mathbb{R}^p$ が\textbf{凸集合}（convex set）であるとは、
+$C$ の任意の2点 $\bm{x}, \bm{y}$ と任意の $\theta \in [0, 1]$ に対して
+\begin{equation}
+  \theta\bm{x} + (1 - \theta)\bm{y} \in C
+\end{equation}
+が成り立つことをいう。すなわち、2点を結ぶ線分が丸ごと $C$ に含まれる。
+\end{itembox}
+
+$\theta\bm{x} + (1 - \theta)\bm{y}$ は、$\theta = 1$ で $\bm{x}$、$\theta = 0$ で $\bm{y}$、
+その間で線分上を動く。$\mathbb{R}^p$ 全体、球、半空間、部分空間はすべて凸集合である。
+三日月形やドーナツ形は凸集合でない。
+本章では $f$ の定義域はつねに $\mathbb{R}^p$ 全体とするので、凸集合の条件は自動的に満たされる。
+
+\begin{itembox}[l]{定義：凸関数}
+凸集合 $C$ 上の関数 $f : C \to \mathbb{R}$ が\textbf{凸関数}（convex function）であるとは、
+任意の $\bm{x}, \bm{y} \in C$ と任意の $\theta \in [0, 1]$ に対して
+\begin{equation}
+  f\bigl(\theta\bm{x} + (1 - \theta)\bm{y}\bigr) \;\leq\; \theta f(\bm{x}) + (1 - \theta) f(\bm{y})
+  \label{eq:convex}
+\end{equation}
+が成り立つことをいう。
+$\bm{x} \neq \bm{y}$、$\theta \in (0, 1)$ のとき不等号がつねに厳密（$<$）に成り立つなら、
+\textbf{狭義凸}（strictly convex）であるという。
+\end{itembox}
+
+式\eqref{eq:convex}の意味を図\ref{fig:convex}左で確認する。
+左辺は、$\bm{x}$ と $\bm{y}$ の間の点における\textbf{関数の値}（グラフの高さ）である。
+右辺は、$f(\bm{x})$ と $f(\bm{y})$ を同じ比率で混ぜたもの、すなわち
+グラフ上の2点 $(\bm{x}, f(\bm{x}))$ と $(\bm{y}, f(\bm{y}))$ を結んだ\textbf{弦}（線分）の高さである。
+したがって凸関数とは、\textbf{どの2点をとっても、弦がグラフの上（または上に接して）にある}関数である。
+「下に凸」とも呼ばれ、お椀を上向きに置いた形をしている。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch5_convex}
+  \caption{凸関数と凸でない関数。左：$f(x) = x^2$ は凸。任意の弦がグラフの上にあり、任意の接線がグラフの下にある。
+  中：底が2つある関数は凸でない。弦がグラフの下に来る区間があり、勾配降下法は局所的最小点で止まりうる。
+  右：底が平らな関数は凸だが狭義凸ではなく、最小点が区間ごと存在する。}
+  \label{fig:convex}
+\end{figure}
+
+1変数の例を挙げる。
+$x^2$、$|x|$、$e^x$、$x \log x$（$x > 0$）はいずれも凸関数である。
+$x^3$ は凸でない（$x < 0$ で上に凸になる）。
+$\sin x$ も凸でない。
+多変数では、ノルム $\|\bm{x}\|$、2次形式 $\bm{x}^\top\bm{A}\bm{x}$（$\bm{A}$ が半正定値のとき）が凸である。
+また、凸関数の和、凸関数の正の定数倍、凸関数の最大値はいずれも凸関数である
+（演習問題で確かめる）。
+
+\subsubsection{微分可能な場合の判定}
+
+定義\eqref{eq:convex}を直接確かめるのは手間がかかる。
+微分可能な関数については、次の2つの判定法が使える。
+
+\begin{itembox}[l]{定理：凸性の1次条件}
+微分可能な $f : \mathbb{R}^p \to \mathbb{R}$ が凸であることは、任意の $\bm{x}, \bm{y}$ に対して
+\begin{equation}
+  f(\bm{y}) \;\geq\; f(\bm{x}) + \nabla f(\bm{x})^\top (\bm{y} - \bm{x})
+  \label{eq:convex-1st}
+\end{equation}
+が成り立つことと同値である。
+\end{itembox}
+
+右辺は、点 $\bm{x}$ での $f$ の\textbf{接平面}（1変数なら接線）の高さである（式\eqref{eq:taylor1}の近似を等式にしたもの）。
+したがって1次条件は、\textbf{どの点での接平面も、グラフの下にある}ことを言っている（図\ref{fig:convex}左）。
+弦が上、接線が下。この2つは同じ性質の表と裏である。
+
+\begin{itembox}[l]{定理：凸性の2次条件}
+2回微分可能な $f : \mathbb{R}^p \to \mathbb{R}$ について、
+\begin{itemize}
+  \item $f$ が凸 $\;\Longleftrightarrow\;$ すべての $\bm{x}$ でヘッセ行列 $\nabla^2 f(\bm{x})$ が\textbf{半正定値}
+  \item すべての $\bm{x}$ でヘッセ行列が\textbf{正定値} $\;\Longrightarrow\;$ $f$ は狭義凸
+\end{itemize}
+\end{itembox}
+
+1変数なら「$f'' \geq 0$ なら凸、$f'' > 0$ なら狭義凸」である。
+多変数では、第4.3.5項で見たとおり $\bm{v}^\top(\nabla^2 f)\bm{v}$ が向き $\bm{v}$ での2階微分なので、
+「どの向きに切っても $f'' \geq 0$」が半正定値、「どの向きでも $f'' > 0$」が正定値に対応する。
+第2.3.2項で「半正定値なら凸、正定値なら狭義凸」と予告した言葉の意味がこれである。
+なお2つ目の矢印は逆向きには成り立たない。
+$f(x) = x^4$ は狭義凸だが $f''(0) = 0$ である。
+
+\subsubsection{凸関数の最小値}
+
+凸関数が重要な理由は、次の性質にある。
+
+\begin{itembox}[l]{定理：凸関数の停留点は大域的最小点}
+微分可能な凸関数 $f$ について、$\nabla f(\bm{w}^*) = \bm{0}$ ならば、
+$\bm{w}^*$ は $f$ の\textbf{大域的最小点}（global minimum）である。
+すなわち、すべての $\bm{w}$ に対して $f(\bm{w}) \geq f(\bm{w}^*)$ が成り立つ。
+さらに $f$ が狭義凸なら、最小点は $\bm{w}^*$ ただ一つである。
+\end{itembox}
+
+\paragraph{証明}
+1次条件\eqref{eq:convex-1st}で $\bm{x} = \bm{w}^*$ とおくと、任意の $\bm{w}$ に対して
+\begin{equation*}
+  f(\bm{w}) \;\geq\; f(\bm{w}^*) + \underbrace{\nabla f(\bm{w}^*)^\top}_{\bm{0}^\top} (\bm{w} - \bm{w}^*) = f(\bm{w}^*)
+\end{equation*}
+となる。これが大域的最小の定義そのものである。
+狭義凸のときは、$\bm{w} \neq \bm{w}^*$ に対して不等号が厳密になるので、
+$f(\bm{w}) > f(\bm{w}^*)$ であり、$\bm{w}^*$ 以外に最小点はない。\hfill $\blacksquare$
+
+この定理の意味を整理する。
+一般の関数では、勾配が $\bm{0}$ の点は「最小点か、最大点か、鞍点か、局所的な最小点にすぎないか」
+のいずれかであり、区別には追加の情報が要る（第4.3.5項）。
+しかし凸関数では、\textbf{勾配が $\bm{0}$ の点を見つけさえすれば、それが答え}である。
+局所的最小点と大域的最小点の区別がない。
+第4回で「$\nabla L_D = \bm{0}$ とおいて正規方程式を導く」ことが許された理由は、
+最小二乗法の $L_D$ が凸だから、と一言で言える。
+
+勾配降下法との関係も明らかになる。
+式\eqref{eq:gd-decrease}により勾配降下法は損失を減らし続け、勾配が $\bm{0}$ の点に近づく。
+凸関数なら、その点が大域的最小点である。
+したがって\textbf{凸関数に対しては、勾配降下法は（学習率が適切なら）必ず最小点に収束する}。
+凸でない関数では、図\ref{fig:convex}中央のように、初期値によっては局所的最小点で止まる。
+
+\subsubsection{最小二乗法と正則化は凸である}
+
+経験損失 $L_D(\bm{w}) = \frac{1}{N}\|\bm{y} - \bm{X}\bm{w}\|^2$ のヘッセ行列は
+$\frac{2}{N}\bm{X}^\top\bm{X}$ であり、式\eqref{eq:ch4-psd}よりつねに半正定値である。
+よって $L_D$ は\textbf{凸関数}であり、停留点は大域的最小点である。
+$\bm{X}$ がフルランクならヘッセ行列は正定値で $L_D$ は狭義凸、最小点はただ一つ。
+ランクが落ちていれば凸だが狭義凸でなく、図\ref{fig:convex}右のように最小点が平らな谷に沿って無数に並ぶ。
+これは第4.7節の零空間の話の、凸関数の言葉による言い換えである。
+
+第6回で扱うリッジ回帰 $\|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2$（$\lambda > 0$）の
+ヘッセ行列は $2(\bm{X}^\top\bm{X} + \lambda\bm{I})$ であり、第4.7.5項で見たとおりランクによらず正定値である。
+したがってリッジ回帰の損失は\textbf{つねに狭義凸}で、最小点はつねに一意に定まる。
+正則化の恩恵の一つが、ここにも現れている。
+
+\subsubsection{凸でないとき}
+
+ニューラルネットワーク（第12回）の損失関数は、パラメータについて凸でない。
+勾配降下法は局所的最小点や鞍点で止まりうるし、どこで止まるかは初期値に依存する。
+それでも深層学習が機能している理由は、本講義の範囲を超えるが、
+「高次元では悪い局所的最小点がまれである」「鞍点は勾配降下法の揺らぎで抜けられる」
+といったことが経験的・理論的に分かってきている。
+いずれにせよ、凸関数の理論は「何が保証され、何が保証されないか」を測る基準として、
+凸でない問題を考えるときにも不可欠である。
+
+
+\subsection{確率的勾配降下法}
+
+式\eqref{eq:gd-ls}の1回の更新には、$N$ 件すべてのデータを使った勾配の計算が必要である。
+$N$ が数百万件になると、1歩進むだけで大きな計算になる。
+
+経験損失は各データの損失の平均 $L_D(\bm{w}) = \frac{1}{N}\sum_{i=1}^{N} \ell_i(\bm{w})$
+（$\ell_i(\bm{w}) = (y_i - \tilde{\bm{x}}_i^\top\bm{w})^2$）であるから、勾配も平均
+$\nabla L_D = \frac{1}{N}\sum_i \nabla \ell_i$ である。
+そこで、全データの平均をとる代わりに、\textbf{ランダムに選んだ一部のデータ}（ミニバッチ）$B \subset \{1, \ldots, N\}$
+だけで勾配を近似する：
+\begin{equation}
+  \bm{w}^{(t+1)} = \bm{w}^{(t)} - \eta\, \frac{1}{|B|}\sum_{i \in B} \nabla \ell_i(\bm{w}^{(t)})
+  \label{eq:sgd}
+\end{equation}
+これを\textbf{確率的勾配降下法}（stochastic gradient descent, SGD）と呼ぶ。
+$|B|$ は $32$ や $256$ といった小さな数にとることが多い。
+
+ミニバッチの勾配は本当の勾配とは異なるが、平均的には一致する（偏りがない）。
+1歩あたりの計算量は $N$ から $|B|$ に減り、同じ計算時間でずっと多くの更新ができる。
+その代わり、勾配の誤差のために経路は揺らぎ、最小点のまわりをふらつく。
+学習率を徐々に小さくすることで、この揺らぎを抑えて収束させる。
+深層学習の学習はほぼすべてこの方法（とその改良）で行われている。
+
+
+\subsection{正規方程式と勾配降下法の比較}
+
+2つの解法を表\ref{tab:ne-vs-gd}に整理する。
+
+\begin{table}[H]
+  \centering
+  \caption{正規方程式と勾配降下法の比較}
+  \label{tab:ne-vs-gd}
+  \begin{tabular}{l|p{5.0cm}|p{5.0cm}}
+    \hline
+     & 正規方程式（第4回） & 勾配降下法（本章） \\
+    \hline\hline
+    解の求め方 & 閉じた式で一度に & 反復で少しずつ \\
+    \hline
+    計算量 & $(d+1)^3$ に比例（逆行列） & 1回あたり $N(d+1)$ に比例。反復回数は $\kappa$ に比例 \\
+    \hline
+    $d$ が大きいとき & 困難 & 問題ない \\
+    \hline
+    $N$ が大きいとき & $\bm{X}^\top\bm{X}$ を作れれば問題ない & SGD で対応 \\
+    \hline
+    非線形モデル & 使えない & 使える（勾配さえ計算できれば） \\
+    \hline
+    調整すべきもの & なし & 学習率、初期値、終了条件 \\
+    \hline
+    精度 & 厳密解 & 近似解（反復を重ねれば任意の精度） \\
+    \hline
+    条件数の影響 & 解の数値誤差が増幅 & 収束が遅くなる \\
+    \hline
+  \end{tabular}
+\end{table}
+
+最小二乗法に限れば、$d$ が数千程度までなら正規方程式（をQR分解などで解いたもの）が速くて正確である。
+勾配降下法の真価は、$d$ が巨大なとき、そして何よりモデルが非線形なときに発揮される。
+第12回のニューラルネットワークでは、勾配を効率よく計算する方法（誤差逆伝播法）と
+組み合わせて、本章の更新式\eqref{eq:gd}がそのまま使われる。
+
+
+\subsection{まとめ}
+
+\begin{itemize}
+  \item 正規方程式は $d$ が大きいときや非線形モデルでは使えない。
+    代わりに\textbf{反復計算}で最小点に近づく
+  \item \textbf{勾配降下法}：$\bm{w}^{(t+1)} = \bm{w}^{(t)} - \eta\nabla f(\bm{w}^{(t)})$。
+    $-\nabla f$ は損失が最も速く減る向きであり、$\eta$ が小さければ各ステップで損失は減る
+  \item 最小二乗法では $\nabla L_D = \frac{2}{N}\bm{X}^\top(\bm{X}\bm{w} - \bm{y})$。
+    1回の更新は $N(d+1)$ に比例する計算で済み、逆行列は不要
+  \item 学習率 $\eta$ は小さすぎると遅く、大きすぎると発散する。
+    2次関数では $0 < \eta < 2/\lambda_{\max}$ が収束の条件
+  \item 収束の速さはヘッセ行列の\textbf{条件数} $\kappa = \lambda_{\max}/\lambda_{\min}$ で決まる。
+    細長い谷ではジグザグして遅い。特徴の\textbf{標準化}で条件数を改善できる
+  \item \textbf{凸関数}：弦がグラフの上にある関数。微分可能なら接平面がグラフの下、
+    2回微分可能ならヘッセ行列が半正定値、と同値
+  \item 凸関数では\textbf{停留点＝大域的最小点}。狭義凸なら一意。
+    だから最小二乗法は $\nabla L_D = \bm{0}$ を解けばよく、勾配降下法は必ず最小点に収束する
+  \item \textbf{確率的勾配降下法}：ミニバッチで勾配を近似し、$N$ が巨大でも1歩を安く進む
+\end{itemize}
+
+本章で、「経験損失を最小にするパラメータを求める」という第1回以来の問題に、
+2通りの解法（閉じた式と反復計算）が揃った。
+しかし第1回で述べたとおり、経験損失を最小にすることと、未知のデータに対する誤差を小さくすることは別である。
+次回（第6回）は、訓練データへの当てはまりを少し犠牲にしてでも汎化を改善する\textbf{正則化}を扱う。
+本章で登場した $\lambda\|\bm{w}\|^2$ という項が、その主役になる。
+
+
+\subsection{演習問題}
+
+\begin{enumerate}
+
+  \item \textbf{1変数の勾配降下法}\quad
+    $f(w) = 3w^2 - 12w + 5$ について答えよ。
+    \begin{enumerate}
+      \item 最小点 $w^*$ を微分して求めよ。
+      \item $w^{(0)} = 0$、$\eta = 0.1$ として $w^{(1)}, w^{(2)}, w^{(3)}$ を計算せよ。
+      \item 式\eqref{eq:gd-1d-rate}を用いて、$w^{(t)} - w^*$ を $t$ の式で書け。
+        $w^{(3)}$ の値が (b) と一致することを確かめよ。
+      \item この $f$ に対して勾配降下法が収束する学習率の範囲を求めよ。
+        また、振動せずに収束する（$w^{(t)}$ が $w^*$ を行き過ぎない）範囲を求めよ。
+    \end{enumerate}
+
+  \item \textbf{最小二乗法への適用}\quad
+    $\bm{X} = \begin{pmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{pmatrix}$、$\bm{y} = (1, 2, 2)^\top$
+    （第4回演習問題1のデータ）について答えよ。
+    \begin{enumerate}
+      \item $\bm{A} = \frac{2}{N}\bm{X}^\top\bm{X}$ と $\bm{b} = \frac{2}{N}\bm{X}^\top\bm{y}$ を求めよ。
+      \item $\bm{w}^{(0)} = \bm{0}$、$\eta = 0.1$ として $\bm{w}^{(1)}$ と $\bm{w}^{(2)}$ を計算せよ。
+      \item $L_D(\bm{w}^{(0)})$、$L_D(\bm{w}^{(1)})$、$L_D(\bm{w}^{(2)})$ を計算し、単調に減っていることを確かめよ。
+      \item 第4回で求めた厳密解 $\bm{w}^* = (7/6, 1/2)^\top$ と $\bm{w}^{(2)}$ を比べ、
+        どちらの成分がより収束しているか述べよ。
+    \end{enumerate}
+
+  \item \textbf{収束条件}\quad
+    問2の $\bm{A}$ について答えよ。
+    \begin{enumerate}
+      \item $\bm{A}$ の固有値 $\lambda_1 > \lambda_2$ を求めよ（特性方程式を解く）。
+      \item 条件数 $\kappa$ を求めよ。
+      \item 勾配降下法が収束する学習率の上限 $2/\lambda_{\max}$ を求めよ。
+      \item 式\eqref{eq:gd-rate}の最適な学習率と、そのときの減衰率 $\rho$ を求めよ。
+        誤差を $1/1000$ にするのに必要な反復回数を見積もれ。
+    \end{enumerate}
+
+  \item \textbf{勾配と逆向きに進む理由}\quad
+    $f : \mathbb{R}^p \to \mathbb{R}$ を微分可能とし、点 $\bm{w}$ で $\nabla f(\bm{w}) \neq \bm{0}$ とする。
+    長さ $1$ の方向ベクトル $\bm{u}$（$\|\bm{u}\| = 1$）に対して、
+    方向微分 $D_{\bm{u}} f(\bm{w}) = \nabla f(\bm{w})^\top \bm{u}$ を考える。
+    \begin{enumerate}
+      \item コーシー・シュワルツの不等式を用いて $-\|\nabla f(\bm{w})\| \leq D_{\bm{u}} f(\bm{w}) \leq \|\nabla f(\bm{w})\|$ を示せ。
+      \item 上の不等式で等号が成り立つ $\bm{u}$ をそれぞれ求めよ。
+      \item 式\eqref{eq:gd-decrease}を導け。$\eta > 0$ かつ $\nabla f(\bm{w}^{(t)}) \neq \bm{0}$ なら
+        右辺が $f(\bm{w}^{(t)})$ より真に小さいことを説明せよ。
+    \end{enumerate}
+
+  \item \textbf{標準化}\quad
+    3件のデータの特徴が $x = 10, 20, 30$ であるとする。
+    \begin{enumerate}
+      \item バイアス項を含む計画行列 $\bm{X}$ について $\bm{X}^\top\bm{X}$ を求め、
+        その固有値と条件数を求めよ（固有値は小数第2位まででよい）。
+      \item $x$ を標準化した $z$ を求め、計画行列 $\bm{Z} = (\bm{1}\;\; \bm{z})$ について $\bm{Z}^\top\bm{Z}$ と条件数を求めよ。
+      \item (a) と (b) で勾配降下法の収束に必要な反復回数がおよそ何倍違うか、式\eqref{eq:gd-rate}をもとに述べよ。
+    \end{enumerate}
+
+  \item \textbf{凸関数の判定}\quad
+    次の関数が凸かどうかを、2次条件（1変数なら $f'' \geq 0$）で判定せよ。
+    凸の場合は狭義凸かどうかも述べよ。
+    \begin{enumerate}
+      \item $f(x) = e^x$
+      \item $f(x) = x^3$
+      \item $f(x) = -\log x$（$x > 0$）
+      \item $f(\bm{w}) = \bm{w}^\top\bm{A}\bm{w}$、ただし $\bm{A} = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}$
+      \item $f(\bm{w}) = \|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2$（$\lambda > 0$、$\bm{X}$ は任意）
+    \end{enumerate}
+
+  \item \textbf{凸関数の性質}\quad
+    $f, g : \mathbb{R}^p \to \mathbb{R}$ を凸関数とする。
+    定義\eqref{eq:convex}に基づいて次を示せ。
+    \begin{enumerate}
+      \item $f + g$ は凸関数である。
+      \item $c > 0$ に対して $cf$ は凸関数である。
+      \item $h(\bm{x}) = \max\{f(\bm{x}), g(\bm{x})\}$ は凸関数である。
+      \item (a)(b) を用いて、経験損失 $\frac{1}{N}\sum_i (y_i - \tilde{\bm{x}}_i^\top\bm{w})^2$ が凸であることを、
+        各項 $(y_i - \tilde{\bm{x}}_i^\top\bm{w})^2$ が凸であることから導け
+        （各項が凸であることは、1変数の $u^2$ が凸であることと $u$ が $\bm{w}$ の1次式であることから認めてよい）。
+    \end{enumerate}
+
+  \item \textbf{局所的最小点}\quad
+    $f(w) = w^4 - 4w^3 + 4w^2 + 1 = w^2(w - 2)^2 + 1$ について答えよ。
+    \begin{enumerate}
+      \item $f'(w) = 0$ となる $w$ をすべて求めよ。
+      \item それぞれの点が極小・極大のどちらかを $f''$ の符号で判定せよ。
+      \item この $f$ は凸か。理由とともに述べよ。
+      \item $w^{(0)} = 1.2$ から小さな学習率で勾配降下法を始めたとき、どの点に収束するか。
+        $w^{(0)} = 0.8$ ならどうか。初期値によって結果が変わる理由を述べよ。
     \end{enumerate}
 
 \end{enumerate}
