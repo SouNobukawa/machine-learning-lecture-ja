@@ -1,0 +1,477 @@
+%=====================================================================
+% 機械学習 第4回 演習問題 提出用テンプレート
+%
+% 使い方
+%   1. 下の \学籍番号, \氏名, \提出日 を自分の情報に書き換える
+%      （\提出期限 は書き換えない）
+%   2. 各問題の「解答」枠の中に解答を書く（枠の外の問題文は変更しない）
+%   3. コンパイルして PDF を作成し、PDF を提出する
+%
+% コンパイル方法（ターミナル）
+%   uplatex report_template_04.tex && dvipdfmx report_template_04.dvi
+%
+% Overleaf を使う場合
+%   Menu > Compiler を "LaTeX" にし、プロジェクトに latexmkrc という名前の
+%   ファイルを作って次の3行を書く：
+%     $latex = 'uplatex';
+%     $dvipdf = 'dvipdfmx %O -o %D %S';
+%     $pdf_mode = 3;
+%
+% 提出期限：2026年10月19日（月）
+% ファイル名は  ML04_学籍番号.pdf  として提出すること（例：ML04_2312345.pdf）
+%=====================================================================
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{pdfborder={0 0 0}}
+
+%---- 提出期限（書き換えない）------------------------------------------
+\newcommand{\提出期限}{2026年10月19日（月）}
+%---- 自分の情報を書く -------------------------------------------------
+\newcommand{\学籍番号}{0000000}
+\newcommand{\氏名}{氏名を書く}
+\newcommand{\提出日}{2026年10月19日}
+%----------------------------------------------------------------------
+
+% 解答枠（枠の中に解答を書く）
+\newenvironment{answer}{\begin{itembox}[l]{解答}}{\end{itembox}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE 機械学習　第4回 演習問題}\\[2mm]
+  {\large 提出課題（最小二乗法：幾何学と微分）}\\[4mm]
+  {\large\textbf{提出期限：\提出期限}}\\[6mm]
+  \begin{tabular}{ll}
+    学籍番号： & \学籍番号 \\
+    氏名：     & \氏名 \\
+    提出日：   & \提出日 \\
+  \end{tabular}
+\end{center}
+
+\vspace{4mm}
+\noindent
+\textbf{注意}
+\begin{itemize}
+  \item 解答は「解答」の枠内に書くこと。枠外の問題文は変更しないこと。
+  \item 計算問題は結果だけでなく途中の式も書くこと。
+    行列の積は、どの行とどの列の内積かが分かるように書くこと。
+  \item 分数はそのまま分数で答えてよい（$7/6$ を $1.1667$ と書く必要はない）。
+  \item 証明問題では、どの定義・性質を使ったか（転置の性質、ノルムの非負性、
+    正定値の定義、ランクの定義など）を明記すること。
+  \item 「確認せよ」という問いには、両辺を実際に計算して一致することを示すこと。
+  \item 「説明せよ」という問いには、計算結果だけでなく\textbf{日本語の説明}を書くこと。
+  \item 数式の書き方は末尾の「LaTeX の書き方」を参照すること。
+\end{itemize}
+
+\section*{問題}
+
+\begin{enumerate}
+
+%=====================================================================
+  \item \textbf{直交性の確認}\quad
+    $\bm{X} = \begin{pmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{pmatrix}$、
+    $\bm{y} = (1, 2, 2)^\top$ とする。
+    \begin{enumerate}
+      \item $\bm{X}^\top\bm{X}$ と $\bm{X}^\top\bm{y}$ を求めよ。
+      \item 正規方程式を解いて $\bm{w}^*$ を求めよ。
+      \item 残差 $\bm{r} = \bm{y} - \bm{X}\bm{w}^*$ を求め、
+        $\bm{X}^\top\bm{r} = \bm{0}$ を確認せよ。
+      \item 経験損失 $L_D(\bm{w}^*)$ を求めよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\bm{X}^\top = \phantom{XXXXXXXXXX}$（　　）行（　　）列
+          \begin{equation*}
+            \bm{X}^\top\bm{X} = \phantom{XXXXXXXXXXXX}, \qquad
+            \bm{X}^\top\bm{y} = \phantom{XXXXXXXX}
+          \end{equation*}
+          成分の意味：$(1,1)$ 成分 $=$ \phantom{XXXX}（データ件数）、
+          $(1,2)$ 成分 $= \sum_i x_i =$ \phantom{XX}、
+          $(2,2)$ 成分 $= \sum_i x_i^2 =$ \phantom{XX}
+        \item $\det(\bm{X}^\top\bm{X}) = $ \phantom{XXXXXX} $\neq 0$ なので逆行列が存在する。
+          \begin{equation*}
+            (\bm{X}^\top\bm{X})^{-1} = \phantom{XXXXXXXXXXXX}
+          \end{equation*}
+          \begin{align*}
+            \bm{w}^* = (\bm{X}^\top\bm{X})^{-1}\bm{X}^\top\bm{y}
+              &= \\
+              &=
+          \end{align*}
+          よって $w_0 = $ \phantom{XXX}, $w_1 = $ \phantom{XXX}。直線は $h(x) = $ \phantom{XXXXXXXX}
+        \item
+          \begin{equation*}
+            \hat{\bm{y}} = \bm{X}\bm{w}^* = \phantom{XXXXXXXXXX}, \qquad
+            \bm{r} = \bm{y} - \hat{\bm{y}} = \phantom{XXXXXXXXXX}
+          \end{equation*}
+          \begin{align*}
+            \bm{c}_0^\top\bm{r} &= \\
+            \bm{c}_1^\top\bm{r} &=
+          \end{align*}
+          よって $\bm{X}^\top\bm{r} = $ \phantom{XXXX}。
+          $\bm{c}_0^\top\bm{r} = 0$ の意味（残差について）：
+        \item
+          \begin{equation*}
+            L_D(\bm{w}^*) = \frac{1}{N}\|\bm{r}\|^2 = \frac{1}{\phantom{X}}\left( \phantom{XXXXXXXXXX} \right) =
+          \end{equation*}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{三平方の定理による最適性}\quad
+    問1の設定で、$\bm{w} = (1, 1)^\top$ としたときの予測を $\bm{X}\bm{w}$ とする。
+    \begin{enumerate}
+      \item $\|\bm{y} - \bm{X}\bm{w}\|^2$ を計算せよ。
+      \item $\|\bm{y} - \hat{\bm{y}}\|^2 + \|\hat{\bm{y}} - \bm{X}\bm{w}\|^2$ を計算し、
+        (a) と一致することを確認せよ（テキスト式(4.5)）。
+      \item この等式が成り立つのはなぜか。どのベクトルとどのベクトルが
+        直交していることを使っているか明記して説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \bm{X}\bm{w} = \phantom{XXXXXXXX}, \qquad
+            \bm{y} - \bm{X}\bm{w} = \phantom{XXXXXXXX}, \qquad
+            \|\bm{y} - \bm{X}\bm{w}\|^2 =
+          \end{equation*}
+        \item 問1の $\hat{\bm{y}}$ を用いて
+          \begin{align*}
+            \|\bm{y} - \hat{\bm{y}}\|^2 &= \\
+            \hat{\bm{y}} - \bm{X}\bm{w} &= \phantom{XXXXXXXXXX}, \qquad
+            \|\hat{\bm{y}} - \bm{X}\bm{w}\|^2 = \\
+            \text{和} &= \phantom{XXXXXXXX} = \text{(a)}
+          \end{align*}
+        \item 直交しているベクトル：\phantom{XXXXXXXX} と \phantom{XXXXXXXX} \\[1mm]
+          確認（内積を計算）：\phantom{XXXXXXXXXXXXXXXXXXXX} $= 0$ \\[1mm]
+          なぜ直交するか（$\hat{\bm{y}}$ と $\bm{X}\bm{w}$ がどこにあるか、残差が何と直交するか）：\\[10mm]
+          直交する2つのベクトルの和の長さについて成り立つ定理：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{微分による導出}\quad
+    $L_D(\bm{w}) = \frac{1}{N}\|\bm{y} - \bm{X}\bm{w}\|^2$ について答えよ。
+    \begin{enumerate}
+      \item $N \cdot L_D(\bm{w})$ を展開し、テキスト式(4.13)の形に書け。
+        途中で使った「スカラーの転置は変わらない」という事実がどこで効いたか示せ。
+      \item 公式 $\nabla_{\bm{w}}(\bm{a}^\top\bm{w}) = \bm{a}$ と
+        $\nabla_{\bm{w}}(\bm{w}^\top\bm{A}\bm{w}) = 2\bm{A}\bm{w}$ を用いて $\nabla L_D$ を求めよ。
+      \item $\nabla L_D = \bm{0}$ から正規方程式を導け。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\|\bm{z}\|^2 = \bm{z}^\top\bm{z}$ を使って
+          \begin{align*}
+            N \cdot L_D(\bm{w})
+              &= (\bm{y} - \bm{X}\bm{w})^\top (\bm{y} - \bm{X}\bm{w}) \\
+              &= \phantom{XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX} && \text{（4つの項に展開）} \\
+              &= \phantom{XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX} && \text{（3つの項にまとめる）}
+          \end{align*}
+          「スカラーの転置は変わらない」が効いた箇所：\\
+          \phantom{XXXXXXXX} はスカラーなので、転置した \phantom{XXXXXXXX} に等しい。
+          したがって第2項と第3項が同じものになり、1つにまとまる。
+        \item 第1項は $\bm{w}$ を含まないので勾配は $\bm{0}$。
+          第2項は公式1で $\bm{a} = $ \phantom{XXXXXX} として、
+          第3項は公式2で $\bm{A} = $ \phantom{XXXXXX}（対称であることの理由：\phantom{XXXXXXXXXX}）として
+          \begin{align*}
+            \nabla_{\bm{w}}\bigl(N \cdot L_D(\bm{w})\bigr) &= \\
+            \nabla_{\bm{w}} L_D(\bm{w}) &=
+          \end{align*}
+        \item $\nabla L_D = \bm{0}$ とおくと
+          \begin{equation*}
+            \phantom{XXXXXXXXXXXXXXXX} = \bm{0}
+            \quad\Longrightarrow\quad
+            \phantom{XXXXXXXXXXXXXXXX}
+          \end{equation*}
+          これが正規方程式である。$\frac{1}{N}$ や $2$ が消えてよい理由：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{行列微分の公式}\quad
+    $\bm{A} \in \mathbb{R}^{p \times p}$ を\textbf{対称とは限らない}定行列とする。
+    \begin{enumerate}
+      \item $\nabla_{\bm{w}}(\bm{w}^\top\bm{A}\bm{w}) = (\bm{A} + \bm{A}^\top)\bm{w}$
+        を成分計算で示せ。
+      \item $\bm{A}$ が対称のとき、これが $2\bm{A}\bm{w}$ になることを確認せよ。
+      \item $\bm{A} = \begin{pmatrix} 1 & 2 \\ 0 & 3 \end{pmatrix}$、
+        $\bm{w} = (w_1, w_2)^\top$ のとき、
+        $\bm{w}^\top\bm{A}\bm{w}$ を $w_1, w_2$ の式として書き下し、
+        偏微分して (a) の結果と一致することを確かめよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\bm{w}^\top\bm{A}\bm{w} = \sum_{j}\sum_{k} a_{jk} w_j w_k$ である。
+          $w_i$ を含む項は、$j = i$ の項、$k = i$ の項、および $j = k = i$ の項。
+          \begin{align*}
+            \frac{\partial}{\partial w_i} \sum_{j}\sum_{k} a_{jk} w_j w_k
+              &= \phantom{XXXXXXXXXXXXXXXXXXXX} && \text{（積の微分）} \\
+              &= (\phantom{XXXX})_i + (\phantom{XXXX})_i
+          \end{align*}
+          すべての $i$ について並べると \phantom{XXXXXXXXXXXX}。\hfill $\blacksquare$
+        \item $\bm{A}^\top = $ \phantom{XX} なので $(\bm{A} + \bm{A}^\top)\bm{w} = $ \phantom{XXXXXXXX}
+        \item
+          \begin{align*}
+            \bm{A}\bm{w} &= \phantom{XXXXXXXXXXXX} \\
+            \bm{w}^\top\bm{A}\bm{w} &= \phantom{XXXXXXXXXXXXXXXXXXXX}
+          \end{align*}
+          偏微分：
+          \begin{equation*}
+            \frac{\partial}{\partial w_1} = \phantom{XXXXXXXX}, \qquad
+            \frac{\partial}{\partial w_2} = \phantom{XXXXXXXX}
+          \end{equation*}
+          一方 $\bm{A} + \bm{A}^\top = $ \phantom{XXXXXXXX} なので
+          $(\bm{A} + \bm{A}^\top)\bm{w} = $ \phantom{XXXXXXXXXXXX}。（一致する・しない）\\
+          注意：$2\bm{A}\bm{w} = $ \phantom{XXXXXXXXXXXX} とは（一致する・しない）。理由：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{ハット行列}\quad
+    問1の $\bm{X}$ について答えよ。
+    \begin{enumerate}
+      \item $\bm{H} = \bm{X}(\bm{X}^\top\bm{X})^{-1}\bm{X}^\top$ を計算せよ。
+      \item $\bm{H}^\top = \bm{H}$ と $\bm{H}^2 = \bm{H}$ を確認せよ。
+      \item $\mathrm{tr}(\bm{H})$ を求め、$d+1$ に一致することを確認せよ。
+      \item $\bm{H}$ の固有値は $0$ か $1$ のいずれかであることを、
+        $\bm{H}^2 = \bm{H}$ から示せ。固有値 $1$ の個数は何個か。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 問1の $(\bm{X}^\top\bm{X})^{-1}$ を用いて、まず
+          \begin{equation*}
+            \bm{X}(\bm{X}^\top\bm{X})^{-1} = \phantom{XXXXXXXXXXXXXX} \quad \text{（　　）行（　　）列}
+          \end{equation*}
+          次に $\bm{X}^\top$ を右から掛けて
+          \begin{equation*}
+            \bm{H} = \phantom{XXXXXXXXXXXXXXXXXX} \quad \text{（　　）行（　　）列}
+          \end{equation*}
+          確認：$\bm{H}\bm{y} = $ \phantom{XXXXXXXXXX} $= \hat{\bm{y}}$（問1と一致する・しない）
+        \item 対称性：$\bm{H}$ の $(i,j)$ 成分と $(j,i)$ 成分を見比べると \phantom{XXXXXXXXXXXX} \\[1mm]
+          冪等性：
+          \begin{equation*}
+            \bm{H}^2 = \phantom{XXXXXXXXXXXXXXXXXXXXXXXXXX} = \bm{H}
+          \end{equation*}
+          （少なくとも対角成分と1つの非対角成分は実際に計算して示すこと）
+        \item $\mathrm{tr}(\bm{H}) = $ \phantom{XXXXXXXXXX} $=$ \phantom{XX}。
+          $d+1 = $ \phantom{XX} と（一致する・しない）。\\
+          この値の意味（自由度）：
+        \item $\bm{H}\bm{v} = \lambda\bm{v}$（$\bm{v} \neq \bm{0}$）とする。
+          両辺に $\bm{H}$ を掛けると
+          \begin{equation*}
+            \bm{H}^2\bm{v} = \phantom{XXXXXX}, \qquad \text{一方 } \bm{H}^2\bm{v} = \bm{H}\bm{v} = \phantom{XXXXXX}
+          \end{equation*}
+          よって \phantom{XXXXXXXX} $= 0$、$\bm{v} \neq \bm{0}$ より $\lambda = $ \phantom{XXXXXX}。\hfill $\blacksquare$ \\[1mm]
+          固有値 $1$ の個数：対称行列の固有値の和はトレースに等しいので、
+          \phantom{XXXXXXXXXXXXXXXX}、よって（　　）個。
+          これは $\mathrm{rank}(\bm{H}) = $ \phantom{XX} とも一致する。
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{一意可解性}\quad
+    \begin{enumerate}
+      \item 任意の $\bm{v}$ に対して $\bm{v}^\top\bm{X}^\top\bm{X}\bm{v} = \|\bm{X}\bm{v}\|^2$
+        が成り立つことを示せ。
+      \item これを用いて、$\bm{X}$ の列が線形独立ならば $\bm{X}^\top\bm{X}$ が
+        正定値であることを示せ。
+      \item 逆に、$\bm{X}$ の列が線形従属ならば $\bm{X}^\top\bm{X}$ は正則でないことを示せ。
+      \item $N = 5$, $d = 10$（特徴が10個）のとき、$\bm{X}^\top\bm{X}$ は正則になりうるか。
+        理由とともに述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 転置の性質 $(\bm{A}\bm{B})^\top = $ \phantom{XXXXXX} を使うと
+          \begin{equation*}
+            \bm{v}^\top\bm{X}^\top\bm{X}\bm{v} = (\phantom{XXXX})^\top(\phantom{XXXX}) = \|\phantom{XXXX}\|^2
+          \end{equation*}
+          \hfill $\blacksquare$
+        \item 正定値の定義：すべての $\bm{v} \neq \bm{0}$ に対して \phantom{XXXXXXXXXXXX}。\\
+          列が線形独立であるとは：$\bm{X}\bm{v} = \bm{0}$ となるのは \phantom{XXXXXXXX} に限る。\\
+          したがって $\bm{v} \neq \bm{0}$ なら $\bm{X}\bm{v}$ \phantom{XXXXXX} であり、
+          ノルムの性質（\phantom{XXXXXXXXXX}）より
+          $\bm{v}^\top\bm{X}^\top\bm{X}\bm{v} = \|\bm{X}\bm{v}\|^2$ \phantom{XXXX} $0$。\hfill $\blacksquare$
+        \item 列が線形従属なら \phantom{XXXXXXXXXXXXXXXX} となる $\bm{v} \neq \bm{0}$ が存在する。\\
+          このとき $\bm{X}^\top\bm{X}\bm{v} = $ \phantom{XXXXXX}。\\
+          正則な行列は \phantom{XXXXXXXXXXXXXXXXXXXX} ので、$\bm{X}^\top\bm{X}$ は正則でない。\hfill $\blacksquare$
+        \item $\bm{X} \in \mathbb{R}^{(\ \ ) \times (\ \ )}$ であり、
+          $\mathrm{rank}(\bm{X}) \leq \min(\phantom{XX}, \phantom{XX}) = $ \phantom{XX}。\\
+          列の本数 \phantom{XX} よりランクが小さいので、列は線形（独立・従属）。\\
+          よって (c) より $\bm{X}^\top\bm{X}$ は正則に（なりうる・なりえない）。\\
+          この状況の意味（データ件数と特徴数）：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{擬似逆行列}\quad
+    $\bm{X} = \begin{pmatrix} 1 & 3 \\ 2 & 6 \end{pmatrix}$、
+    $\bm{y} = (2, 4)^\top$ とする。
+    \begin{enumerate}
+      \item $\mathrm{rank}(\bm{X})$ を求めよ。
+      \item $\mathrm{Null}(\bm{X})$ を求めよ。
+      \item $\|\bm{y} - \bm{X}\bm{w}\|$ を最小にする $\bm{w}$ の集合を書き下せ。
+      \item そのうちノルム最小のもの $\bm{w}^{+}$ を求めよ。
+      \item $\bm{w}^{+}$ が $\mathrm{Null}(\bm{X})$ と直交することを確認せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 列の関係：$\bm{c}_2 = $ \phantom{XXXX} なので、線形独立な列は（　　）本。
+          $\mathrm{rank}(\bm{X}) = $ \phantom{XX}
+        \item $\bm{X}\bm{v} = \bm{0}$ を成分で書くと \phantom{XXXXXXXXXXXX}（2本の式は同じ内容）。\\
+          \begin{equation*}
+            \mathrm{Null}(\bm{X}) = \{\, \phantom{XXXXXXXX} \mid t \in \mathbb{R} \,\}
+          \end{equation*}
+          記法の意味（縦棒の右側は何を表すか）：
+        \item $\bm{y} = $ \phantom{XX}$\,\bm{c}_1$ なので $\bm{y}$ は $\mathrm{Col}(\bm{X})$ に（属する・属さない）。
+          よって最小値は $\|\bm{y} - \bm{X}\bm{w}\| = $ \phantom{XX} であり、条件は \phantom{XXXXXXXXXX} の1本。\\
+          解の一つ $\bm{w}^* = $ \phantom{XXXXXX} をとると
+          \begin{equation*}
+            \{\, \bm{w} \,\} = \{\, \phantom{XXXXXXXX} + t\,\phantom{XXXXXXXX} \mid t \in \mathbb{R} \,\}
+          \end{equation*}
+        \item 解の上で $\|\bm{w}\|^2 = $ \phantom{XXXXXXXXXXXXXXXX}（$t$ または $w_2$ の2次式）。\\
+          微分して $0$：\phantom{XXXXXXXXXXXX} より $t = $ \phantom{XXX}。
+          \begin{equation*}
+            \bm{w}^{+} = \phantom{XXXXXXXX}, \qquad \|\bm{w}^{+}\|^2 = \phantom{XXXX}
+          \end{equation*}
+        \item 零空間の向き $\bm{v} = $ \phantom{XXXXXX} との内積：
+          $\bm{w}^{+\top}\bm{v} = $ \phantom{XXXXXXXXXXXX} $= 0$ \\
+          幾何学的な意味（解の集合と原点の関係）：
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{条件数}\quad
+    $\bm{X}^\top\bm{X} = \begin{pmatrix} 1 & 0 \\ 0 & \varepsilon \end{pmatrix}$
+    （$\varepsilon > 0$ は小さい数）という状況を考える。
+    \begin{enumerate}
+      \item 固有値と条件数 $\kappa(\bm{X}^\top\bm{X})$ を求めよ。
+      \item $\bm{X}^\top\bm{y} = (1, \varepsilon)^\top$ のとき $\bm{w}^*$ を求めよ。
+      \item $\bm{X}^\top\bm{y}$ の第2成分が $\varepsilon$ から $2\varepsilon$ に変化したとき、
+        $\bm{w}^*$ はどれだけ変化するか。$\varepsilon$ が小さいほど
+        何が問題になるか説明せよ。
+      \item $\bm{X}^\top\bm{X} + \lambda\bm{I}_2$（$\lambda > 0$）としたとき、
+        条件数はどうなるか。$\lambda$ を大きくすると条件数はどう変わるか。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 対角行列の固有値は対角成分なので $\lambda_{\max} = $ \phantom{XX}, $\lambda_{\min} = $ \phantom{XX}。
+          \begin{equation*}
+            \kappa(\bm{X}^\top\bm{X}) = \frac{\lambda_{\max}}{\lambda_{\min}} =
+          \end{equation*}
+        \item $(\bm{X}^\top\bm{X})^{-1} = $ \phantom{XXXXXXXXXX} なので
+          \begin{equation*}
+            \bm{w}^* = \phantom{XXXXXXXXXXXXXXXX} =
+          \end{equation*}
+        \item 変化後：$\bm{w}^* = $ \phantom{XXXXXXXX}。変化量は第2成分で \phantom{XXXX}。\\
+          入力 $\bm{X}^\top\bm{y}$ の変化量は \phantom{XXXX} なので、
+          倍率は \phantom{XXXX} $= \kappa$。\\
+          $\varepsilon$ が小さいほど：
+        \item $\bm{X}^\top\bm{X} + \lambda\bm{I}_2 = $ \phantom{XXXXXXXXXX}、固有値は \phantom{XXXXXXXX}
+          \begin{equation*}
+            \kappa(\bm{X}^\top\bm{X} + \lambda\bm{I}_2) =
+          \end{equation*}
+          $\lambda$ を大きくすると条件数は \phantom{XXXXXXXX} に近づく。\\
+          これが第6回の正則化で起こることの一面である。$\lambda$ を大きくしすぎたときの代償：
+      \end{enumerate}
+    \end{answer}
+
+\end{enumerate}
+
+\pagebreak
+
+\section*{LaTeX の書き方（参考）}
+
+第4回の課題で使う数式の書き方をまとめる。
+数式は \verb|$ ... $| で囲む（行の中に書く場合）か、
+\verb|\begin{equation*} ... \end{equation*}| で囲む（1行独立させる場合）。
+
+\begin{center}
+\small
+\begin{tabular}{l|l}
+\hline
+表示 & 書き方 \\
+\hline\hline
+$\bm{X}^\top\bm{X}$ & \verb|\bm{X}^\top\bm{X}| \\
+$(\bm{X}^\top\bm{X})^{-1}$（逆行列） & \verb|(\bm{X}^\top\bm{X})^{-1}| \\
+$\bm{w}^*$, $\bm{w}^{+}$ & \verb|\bm{w}^*|, \verb|\bm{w}^{+}| \\
+$\hat{\bm{y}}$（予測ベクトル） & \verb|\hat{\bm{y}}| \\
+$\|\bm{y} - \bm{X}\bm{w}\|^2$（ノルムの二乗） & \verb+\|\bm{y} - \bm{X}\bm{w}\|^2+ \\
+$\nabla_{\bm{w}} L_D$（勾配） & \verb|\nabla_{\bm{w}} L_D| \\
+$\dfrac{\partial f}{\partial w_i}$（偏微分） & \verb|\frac{\partial f}{\partial w_i}| \\
+$\det(\bm{X}^\top\bm{X})$ & \verb|\det(\bm{X}^\top\bm{X})| \\
+$\mathrm{tr}(\bm{H})$ & \verb|\mathrm{tr}(\bm{H})| \\
+$\mathrm{rank}(\bm{X})$, $\mathrm{Null}(\bm{X})$, $\mathrm{Col}(\bm{X})$ & \verb|\mathrm{rank}(\bm{X})| など \\
+$\lambda_{\max}$, $\kappa$, $\varepsilon$ & \verb|\lambda_{\max}|, \verb|\kappa|, \verb|\varepsilon| \\
+$\{\, \bm{w}^* + t\bm{v} \mid t \in \mathbb{R} \,\}$ & \verb|\{\, \bm{w}^* + t\bm{v} \mid t \in \mathbb{R} \,\}| \\
+$\frac{1}{6}$, $\tfrac{7}{6}$（分数） & \verb|\frac{1}{6}|, \verb|\tfrac{7}{6}| \\
+$\Longrightarrow$ & \verb|\Longrightarrow| \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{行列の書き方}（\verb|pmatrix| 環境。\verb|&| で列を区切り、\verb|\\| で行を変える）：
+\begin{verbatim}
+\begin{equation*}
+  \bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  \bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}
+\end{equation*}
+
+\noindent
+\textbf{分数を係数にもつ行列}（全体を $\frac{1}{6}$ 倍するときは前に出す）：
+\begin{verbatim}
+\begin{equation*}
+  \bm{A}^{-1} = \frac{1}{6}\begin{pmatrix} 5 & -3 \\ -3 & 3 \end{pmatrix}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  \bm{A}^{-1} = \frac{1}{6}\begin{pmatrix} 5 & -3 \\ -3 & 3 \end{pmatrix}
+\end{equation*}
+
+\noindent
+\textbf{計算過程を複数行で書く例}（\verb|align*| 環境。\verb|&| の位置で揃う）：
+\begin{verbatim}
+\begin{align*}
+  \bm{w}^* &= \frac{1}{6}\begin{pmatrix} 5 & -3 \\ -3 & 3 \end{pmatrix}
+              \begin{pmatrix} 5 \\ 6 \end{pmatrix} \\
+           &= \frac{1}{6}\begin{pmatrix} 25 - 18 \\ -15 + 18 \end{pmatrix}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \bm{w}^* &= \frac{1}{6}\begin{pmatrix} 5 & -3 \\ -3 & 3 \end{pmatrix}
+              \begin{pmatrix} 5 \\ 6 \end{pmatrix} \\
+           &= \frac{1}{6}\begin{pmatrix} 25 - 18 \\ -15 + 18 \end{pmatrix}
+\end{align*}
+
+\noindent
+\textbf{証明で「どの性質を使ったか」を右側に書く例}（\verb|&&\text{...}| を使う）：
+\begin{verbatim}
+\begin{align*}
+  \bm{v}^\top\bm{X}^\top\bm{X}\bm{v}
+    &= (\bm{X}\bm{v})^\top(\bm{X}\bm{v}) && \text{（転置の性質）} \\
+    &= \|\bm{X}\bm{v}\|^2 && \text{（ノルムの定義）}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \bm{v}^\top\bm{X}^\top\bm{X}\bm{v}
+    &= (\bm{X}\bm{v})^\top(\bm{X}\bm{v}) && \text{（転置の性質）} \\
+    &= \|\bm{X}\bm{v}\|^2 && \text{（ノルムの定義）}
+\end{align*}
+
+\noindent
+\textbf{注意}：テンプレート中の \verb|\phantom{XXXX}| は答えを書く空白である。
+解答を書くときはこの部分を自分の答えで置き換えること。
+
+\end{document}
