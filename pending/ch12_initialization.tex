@@ -1,0 +1,87 @@
+% Parameter initialization (symmetry breaking, LeCun / Xavier / He).
+% Removed from Lecture 5 (勾配降下法) on 2026-10-18; to be inserted into Lecture 12
+% (ニューラルネットワーク基礎).  Labels used: eq:init-var, eq:lecun, tab:init.
+% The accompanying exercise (originally 第5回 演習問題10) is at the end of this file.
+
+\subsection{パラメータの初期値}  % was 5.7
+
+勾配降下法を始めるには初期値 $\bm{w}^{(0)}$ が要る。
+本章の数値例では何も考えずに $\bm{w}^{(0)} = \bm{0}$ とした。
+凸関数ならこれで問題ない。
+どこから始めても同じ大域的最小点に向かい、初期値が変えるのは反復回数だけだからである。
+
+ニューラルネットワーク（第12回）では事情が異なり、初期値の選び方が学習の成否を左右する。
+凸でないので到達する局所解が初期値で変わる、というだけではない。
+初期値には2つの要請があり、それぞれに「してはいけないこと」がある。
+
+\subsubsection{対称性を破る}
+
+第一に、\textbf{すべてのパラメータを $0$（や同じ値）にしてはいけない}。
+ニューラルネットワークの1つの層には同じ構造のユニットが多数並んでおり、
+パラメータが同じなら、すべてのユニットが同じ出力を出し、同じ勾配を受け取り、同じ更新をされる。
+勾配降下法を何回回しても、それらは永遠に同じ値のまま、1つのユニットとして振る舞うしかない。
+これを避けるために、初期値は\textbf{乱数}で与えて対称性を破る。
+
+\subsubsection{スケールをそろえる：LeCun の初期化}
+
+第二に、乱数の\textbf{大きさ}を適切に選ばなければならない。
+ニューラルネットワークの1つのユニットは、$n_{\text{in}}$ 個の入力 $x_1, \ldots, x_{n_{\text{in}}}$ を受け取って
+\begin{equation*}
+  s = \sum_{j=1}^{n_{\text{in}}} w_j x_j
+\end{equation*}
+を計算し、これを非線形関数に通して次の層に渡す（第2.7.1項のニューロンと同じ形である）。
+入力 $x_j$ が互いに独立で平均 $0$・分散 $1$、$w_j$ も独立で平均 $0$・分散 $\sigma^2$ の乱数とすると、
+独立な項の和の分散は各項の分散の和になる（第7回で学ぶ）ので、
+\begin{equation}
+  \mathrm{Var}(s) = \sum_{j=1}^{n_{\text{in}}} \mathrm{Var}(w_j x_j) = n_{\text{in}}\,\sigma^2
+  \label{eq:init-var}
+\end{equation}
+である。$\sigma = 1$ の乱数を使うと、$n_{\text{in}} = 1000$ の層では $s$ の標準偏差が $\sqrt{1000} \approx 32$ になる。
+これほど大きな値を非線形関数に通すと出力は飽和して勾配がほぼ $0$ になり（勾配消失）、
+あるいは層を重ねるごとに値が $32$ 倍ずつ膨らんで発散する（勾配爆発）。
+逆に $\sigma$ が小さすぎれば、層を重ねるごとに信号が縮んで消えてしまう。
+
+式\eqref{eq:init-var}から、\textbf{出力の分散を入力の分散と同じ $1$ に保つ}には
+\begin{equation}
+  \sigma^2 = \frac{1}{n_{\text{in}}}
+  \label{eq:lecun}
+\end{equation}
+とすればよい。これが \textbf{LeCun の初期化}（LeCun et al., 1998）である。
+各層でこれを行えば、何層重ねても信号の大きさが保たれる。
+標準化（第5.3.4項）が「入力の分散を $1$ にそろえる」ことだったのに対し、
+LeCun の初期化は「各層の出力の分散も $1$ にそろえる」ことであり、同じ発想の延長にある。
+
+その後、非線形関数の性質や逆伝播する勾配の分散も考慮した変種が提案され、
+現在のライブラリの既定値になっている（表\ref{tab:init}）。
+Xavier の初期化は順伝播と逆伝播の両方で分散を保つように $n_{\text{in}}$ と $n_{\text{out}}$ の平均をとる。
+He の初期化は、ReLU（$\max(0, s)$）が入力の半分を $0$ にして分散を半分にするのを、
+$\sigma^2$ を $2$ 倍にして補う。
+どれも「分散が $1/n_{\text{in}}$ の程度」という式\eqref{eq:lecun}の骨格は同じである。
+
+\begin{table}[H]
+  \centering
+  \caption{代表的な初期化。$w_j$ を平均 $0$・分散 $\sigma^2$ の乱数（正規分布または一様分布）で与える。}
+  \label{tab:init}
+  \begin{tabular}{l|l|l}
+    \hline
+    名前 & $\sigma^2$ & 想定している非線形関数 \\
+    \hline\hline
+    LeCun（1998） & $1/n_{\text{in}}$ & シグモイド・tanh など \\
+    Xavier / Glorot（2010） & $2/(n_{\text{in}} + n_{\text{out}})$ & tanh など（逆伝播の分散も保つ） \\
+    He / Kaiming（2015） & $2/n_{\text{in}}$ & ReLU \\
+    \hline
+  \end{tabular}
+\end{table}
+
+
+% ---- exercise (originally 第5回 演習問題10) ----
+%  \item \textbf{初期値}\quad
+%    \begin{enumerate}
+%      \item 隠れ層に2つのユニットをもつニューラルネットワークで、
+%        すべてのパラメータを $0$ に初期化すると何が起こるか。
+%        「2つのユニットは学習の間ずっと同じ値をとり続ける」ことを、勾配降下法の更新式の形から説明せよ。
+%      \item 式\eqref{eq:init-var}を認めて、$n_{\text{in}} = 784$（$28 \times 28$ 画素の画像）のとき、
+%        LeCun の初期化と He の初期化での $\sigma$ をそれぞれ求めよ。
+%      \item $\sigma = 0.01$ の乱数で初期化した $n_{\text{in}} = 784$ の層を10層重ねると、
+%        信号の標準偏差は入力のおよそ何倍になるか（各層で式\eqref{eq:init-var}が成り立つとする）。
+%    \end{enumerate}

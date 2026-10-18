@@ -29,6 +29,7 @@ NAVY = "#1F3A5F"
 RED = "#C0392B"
 GRAY = "#7F8C8D"
 GREEN = "#1E8449"
+BLUE = "#3A8ECE"
 INK_T = "#20262E"
 
 
@@ -1588,6 +1589,185 @@ def fig_optimizers():
     save(fig, "ch5_optimizers")
 
 
+def _sgd_data(N=200, seed=3):
+    """Synthetic 1-feature regression: y = 1 + 2x + noise, x ~ N(2, 1)."""
+    rng = np.random.default_rng(seed)
+    x = rng.normal(2.0, 1.0, N)
+    y = 1.0 + 2.0 * x + rng.normal(0.0, 1.0, N)
+    z = (x - x.mean()) / x.std()                   # standardized feature (kappa ~ 1)
+    X = np.column_stack([np.ones(N), z])
+    return X, y, rng
+
+
+def fig_minibatch():
+    """Left: mini-batch gradients scatter around the true gradient (unbiased, less noisy
+    for larger |B|).  Middle: batch GD vs mini-batch SGD paths with a constant step.
+    Right: the same SGD with learning-rate decay settles down."""
+    X, y, rng = _sgd_data()
+    N = len(y)
+    full_grad = lambda w: (2.0 / N) * X.T @ (X @ w - y)
+    def mb_grad(w, B):
+        idx = rng.choice(N, size=B, replace=False)
+        Xb, yb = X[idx], y[idx]
+        return (2.0 / B) * Xb.T @ (Xb @ w - yb)
+    w_star = np.linalg.lstsq(X, y, rcond=None)[0]
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 3.4))
+
+    # ---- left: gradient estimates at one point
+    ax = axes[0]
+    w0 = np.array([2.0, -1.0])
+    g = full_grad(w0)
+    for B, col, lab in ((1, "#C9CCD1", r"$|B| = 1$"), (8, BLUE, r"$|B| = 8$"), (64, GREEN, r"$|B| = 64$")):
+        G = np.array([mb_grad(w0, B) for _ in range(60)])
+        ax.scatter(G[:, 0], G[:, 1], s=10, color=col, alpha=0.8, label=lab, zorder=3 if B > 1 else 2)
+    ax.annotate("", xy=tuple(g), xytext=(0, 0), arrowprops=dict(arrowstyle="-|>", color=RED, lw=2.0))
+    ax.scatter(*g, s=40, color=RED, zorder=6)
+    ax.text(g[0] + 1.2, g[1] + 0.2, r"真の勾配 $\nabla L_D$" "\n（全データの平均）", color=RED, fontsize=8, va="top")
+    ax.scatter(0, 0, s=20, color="k", zorder=6)
+    ax.set_xlabel(r"$\partial L/\partial w_0$", fontsize=9); ax.set_ylabel(r"$\partial L/\partial w_1$", fontsize=9)
+    ax.set_title(r"1点 $\boldsymbol{w}$ でのミニバッチ勾配（60回の試行）", fontsize=9)
+    ax.legend(fontsize=7.5, loc="upper left"); ax.grid(alpha=0.25)
+    ax.set_xlim(-14, 4); ax.set_ylim(-14, 4); ax.set_aspect("equal")
+
+    # ---- contours shared by the right two panels
+    a = np.linspace(1.5, 7.5, 200); b = np.linspace(-1.5, 4.0, 200)
+    W0, W1 = np.meshgrid(a, b)
+    L = ((y[None, None, :] - W0[..., None] - W1[..., None] * X[None, None, :, 1]) ** 2).mean(-1)
+    levels = np.array([1.2, 2, 4, 7, 11, 16])
+    eta, B, T = 0.3, 8, 100
+    start = np.array([2.0, -1.0])
+
+    def run(decay):
+        w = start.copy(); path = [w.copy()]
+        for t in range(T):
+            e = eta * (0.5 ** (t // (N // B))) if decay else eta      # halve every epoch
+            w = w - e * mb_grad(w, B); path.append(w.copy())
+        return np.array(path)
+
+    rng = np.random.default_rng(7)
+    p_batch = _gd(full_grad, start, eta, T)
+    p_sgd = run(False)
+    rng = np.random.default_rng(7)
+    p_dec = run(True)
+    for ax, paths, title in ((axes[1], ((p_batch, NAVY, "バッチ（全データ）"), (p_sgd, RED, r"ミニバッチ $|B| = 8$")),
+                              r"同じ $\eta = 0.3$ で 100 イテレーション"),
+                             (axes[2], ((p_sgd, "#E8B4AE", r"ミニバッチ、$\eta$ 一定"), (p_dec, RED, r"ミニバッチ、$\eta$ を毎エポック半減")),
+                              r"学習率の減衰（1エポック $= N/|B| = 25$ 回）")):
+        ax.contour(W0, W1, L, levels=levels, colors=GRAY, linewidths=0.6, alpha=0.6)
+        for P, col, lab in paths:
+            ax.plot(P[:, 0], P[:, 1], "-", color=col, lw=1.0, alpha=0.9, label=lab)
+            ax.scatter(P[-1, 0], P[-1, 1], s=22, color=col, zorder=6)
+        ax.scatter(*start, s=30, color="k", zorder=6)
+        ax.scatter(*w_star, marker="*", s=130, color="k", zorder=7)
+        ax.text(start[0] + 0.15, start[1] - 0.1, r"$\boldsymbol{w}^{(0)}$", fontsize=8)
+        ax.text(w_star[0] + 0.15, w_star[1] + 0.15, r"$\boldsymbol{w}^*$", fontsize=9)
+        ax.set_xlim(a[0], a[-1]); ax.set_ylim(b[0], b[-1])
+        ax.set_xlabel(r"$w_0$", fontsize=9); ax.set_title(title, fontsize=9)
+        ax.legend(fontsize=7.5, loc="lower right"); ax.grid(alpha=0.25)
+    axes[1].set_ylabel(r"$w_1$", fontsize=9)
+    # zoom insets would be overkill; report final distances in the console for the caption
+    print("   final |w - w*|: batch %.3f, sgd %.3f, sgd+decay %.3f" % tuple(
+        np.linalg.norm(P[-1] - w_star) for P in (p_batch, p_sgd, p_dec)))
+    save(fig, "ch5_minibatch")
+
+
+def fig_epoch():
+    """Schematic: N = 12 samples, |B| = 4.  Each epoch shuffles the data and cuts it into
+    N/|B| = 3 mini-batches, one update per mini-batch."""
+    from matplotlib.patches import FancyBboxPatch
+    N, B = 12, 4
+    rng = np.random.default_rng(1)
+    fig, ax = plt.subplots(figsize=(9.6, 3.0))
+    cw, ch = 0.62, 0.52
+    palette = plt.cm.tab20(np.linspace(0, 1, N))
+    rows = [("エポック 1", rng.permutation(N)), ("エポック 2", rng.permutation(N))]
+    for r, (label, order) in enumerate(rows):
+        y0 = 2.2 - r * 1.45
+        ax.text(-0.2, y0 + ch / 2, label, ha="right", va="center", fontsize=10, fontweight="bold")
+        for k, idx in enumerate(order):
+            x = k * cw + (k // B) * 0.35
+            ax.add_patch(FancyBboxPatch((x, y0), cw * 0.92, ch, boxstyle="round,pad=0.02",
+                                        facecolor=palette[idx], edgecolor="white", lw=1))
+            ax.text(x + cw * 0.46, y0 + ch / 2, str(idx + 1), ha="center", va="center", fontsize=9)
+        for m in range(N // B):
+            x0 = m * B * cw + m * 0.35; x1 = x0 + B * cw - cw * 0.08
+            ax.plot([x0, x0, x1, x1], [y0 - 0.08, y0 - 0.18, y0 - 0.18, y0 - 0.08], color=INK_T, lw=0.9)
+            ax.text((x0 + x1) / 2, y0 - 0.26, r"$B_%d$ → 更新 %d" % (m + 1, r * 3 + m + 1), ha="center", va="top", fontsize=8.5)
+        if r == 0:
+            ax.annotate("", xy=(N * cw + 0.7 + 0.5, y0 - 1.45 + ch / 2), xytext=(N * cw + 0.7 + 0.5, y0 + ch / 2),
+                        arrowprops=dict(arrowstyle="-|>", color=GRAY, lw=1.2))
+            ax.text(N * cw + 0.7 + 0.62, y0 - 0.45, "シャッフル\nし直す", fontsize=8.5, color=GRAY, va="center")
+    ax.text(-0.2, 0.05, r"データ $N = 12$ 件、バッチサイズ $|B| = 4$：1エポック $= N/|B| = 3$ イテレーション（更新）。"
+            "バッチ勾配降下法なら1エポック $=$ 1 回の更新。", fontsize=9, ha="left", va="center")
+    ax.set_xlim(-1.6, N * cw + 2.6); ax.set_ylim(-0.2, 3.0)
+    ax.set_aspect("equal"); ax.axis("off")
+    save(fig, "ch5_epoch")
+
+
+def fig_convex_set():
+    """Convex sets (disk, half-plane, triangle) vs non-convex sets (crescent, annulus)
+    in R^2: the segment between two points of the set stays inside or leaves it."""
+    from matplotlib.patches import Circle, Polygon
+    from matplotlib.path import Path
+    fig, axes = plt.subplots(1, 5, figsize=(10.5, 2.5))
+    FILL, EDGE = "#DCE6F2", NAVY
+
+    def segment(ax, a, b, inside):
+        """Draw the segment theta*a + (1-theta)*b, red where it leaves the set."""
+        a, b = np.array(a), np.array(b)
+        th = np.linspace(0, 1, 400)
+        pts = th[:, None] * a + (1 - th[:, None]) * b
+        ins = inside(pts)
+        for k in range(len(th) - 1):
+            col = GREEN if ins[k] and ins[k + 1] else RED
+            ax.plot(pts[k:k + 2, 0], pts[k:k + 2, 1], color=col, lw=2.2, solid_capstyle="round")
+        for q, lab in ((a, r"$\boldsymbol{x}$"), (b, r"$\boldsymbol{y}$")):
+            ax.scatter(*q, s=22, color="k", zorder=5)
+            ax.text(q[0] + 0.08, q[1] + 0.1, lab, fontsize=9)
+
+    # 1 disk
+    ax = axes[0]
+    ax.add_patch(Circle((0, 0), 1.0, facecolor=FILL, edgecolor=EDGE, lw=1.2))
+    segment(ax, (-0.75, 0.45), (0.8, -0.3), lambda P: (P ** 2).sum(1) <= 1.0)
+    ax.set_title("球（円板）：凸", fontsize=9)
+    # 2 half-plane
+    ax = axes[1]
+    ax.add_patch(Polygon([(-1.4, -1.4), (1.4, -1.4), (1.4, 0.2), (-1.4, 1.0)], closed=True,
+                         facecolor=FILL, edgecolor=EDGE, lw=1.2))
+    segment(ax, (-1.0, 0.3), (0.9, -0.9), lambda P: P[:, 1] <= 1.0 - (P[:, 0] + 1.4) * (0.8 / 2.8))
+    ax.set_title("半空間（半平面）：凸", fontsize=9)
+    # 3 triangle
+    ax = axes[2]
+    tri = [(-1.1, -0.9), (1.1, -0.9), (0.2, 1.0)]
+    ax.add_patch(Polygon(tri, closed=True, facecolor=FILL, edgecolor=EDGE, lw=1.2))
+    path = Path(tri + [tri[0]])
+    segment(ax, (-0.6, -0.6), (0.5, 0.4), lambda P: path.contains_points(P))
+    ax.set_title("三角形：凸", fontsize=9)
+    # 4 crescent
+    ax = axes[3]
+    big, small = (0, 0, 1.0), (0.45, 0.0, 0.8)
+    t = np.linspace(0, 2 * np.pi, 400)
+    ax.add_patch(Circle((0, 0), 1.0, facecolor=FILL, edgecolor=EDGE, lw=1.2))
+    ax.add_patch(Circle((0.45, 0), 0.8, facecolor="white", edgecolor=EDGE, lw=1.2))
+    inside_c = lambda P: ((P ** 2).sum(1) <= 1.0) & (((P - [0.45, 0]) ** 2).sum(1) >= 0.8 ** 2)
+    segment(ax, (-0.3, 0.85), (-0.3, -0.85), inside_c)
+    ax.set_title("三日月形：凸でない", fontsize=9)
+    # 5 annulus
+    ax = axes[4]
+    ax.add_patch(Circle((0, 0), 1.0, facecolor=FILL, edgecolor=EDGE, lw=1.2))
+    ax.add_patch(Circle((0, 0), 0.5, facecolor="white", edgecolor=EDGE, lw=1.2))
+    inside_a = lambda P: ((P ** 2).sum(1) <= 1.0) & ((P ** 2).sum(1) >= 0.25)
+    segment(ax, (-0.75, 0.2), (0.75, 0.3), inside_a)
+    ax.set_title("ドーナツ形：凸でない", fontsize=9)
+
+    for ax in axes:
+        ax.set_xlim(-1.5, 1.5); ax.set_ylim(-1.5, 1.5); ax.set_aspect("equal")
+        ax.axis("off")
+    fig.text(0.5, 0.02, "2点 $\\boldsymbol{x}, \\boldsymbol{y}$ を結ぶ線分 $\\theta\\boldsymbol{x} + (1-\\theta)\\boldsymbol{y}$"
+             "（緑：集合の中、赤：集合の外に出る部分）", ha="center", fontsize=9)
+    save(fig, "ch5_convex_set")
+
+
 def fig_convex():
     """Convex: every chord lies above the graph and every tangent below. Non-convex: neither."""
     fig, axes = plt.subplots(1, 3, figsize=(9.8, 3.2))
@@ -1648,4 +1828,4 @@ if __name__ == "__main__":
     fig_eigen(); fig_eigen_ml()
     fig_param_to_distance(); fig_ls_projection()
     fig_gradient_concept(); fig_definiteness(); fig_ls_gradient(); fig_pseudoinverse()
-    fig_gd_1d(); fig_gd_path(); fig_gd_ls_update(); fig_scaling(); fig_correlation(); fig_eigen_recap(); fig_optimizers(); fig_convex()
+    fig_gd_1d(); fig_gd_path(); fig_gd_ls_update(); fig_scaling(); fig_correlation(); fig_eigen_recap(); fig_optimizers(); fig_minibatch(); fig_epoch(); fig_convex_set(); fig_convex()

@@ -1,0 +1,480 @@
+%=====================================================================
+% 機械学習 第5回 演習問題 提出用テンプレート
+%
+% 使い方
+%   1. 下の \学籍番号, \氏名, \提出日 を自分の情報に書き換える
+%      （\提出期限 は書き換えない）
+%   2. 各問題の「解答」枠の中に解答を書く（枠の外の問題文は変更しない）
+%   3. コンパイルして PDF を作成し、PDF を提出する
+%
+% コンパイル方法（ターミナル）
+%   uplatex report_template_05.tex && dvipdfmx report_template_05.dvi
+%
+% Overleaf を使う場合
+%   Menu > Compiler を "LaTeX" にし、プロジェクトに latexmkrc という名前の
+%   ファイルを作って次の3行を書く：
+%     $latex = 'uplatex';
+%     $dvipdf = 'dvipdfmx %O -o %D %S';
+%     $pdf_mode = 3;
+%
+% 提出期限：2026年10月26日（月）
+% ファイル名は  ML05_学籍番号.pdf  として提出すること（例：ML05_2312345.pdf）
+%=====================================================================
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{pdfborder={0 0 0}}
+
+%---- 提出期限（書き換えない）------------------------------------------
+\newcommand{\提出期限}{2026年10月26日（月）}
+%---- 自分の情報を書く -------------------------------------------------
+\newcommand{\学籍番号}{0000000}
+\newcommand{\氏名}{氏名を書く}
+\newcommand{\提出日}{2026年10月26日}
+%----------------------------------------------------------------------
+
+% 解答枠（枠の中に解答を書く）
+\newenvironment{answer}{\begin{itembox}[l]{解答}}{\end{itembox}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE 機械学習　第5回 演習問題}\\[2mm]
+  {\large 提出課題（勾配降下法）}\\[4mm]
+  {\large\textbf{提出期限：\提出期限}}\\[6mm]
+  \begin{tabular}{ll}
+    学籍番号： & \学籍番号 \\
+    氏名：     & \氏名 \\
+    提出日：   & \提出日 \\
+  \end{tabular}
+\end{center}
+
+\vspace{4mm}
+\noindent
+\textbf{注意}
+\begin{itemize}
+  \item 解答は「解答」の枠内に書くこと。枠外の問題文は変更しないこと。
+  \item 計算問題は結果だけでなく途中の式も書くこと。
+    反復計算は、各ステップの値を式や表で示すこと。
+  \item 分数はそのまま分数で答えてよい。小数で答える場合は有効数字3桁程度でよい。
+  \item 証明問題では、どの定義・性質を使ったか（凸関数の定義、コーシー・シュワルツの不等式、
+    等比数列の和の公式、数学的帰納法など）を明記すること。
+  \item 「確認せよ」という問いには、両辺を実際に計算して一致することを示すこと。
+  \item 「説明せよ」という問いには、計算結果だけでなく\textbf{日本語の説明}を書くこと。
+  \item 数式の書き方は末尾の「LaTeX の書き方」を参照すること。
+\end{itemize}
+
+\section*{問題}
+
+\begin{enumerate}
+
+%=====================================================================
+  \item \textbf{1変数の勾配降下法}\quad
+    $f(w) = 3w^2 - 12w + 5$ について答えよ。
+    \begin{enumerate}
+      \item 最小点 $w^*$ を微分して求めよ。
+      \item $w^{(0)} = 0$、$\eta = 0.1$ として $w^{(1)}, w^{(2)}, w^{(3)}$ を計算せよ。
+      \item テキスト式(5.4) $w^{(t)} - w^* = (1 - 2a\eta)^t\,(w^{(0)} - w^*)$ を用いて、$w^{(t)} - w^*$ を $t$ の式で書け。
+        $w^{(3)}$ の値が (b) と一致することを確かめよ。
+      \item この $f$ に対して勾配降下法が収束する学習率の範囲を求めよ。
+        また、振動せずに収束する（$w^{(t)}$ が $w^*$ を行き過ぎない）範囲を求めよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $f'(w) = $ \phantom{XXXXXX}。$f'(w) = 0$ より $w^* = $ \phantom{XXX}。
+          最小点である理由（$f''$ の符号）：
+        \item 更新式：$w^{(t+1)} = w^{(t)} - 0.1\,(\phantom{XXXXXX})$
+          \begin{align*}
+            w^{(1)} &= \\
+            w^{(2)} &= \\
+            w^{(3)} &=
+          \end{align*}
+        \item $a = $ \phantom{XX} なので $1 - 2a\eta = $ \phantom{XXX}。
+          \begin{equation*}
+            w^{(t)} - w^* = \phantom{XXXXXXXXXXXX}
+          \end{equation*}
+          $t = 3$ のとき $w^{(3)} = $ \phantom{XXXXXX}（(b) と一致するか：　　）
+        \item 収束する範囲：$|1 - 2a\eta| < 1$ より \phantom{XXXXXXXXXX}
+          \vspace{6mm}
+
+          振動せずに収束する範囲：\phantom{XXXXXXXXXX}
+          \vspace{6mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{最小二乗法への適用}\quad
+    $\bm{X} = \begin{pmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{pmatrix}$、$\bm{y} = (1, 2, 2)^\top$
+    （第4回演習問題1のデータ）について答えよ。
+    \begin{enumerate}
+      \item $\bm{A} = \frac{2}{N}\bm{X}^\top\bm{X}$ と $\bm{b} = \frac{2}{N}\bm{X}^\top\bm{y}$ を求めよ。
+      \item $\bm{w}^{(0)} = \bm{0}$、$\eta = 0.1$ として $\bm{w}^{(1)}$ と $\bm{w}^{(2)}$ を計算せよ。
+      \item $L_D(\bm{w}^{(0)})$、$L_D(\bm{w}^{(1)})$、$L_D(\bm{w}^{(2)})$ を計算し、単調に減っていることを確かめよ。
+      \item 第4回で求めた厳密解 $\bm{w}^* = (7/6, 1/2)^\top$ と $\bm{w}^{(2)}$ を比べ、
+        どちらの成分がより収束しているか述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \bm{A} = \frac{2}{3}\,\phantom{XXXXXX} = \phantom{XXXXXXXXXX}, \qquad
+            \bm{b} = \frac{2}{3}\,\phantom{XXXX} = \phantom{XXXXXX}
+          \end{equation*}
+        \item
+          \begin{align*}
+            \bm{w}^{(1)} &= \\
+            \bm{A}\bm{w}^{(1)} - \bm{b} &= \\
+            \bm{w}^{(2)} &=
+          \end{align*}
+        \item 残差 $\bm{y} - \bm{X}\bm{w}$ を求めてから計算する。
+          \begin{align*}
+            L_D(\bm{w}^{(0)}) &= \\
+            L_D(\bm{w}^{(1)}) &= \\
+            L_D(\bm{w}^{(2)}) &=
+          \end{align*}
+        \item $\bm{w}^{(2)} - \bm{w}^* = $ \phantom{XXXXXXXX}。より収束しているのは第（　　）成分。理由：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{収束条件}\quad
+    問2の $\bm{A}$ について答えよ。
+    \begin{enumerate}
+      \item $\bm{A}$ の固有値 $\lambda_1 > \lambda_2$ を求めよ（特性方程式を解く）。
+      \item 条件数 $\kappa$ を求めよ。
+      \item 勾配降下法が収束する学習率の上限 $2/\lambda_{\max}$ を求めよ。
+      \item テキスト式(5.15) $\rho = \dfrac{\lambda_{\max} - \lambda_{\min}}{\lambda_{\max} + \lambda_{\min}} = \dfrac{\kappa - 1}{\kappa + 1}$
+        の最適な学習率と、そのときの減衰率 $\rho$ を求めよ。
+        誤差を $1/1000$ にするのに必要な反復回数を見積もれ。
+      \item $\lambda_1, \lambda_2$ に対応する固有ベクトル $\bm{v}_1, \bm{v}_2$ を求め、互いに直交することを確かめよ。
+        $L_D$ の等高線（楕円）の長軸はどちらの固有ベクトルの向きか。理由とともに述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 特性方程式：
+          \begin{equation*}
+            \det(\bm{A} - \lambda\bm{I}) = \phantom{XXXXXXXXXXXXXXXX} = 0
+          \end{equation*}
+          $\lambda_1 = $ \phantom{XXXXXX}, \quad $\lambda_2 = $ \phantom{XXXXXX}
+        \item $\kappa = \lambda_1/\lambda_2 = $ \phantom{XXXXXX}
+        \item $2/\lambda_{\max} = $ \phantom{XXXXXX}
+        \item 最適な学習率 $\eta = 2/(\lambda_{\max} + \lambda_{\min}) = $ \phantom{XXXX}、
+          $\rho = $ \phantom{XXXXXX}
+          \begin{equation*}
+            \text{反復回数} \approx \frac{\log 1000}{\log(1/\rho)} = \phantom{XXXXXX}
+          \end{equation*}
+        \item $\bm{v}_1 = $ \phantom{XXXXXX}, \quad $\bm{v}_2 = $ \phantom{XXXXXX}
+          \vspace{4mm}
+
+          直交性の確認：$\bm{v}_1^\top\bm{v}_2 = $ \phantom{XXXXXXXX}
+          \vspace{4mm}
+
+          長軸の向き：\phantom{XXXX}。理由：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{勾配と逆向きに進む理由}\quad
+    $f : \mathbb{R}^p \to \mathbb{R}$ を微分可能とし、点 $\bm{w}$ で $\nabla f(\bm{w}) \neq \bm{0}$ とする。
+    長さ $1$ の方向ベクトル $\bm{u}$（$\|\bm{u}\| = 1$）に対して、
+    方向微分 $D_{\bm{u}} f(\bm{w}) = \nabla f(\bm{w})^\top \bm{u}$ を考える。
+    \begin{enumerate}
+      \item コーシー・シュワルツの不等式を用いて $-\|\nabla f(\bm{w})\| \leq D_{\bm{u}} f(\bm{w}) \leq \|\nabla f(\bm{w})\|$ を示せ。
+      \item 上の不等式で等号が成り立つ $\bm{u}$ をそれぞれ求めよ。
+      \item テキスト式(5.8) $f(\bm{w}^{(t+1)}) \approx f(\bm{w}^{(t)}) - \eta\,\|\nabla f(\bm{w}^{(t)})\|^2$ を導け。
+        $\eta > 0$ かつ $\nabla f(\bm{w}^{(t)}) \neq \bm{0}$ なら
+        右辺が $f(\bm{w}^{(t)})$ より真に小さいことを説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 使う不等式：\phantom{XXXXXXXXXXXX}
+          \vspace{14mm}
+        \item 上側の等号：$\bm{u} = $ \phantom{XXXXXX}、下側の等号：$\bm{u} = $ \phantom{XXXXXX}
+          \vspace{4mm}
+        \item 1次近似 $f(\bm{w} + \bm{\delta}) \approx f(\bm{w}) + \nabla f(\bm{w})^\top\bm{\delta}$ に $\bm{\delta} = $ \phantom{XXXXXX} を代入する。
+          \begin{align*}
+            f(\bm{w}^{(t+1)}) &\approx \\
+                              &= \\
+                              &=
+          \end{align*}
+          真に小さい理由：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{標準化}\quad
+    3件のデータの特徴が $x = 10, 20, 30$ であるとする。
+    \begin{enumerate}
+      \item バイアス項を含む計画行列 $\bm{X}$ について $\bm{X}^\top\bm{X}$ を求め、
+        その固有値と条件数を求めよ（固有値は小数第2位まででよい）。
+      \item $x$ を標準化した $z$ を求め、計画行列 $\bm{Z} = (\bm{1}\;\; \bm{z})$ について $\bm{Z}^\top\bm{Z}$ と条件数を求めよ。
+      \item (a) と (b) で勾配降下法の収束に必要な反復回数がおよそ何倍違うか、テキスト式(5.15)
+        $\rho = (\kappa - 1)/(\kappa + 1)$ をもとに述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \bm{X} = \phantom{XXXXXXXX}, \qquad \bm{X}^\top\bm{X} = \phantom{XXXXXXXXXX}
+          \end{equation*}
+          固有値：$\lambda_1 \approx $ \phantom{XXXXX}, \quad $\lambda_2 \approx $ \phantom{XXXXX}, \quad
+          条件数 $\kappa \approx $ \phantom{XXXXX}
+        \item $\bar{x} = $ \phantom{XX}, \quad $s = $ \phantom{XXXXX}, \quad $z = $ \phantom{XXXXXXXXXX}
+          \begin{equation*}
+            \bm{Z}^\top\bm{Z} = \phantom{XXXXXXXX}, \qquad \kappa = \phantom{XXX}
+          \end{equation*}
+        \item (a) の $\rho = $ \phantom{XXXXX}、(b) の $\rho = $ \phantom{XXX}。反復回数の比：
+          \vspace{12mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{凸関数の判定}\quad
+    次の関数が凸かどうかを、2次条件（1変数なら $f'' \geq 0$）で判定せよ。
+    凸の場合は狭義凸かどうかも述べよ。
+    \begin{enumerate}
+      \item $f(x) = e^x$
+      \item $f(x) = x^3$
+      \item $f(x) = -\log x$（$x > 0$）
+      \item $f(\bm{w}) = \bm{w}^\top\bm{A}\bm{w}$、ただし $\bm{A} = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}$
+      \item $f(\bm{w}) = \|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2$（$\lambda > 0$、$\bm{X}$ は任意）
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $f'' = $ \phantom{XXXXXXXX}。判定（凸／凸でない、狭義凸かどうか）と理由：
+          \vspace{6mm}
+        \item $f'' = $ \phantom{XXXXXXXX}。判定（凸／凸でない、狭義凸かどうか）と理由：
+          \vspace{6mm}
+        \item $f'' = $ \phantom{XXXXXXXX}。判定（凸／凸でない、狭義凸かどうか）と理由：
+          \vspace{6mm}
+        \item ヘッセ行列 $\nabla^2 f = $ \phantom{XXXXXXXX}。判定と理由：
+          \vspace{8mm}
+        \item ヘッセ行列 $\nabla^2 f = $ \phantom{XXXXXXXX}。正定値であることの説明と判定：
+          \vspace{12mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{凸関数の性質}\quad
+    $f, g : \mathbb{R}^p \to \mathbb{R}$ を凸関数とする。
+    凸関数の定義（テキスト式(5.18)）
+    $f\bigl(\theta\bm{x} + (1 - \theta)\bm{y}\bigr) \leq \theta f(\bm{x}) + (1 - \theta) f(\bm{y})$
+    （任意の $\bm{x}, \bm{y}$ と $\theta \in [0, 1]$）に基づいて次を示せ。
+    \begin{enumerate}
+      \item $f + g$ は凸関数である。
+      \item $c > 0$ に対して $cf$ は凸関数である。
+      \item $h(\bm{x}) = \max\{f(\bm{x}), g(\bm{x})\}$ は凸関数である。
+      \item (a)(b) を用いて、経験損失 $\frac{1}{N}\sum_i (y_i - \tilde{\bm{x}}_i^\top\bm{w})^2$ が凸であることを、
+        各項 $(y_i - \tilde{\bm{x}}_i^\top\bm{w})^2$ が凸であることから導け
+        （各項が凸であることは、1変数の $u^2$ が凸であることと $u$ が $\bm{w}$ の1次式であることから認めてよい）。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\bm{z} = \theta\bm{x} + (1 - \theta)\bm{y}$ とおく。
+          \begin{align*}
+            (f + g)(\bm{z}) &= \\
+                            &\leq && \text{（　　　　）} \\
+                            &=
+          \end{align*}
+        \item
+          \begin{align*}
+            (cf)(\bm{z}) &= \\
+                         &\leq && \text{（　　　　）} \\
+                         &=
+          \end{align*}
+        \item \mbox{}
+          \vspace{24mm}
+        \item \mbox{}
+          \vspace{16mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{局所的最小点}\quad
+    $f(w) = w^4 - 4w^3 + 4w^2 + 1 = w^2(w - 2)^2 + 1$ について答えよ。
+    \begin{enumerate}
+      \item $f'(w) = 0$ となる $w$ をすべて求めよ。
+      \item それぞれの点が極小・極大のどちらかを $f''$ の符号で判定せよ。
+      \item この $f$ は凸か。理由とともに述べよ。
+      \item $w^{(0)} = 1.2$ から小さな学習率で勾配降下法を始めたとき、どの点に収束するか。
+        $w^{(0)} = 0.8$ ならどうか。初期値によって結果が変わる理由を述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $f'(w) = $ \phantom{XXXXXXXXXXXX} $=$ \phantom{XXXXXXXXXX}（因数分解）。$w = $ \phantom{XXXXXX}
+        \item $f''(w) = $ \phantom{XXXXXXXX}
+          \begin{center}
+            \begin{tabular}{c|c|c|l}
+              \hline
+              $w$ & $f''(w)$ & $f(w)$ & 判定 \\
+              \hline
+              \phantom{X} & \phantom{XXXXX} & \phantom{XX} & \phantom{XXXX} \\
+              \phantom{X} & \phantom{XXXXX} & \phantom{XX} & \phantom{XXXX} \\
+              \phantom{X} & \phantom{XXXXX} & \phantom{XX} & \phantom{XXXX} \\
+              \hline
+            \end{tabular}
+          \end{center}
+        \item 凸か（　　　）。理由：
+          \vspace{10mm}
+        \item $w^{(0)} = 1.2$ から：\phantom{XXXX}、$w^{(0)} = 0.8$ から：\phantom{XXXX}。理由：
+          \vspace{14mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{モメンタムと Adam}\quad
+    モメンタム法の更新式（テキスト式(5.21)）
+    $\bm{v}^{(t+1)} = \beta\,\bm{v}^{(t)} - \eta\,\bm{g}^{(t)}$、$\bm{w}^{(t+1)} = \bm{w}^{(t)} + \bm{v}^{(t+1)}$
+    （$\bm{g}^{(t)} = \nabla f(\bm{w}^{(t)})$、$\beta \in [0, 1)$）について答えよ。
+    \begin{enumerate}
+      \item $\bm{v}^{(0)} = \bm{0}$ から展開して、テキスト式(5.22) $\bm{v}^{(t+1)} = -\eta \sum_{k=0}^{t} \beta^{\,t-k}\,\bm{g}^{(k)}$ を導け。
+      \item 勾配がずっと同じ $\bm{g}$ であるとき、$t \to \infty$ で $\bm{v}^{(t)}$ が $-\eta\bm{g}/(1 - \beta)$ に近づくことを示せ。
+        $\beta = 0.9$ のとき実効的な学習率は何倍になるか。
+      \item 勾配が $\bm{g}, -\bm{g}, \bm{g}, -\bm{g}, \ldots$ と反転を繰り返すとき、
+        $\bm{v}^{(t)}$ の大きさが $t \to \infty$ で $\eta\|\bm{g}\|/(1 + \beta)$ に近づくことを示せ。
+      \item 問1の $f(w) = 3w^2 - 12w + 5$ に対して、$w^{(0)} = 0$、$\eta = 0.1$、$\beta = 0.5$ の
+        モメンタム法で $w^{(1)}, w^{(2)}, w^{(3)}$ を計算し、問1(b) の勾配降下法と比べよ。
+      \item Adam の更新則（テキスト式(5.25)）
+        $\bm{m}^{(t)} = \beta_1\bm{m}^{(t-1)} + (1 - \beta_1)\bm{g}^{(t-1)}$、
+        $\bm{v}^{(t)} = \beta_2\bm{v}^{(t-1)} + (1 - \beta_2)\bm{g}^{(t-1)} \odot \bm{g}^{(t-1)}$、
+        $\hat{\bm{m}}^{(t)} = \bm{m}^{(t)}/(1 - \beta_1^{\,t})$、$\hat{\bm{v}}^{(t)} = \bm{v}^{(t)}/(1 - \beta_2^{\,t})$、
+        $\bm{w}^{(t)} = \bm{w}^{(t-1)} - \eta\,\hat{\bm{m}}^{(t)}/(\sqrt{\hat{\bm{v}}^{(t)}} + \epsilon)$
+        （$\bm{m}^{(0)} = \bm{v}^{(0)} = \bm{0}$）で $t = 1$ のとき、$\epsilon$ を無視すれば
+        $\bm{w}^{(1)} = \bm{w}^{(0)} - \eta\,\mathrm{sign}(\bm{g}^{(0)})$ となることを示せ
+        （$\mathrm{sign}$ は成分ごとの符号）。これが「勾配の大きさによらず各成分が $\eta$ だけ動く」ことを意味する理由を述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item \mbox{}
+          \vspace{22mm}
+        \item
+          \begin{equation*}
+            \bm{v}^{(t+1)} = -\eta\bm{g}\,(1 + \beta + \cdots + \beta^t) = \phantom{XXXXXXXXXX} \;\longrightarrow\; \phantom{XXXXXX}
+          \end{equation*}
+          $\beta = 0.9$ のとき実効的な学習率は \phantom{XX} 倍。
+        \item \mbox{}
+          \vspace{22mm}
+        \item 各ステップの値を表に書く。
+          \begin{center}
+            \begin{tabular}{c|c|c|c|c}
+              \hline
+              $t$ & $g^{(t)} = f'(w^{(t)})$ & $v^{(t+1)}$ & $w^{(t+1)}$ & 勾配降下法の $w^{(t+1)}$（問1(b)） \\
+              \hline
+              $0$ & & & & \\
+              $1$ & & & & \\
+              $2$ & & & & \\
+              \hline
+            \end{tabular}
+          \end{center}
+          比較して気づいたこと：
+          \vspace{10mm}
+        \item $t = 1$ のとき $\bm{m}^{(1)} = $ \phantom{XXXXXX}、$\bm{v}^{(1)} = $ \phantom{XXXXXX}、
+          $\hat{\bm{m}}^{(1)} = $ \phantom{XXXX}、$\hat{\bm{v}}^{(1)} = $ \phantom{XXXXXX}
+          \vspace{14mm}
+
+          「各成分が $\eta$ だけ動く」ことを意味する理由：
+          \vspace{12mm}
+      \end{enumerate}
+    \end{answer}
+
+\end{enumerate}
+
+\newpage
+\section*{LaTeX の書き方（参考）}
+
+第5回の課題で使う数式の書き方をまとめる。
+数式は \verb|$ ... $| で囲む（行の中に書く場合）か、
+\verb|\begin{equation*} ... \end{equation*}| で囲む（1行独立させる場合）。
+
+\begin{center}
+\small
+\begin{tabular}{l|l}
+\hline
+表示 & 書き方 \\
+\hline\hline
+$\bm{X}^\top\bm{X}$ & \verb|\bm{X}^\top\bm{X}| \\
+$(\bm{X}^\top\bm{X})^{-1}$（逆行列） & \verb|(\bm{X}^\top\bm{X})^{-1}| \\
+$\bm{w}^*$, $\bm{w}^{+}$ & \verb|\bm{w}^*|, \verb|\bm{w}^{+}| \\
+$\hat{\bm{y}}$（予測ベクトル） & \verb|\hat{\bm{y}}| \\
+$\|\bm{y} - \bm{X}\bm{w}\|^2$（ノルムの二乗） & \verb+\|\bm{y} - \bm{X}\bm{w}\|^2+ \\
+$\nabla_{\bm{w}} L_D$（勾配） & \verb|\nabla_{\bm{w}} L_D| \\
+$\dfrac{\partial f}{\partial w_i}$（偏微分） & \verb|\frac{\partial f}{\partial w_i}| \\
+$\det(\bm{X}^\top\bm{X})$ & \verb|\det(\bm{X}^\top\bm{X})| \\
+$\mathrm{tr}(\bm{H})$ & \verb|\mathrm{tr}(\bm{H})| \\
+$\mathrm{rank}(\bm{X})$, $\mathrm{Null}(\bm{X})$, $\mathrm{Col}(\bm{X})$ & \verb|\mathrm{rank}(\bm{X})| など \\
+$\lambda_{\max}$, $\kappa$, $\varepsilon$ & \verb|\lambda_{\max}|, \verb|\kappa|, \verb|\varepsilon| \\
+$\{\, \bm{w}^* + t\bm{v} \mid t \in \mathbb{R} \,\}$ & \verb|\{\, \bm{w}^* + t\bm{v} \mid t \in \mathbb{R} \,\}| \\
+$\frac{1}{6}$, $\tfrac{7}{6}$（分数） & \verb|\frac{1}{6}|, \verb|\tfrac{7}{6}| \\
+$\Longrightarrow$ & \verb|\Longrightarrow| \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{行列の書き方}（\verb|pmatrix| 環境。\verb|&| で列を区切り、\verb|\\| で行を変える）：
+\begin{verbatim}
+\begin{equation*}
+  \bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  \bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}
+\end{equation*}
+
+\noindent
+\textbf{分数を係数にもつ行列}（全体を $\frac{1}{6}$ 倍するときは前に出す）：
+\begin{verbatim}
+\begin{equation*}
+  \bm{A}^{-1} = \frac{1}{6}\begin{pmatrix} 5 & -3 \\ -3 & 3 \end{pmatrix}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  \bm{A}^{-1} = \frac{1}{6}\begin{pmatrix} 5 & -3 \\ -3 & 3 \end{pmatrix}
+\end{equation*}
+
+\noindent
+\textbf{計算過程を複数行で書く例}（\verb|align*| 環境。\verb|&| の位置で揃う）：
+\begin{verbatim}
+\begin{align*}
+  \bm{w}^* &= \frac{1}{6}\begin{pmatrix} 5 & -3 \\ -3 & 3 \end{pmatrix}
+              \begin{pmatrix} 5 \\ 6 \end{pmatrix} \\
+           &= \frac{1}{6}\begin{pmatrix} 25 - 18 \\ -15 + 18 \end{pmatrix}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \bm{w}^* &= \frac{1}{6}\begin{pmatrix} 5 & -3 \\ -3 & 3 \end{pmatrix}
+              \begin{pmatrix} 5 \\ 6 \end{pmatrix} \\
+           &= \frac{1}{6}\begin{pmatrix} 25 - 18 \\ -15 + 18 \end{pmatrix}
+\end{align*}
+
+\noindent
+\textbf{証明で「どの性質を使ったか」を右側に書く例}（\verb|&&\text{...}| を使う）：
+\begin{verbatim}
+\begin{align*}
+  \bm{v}^\top\bm{X}^\top\bm{X}\bm{v}
+    &= (\bm{X}\bm{v})^\top(\bm{X}\bm{v}) && \text{（転置の性質）} \\
+    &= \|\bm{X}\bm{v}\|^2 && \text{（ノルムの定義）}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \bm{v}^\top\bm{X}^\top\bm{X}\bm{v}
+    &= (\bm{X}\bm{v})^\top(\bm{X}\bm{v}) && \text{（転置の性質）} \\
+    &= \|\bm{X}\bm{v}\|^2 && \text{（ノルムの定義）}
+\end{align*}
+
+\noindent
+\textbf{注意}：テンプレート中の \verb|\phantom{XXXX}| は答えを書く空白である。
+解答を書くときはこの部分を自分の答えで置き換えること。
+
+\end{document}
