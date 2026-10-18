@@ -47,3 +47,10 @@
 }
 \makeatother
 \setcounter{secnumdepth}{4}
+
+% Column (sidebar) environment: a ruled block that may break across pages,
+% unlike the ascmac boxes used for definitions.
+\newenvironment{mlcolumn}[1]{%
+  \par\medskip\noindent\rule{\linewidth}{0.8pt}\par\nobreak\smallskip
+  \noindent\textbf{\sffamily コラム：#1}\par\nobreak\smallskip\begingroup\small}%
+  {\endgroup\par\nobreak\smallskip\noindent\rule{\linewidth}{0.8pt}\par\medskip}

@@ -1310,6 +1310,106 @@ def fig_gd_path():
     save(fig, "ch5_gd_path")
 
 
+def fig_gd_ls_update():
+    """Left: X^T r is 'one inner product per feature' (row j of X^T = column j of X).
+    Right: the running example at w = (4.5, 0.2): residuals r_i = yhat_i - y_i,
+    the two inner products, and the direction each w_j moves."""
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(9.6, 3.5),
+                                 gridspec_kw=dict(width_ratios=[1.15, 1.0]))
+    # ---------------- left: block diagram
+    cw, ch = 0.42, 0.42
+    N, D = 5, 3                     # N samples, d+1 = 3 features
+    hj = 1                          # highlighted feature j (0-based)
+    y0 = 2.1
+
+    def grid(x0, rows, cols, hl_row=None, hl_all=False, hl_cell=None):
+        for r in range(rows):
+            for c in range(cols):
+                fc = "#FFFFFF"
+                if hl_all:
+                    fc = "#FDF3D0"
+                if hl_row is not None and r == hl_row:
+                    fc = "#E3F0E3"
+                if hl_cell is not None and r == hl_cell:
+                    fc = "#F7D6D2"
+                ax.add_patch(plt.Rectangle((x0 + c * cw, y0 - (r + 1) * ch), cw, ch,
+                                           facecolor=fc, edgecolor=GRAY, lw=0.8))
+        return x0 + cols * cw
+
+    xa = 0.3
+    xa_end = grid(xa, D, N, hl_row=hj)
+    ax.text((xa + xa_end) / 2, y0 + 0.12, r"$\boldsymbol{X}^\top$" "\n" r"$(d{+}1) \times N$",
+            ha="center", va="bottom", fontsize=9.5, linespacing=1.3)
+    ax.text(xa - 0.08, y0 - (hj + 0.5) * ch, r"第 $j$ 行 $= \boldsymbol{c}_j^\top$",
+            ha="right", va="center", fontsize=9.5, color=GREEN)
+    ax.text((xa + xa_end) / 2, y0 - D * ch - 0.22, r"（$\boldsymbol{X}$ の第 $j$ 列＝特徴 $j$ の値）",
+            ha="center", fontsize=8.5, color=GREEN)
+    xr = xa_end + 0.55
+    ax.text((xa_end + xr) / 2, y0 - D * ch / 2, r"$\times$", ha="center", va="center", fontsize=14)
+    xr_end = grid(xr, N, 1, hl_all=True)
+    ax.text((xr + xr_end) / 2, y0 + 0.12, r"$\boldsymbol{r}$" "\n" r"$N \times 1$", ha="center", va="bottom",
+            fontsize=9.5, linespacing=1.3)
+    for i in range(N):
+        ax.text(xr + cw / 2, y0 - (i + 0.5) * ch,
+                r"$\vdots$" if i == N - 2 else r"$r_{%s}$" % ("N" if i == N - 1 else i + 1),
+                ha="center", va="center", fontsize=8, color="#8A6D1A")
+    ax.text((xr + xr_end) / 2, y0 - N * ch - 0.22,
+            "残差 $\\boldsymbol{X}\\boldsymbol{w}-\\boldsymbol{y}$\n（観測 $i$ ごとに1つ）",
+            ha="center", va="top", fontsize=8.5, color="#B8860B")
+    xg = xr_end + 1.0
+    ax.text((xr_end + xg) / 2, y0 - D * ch / 2, r"$=$", ha="center", va="center", fontsize=14)
+    xg_end = grid(xg, D, 1, hl_cell=hj)
+    ax.text((xg + xg_end) / 2, y0 + 0.12, r"$\boldsymbol{X}^\top\boldsymbol{r}$" "\n" r"$(d{+}1) \times 1$",
+            ha="center", va="bottom", fontsize=9.5, linespacing=1.3)
+    ax.text(xg_end + 0.1, y0 - (hj + 0.5) * ch,
+            r"$(\boldsymbol{X}^\top\boldsymbol{r})_j = \boldsymbol{c}_j^\top\boldsymbol{r} = \sum_i x_{ij} r_i$",
+            va="center", fontsize=9.5, color=RED)
+    ax.text(xg_end + 0.1, y0 - (hj + 0.5) * ch - 0.42, "＝ 特徴 $j$ と残差の内積（特徴ごとに1つ）",
+            va="center", fontsize=9, color=RED)
+    ax.text((xa + xg_end + 1.0) / 2, y0 - N * ch - 1.6,
+            r"$w_j \leftarrow w_j - \frac{2\eta}{N}\,(\boldsymbol{X}^\top\boldsymbol{r})_j$"
+            "：内積が正なら $w_j$ を減らし、負なら増やす",
+            ha="center", fontsize=9.5, color=INK_T)
+    ax.set_xlim(-1.3, xg_end + 3.1); ax.set_ylim(y0 - N * ch - 1.9, y0 + 0.75)
+    ax.set_aspect("equal"); ax.axis("off")
+
+    # ---------------- right: the running example
+    X, y = _toy()
+    w = np.array([4.5, 0.2])
+    yhat = X @ w
+    r = yhat - y                                  # (1.7, -0.1, -0.9)
+    g = X.T @ r                                   # (0.7, -1.2)
+    eta = 0.15
+    w_new = w - (2 * eta / 3) * g
+    xs = np.linspace(0.5, 3.5, 2)
+    bx.plot(xs, w[0] + w[1] * xs, color=NAVY, lw=1.6, label=r"現在の直線 $\boldsymbol{w}^{(t)} = (4.5,\,0.2)^\top$")
+    bx.plot(xs, w_new[0] + w_new[1] * xs, color=NAVY, lw=1.2, ls="--",
+            label=r"更新後 $\boldsymbol{w}^{(t+1)} = (%.2f,\,%.2f)^\top$" % tuple(w_new))
+    bx.scatter(X[:, 1], y, s=40, color="k", zorder=5, label="データ $(x_i, y_i)$")
+    bx.scatter(X[:, 1], yhat, s=22, color=NAVY, zorder=5)
+    for i in range(3):
+        bx.annotate("", xy=(X[i, 1], yhat[i]), xytext=(X[i, 1], y[i]),
+                    arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.4, shrinkA=3, shrinkB=3))
+        right = i < 2                       # last label goes on the left of its arrow
+        bx.text(X[i, 1] + (0.08 if right else -0.08), (y[i] + yhat[i]) / 2,
+                r"$r_%d = %+.1f$" % (i + 1, r[i]), fontsize=8.5, color=RED, va="center",
+                ha="left" if right else "right",
+                bbox=dict(fc="white", ec="none", pad=1.2, alpha=0.9))
+    bx.text(0.03, 0.97,
+            r"$\boldsymbol{c}_0^\top\boldsymbol{r} = 1.7 - 0.1 - 0.9 = +0.7 > 0$" "\n"
+            r"　→ $w_0$（切片）を減らす" "\n"
+            r"$\boldsymbol{c}_1^\top\boldsymbol{r} = 1\cdot1.7 + 2\cdot(-0.1) + 3\cdot(-0.9) = -1.2 < 0$" "\n"
+            r"　→ $w_1$（傾き）を増やす",
+            transform=bx.transAxes, fontsize=8.3, va="top",
+            bbox=dict(fc="white", ec=GRAY, lw=0.6, pad=3))
+    bx.set_xlim(0.5, 3.5); bx.set_ylim(2.3, 8.2)
+    bx.set_xlabel(r"$x$（特徴 1）", fontsize=9); bx.set_ylabel(r"$y$", fontsize=9)
+    bx.legend(loc="lower right", fontsize=7.5, framealpha=0.95)
+    bx.set_title(r"数値例：残差 $r_i = \hat{y}_i - y_i$（赤矢印、$\eta = 0.15$）", fontsize=9.5)
+    bx.grid(alpha=0.25)
+    save(fig, "ch5_gd_ls_update")
+
+
 def fig_scaling():
     """Standardising x turns the elongated valley into a bowl: one step is enough."""
     X, y = _toy(); N = 3
@@ -1339,6 +1439,153 @@ def fig_scaling():
         ax.set_xlim(*lims[0]); ax.set_ylim(*lims[1]); ax.set_aspect("equal")
         ax.set_xlabel(r"$w_0$", fontsize=9); ax.set_ylabel(r"$w_1$", fontsize=9); ax.grid(alpha=0.25)
     save(fig, "ch5_scaling")
+
+
+def _momentum(grad, w0, eta, beta, steps):
+    """Heavy-ball momentum: v <- beta v - eta grad, w <- w + v."""
+    w = np.array(w0, float); v = np.zeros_like(w); path = [w.copy()]
+    for _ in range(steps):
+        v = beta * v - eta * grad(w); w = w + v; path.append(w.copy())
+    return np.array(path)
+
+
+def _adam(grad, w0, eta, steps, b1=0.9, b2=0.999, eps=1e-8):
+    """Adam with bias correction (Kingma & Ba 2015), default betas."""
+    w = np.array(w0, float); m = np.zeros_like(w); v = np.zeros_like(w); path = [w.copy()]
+    for t in range(1, steps + 1):
+        g = grad(w)
+        m = b1 * m + (1 - b1) * g; v = b2 * v + (1 - b2) * g * g
+        w = w - eta * (m / (1 - b1 ** t)) / (np.sqrt(v / (1 - b2 ** t)) + eps)
+        path.append(w.copy())
+    return np.array(path)
+
+
+def fig_correlation():
+    """Two standardized features with correlation r: the Hessian is 2[[1,r],[r,1]],
+    whose contours are ellipses tilted along (1,1) with kappa = (1+r)/(1-r).
+    Gradient descent with the optimal step eta = 1/(lambda_max+lambda_min) (rate r)."""
+    fig, axes = plt.subplots(1, 3, figsize=(9.8, 3.0))
+    e0 = np.array([-1.6, 0.9])
+    g = np.linspace(-2.2, 2.2, 300)
+    W1, W2 = np.meshgrid(g, g)
+    for ax, r in zip(axes, (0.0, 0.8, 0.95)):
+        C = np.array([[1.0, r], [r, 1.0]])         # (1/N) Z^T Z
+        A = 2 * C                                  # Hessian (2/N) Z^T Z
+        F = 0.5 * (A[0, 0] * W1**2 + 2 * A[0, 1] * W1 * W2 + A[1, 1] * W2**2)
+        lam_max, lam_min = 2 * (1 + r), 2 * (1 - r)
+        kappa = (1 + r) / (1 - r)
+        levels = np.array([0.05, 0.2, 0.5, 1.0, 2.0, 3.5, 5.5]) * (1 if r < 0.9 else 0.6)
+        ax.contour(W1, W2, F, levels=levels, colors=NAVY, linewidths=0.7, alpha=0.6)
+        eta = 2.0 / (lam_max + lam_min)             # optimal constant step (= 1/2 here)
+        p = _gd(lambda w: A @ w, e0, eta, 30)
+        ax.plot(p[:, 0], p[:, 1], "-", color=RED, lw=0.9, alpha=0.85)
+        ax.scatter(p[:, 0], p[:, 1], s=8, color=RED, zorder=5)
+        ax.scatter(*e0, s=30, color="k", zorder=6)
+        ax.scatter(0, 0, marker="*", s=120, color="k", zorder=6)
+        ax.text(e0[0] + 0.1, e0[1] + 0.12, r"$\boldsymbol{w}^{(0)}$", fontsize=8)
+        ax.text(0.12, -0.32, r"$\boldsymbol{w}^*$", fontsize=8.5)
+        if r > 0:
+            for v, lam, col, lab in (((1, 1), lam_max, RED, r"$\boldsymbol{v}_1$"),
+                                     ((1, -1), lam_min, GREEN, r"$\boldsymbol{v}_2$")):
+                v = np.array(v) / np.sqrt(2) * 1.3
+                ax.annotate("", xy=tuple(v), xytext=(0, 0),
+                            arrowprops=dict(arrowstyle="-|>", color=col, lw=1.4))
+                ax.text(v[0] * 1.15, v[1] * 1.15, lab, color=col, fontsize=9,
+                        ha="center", va="center")
+        err = np.linalg.norm(p[-1])
+        ax.set_title(r"$r = %.2f$：$\kappa = %g$、30回後の誤差 %.2g" % (r, round(kappa, 1), err), fontsize=8.8)
+        ax.set_xlim(-2.2, 2.2); ax.set_ylim(-2.2, 2.2); ax.set_aspect("equal")
+        ax.set_xlabel(r"$w_1$", fontsize=9); ax.grid(alpha=0.25)
+    axes[0].set_ylabel(r"$w_2$", fontsize=9)
+    save(fig, "ch5_correlation")
+
+
+def fig_eigen_recap():
+    """Column figure: eigenvectors are the axes of the contour ellipses, and in
+    eigen-coordinates each axis of the GD error shrinks independently."""
+    X, y = _toy(); N = 3
+    A = (2.0 / N) * X.T @ X; b = (2.0 / N) * X.T @ y
+    opt = np.linalg.solve(A, b)
+    lam, Q = np.linalg.eigh(A)              # ascending: lam[0] small, lam[1] large
+    lam = lam[::-1]; Q = Q[:, ::-1]         # v1 = steep, v2 = flat
+    for j in range(2):                      # fix signs for a tidy picture
+        if Q[0, j] < 0: Q[:, j] *= -1
+    path = _gd(lambda w: A @ w - b, [0.0, 0.0], 0.15, 30)
+    fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.9))
+
+    # left: contours in (w0, w1) with the eigenvectors drawn from w*
+    ax = axes[0]
+    w0 = np.linspace(-1.0, 4.4, 320); w1 = np.linspace(-0.6, 3.6, 320)
+    W0, W1 = np.meshgrid(w0, w1)
+    L = sum((y[k] - X[k, 0] * W0 - X[k, 1] * W1) ** 2 for k in range(3)) / N
+    ax.contour(W0, W1, L, levels=[0.1, 0.4, 1.0, 2.2, 4.5, 8.0, 15.0],
+               colors=NAVY, linewidths=0.7, alpha=0.6)
+    for j, (col, lab) in enumerate(((RED, r"$\boldsymbol{v}_1$（$\lambda_1 \approx 11.1$：急）"),
+                                    (GREEN, r"$\boldsymbol{v}_2$（$\lambda_2 \approx 0.24$：緩やか）"))):
+        k = 0.9 if j == 0 else 1.9
+        ax.annotate("", xy=opt + k * Q[:, j], xytext=opt - k * Q[:, j],
+                    arrowprops=dict(arrowstyle="<|-|>", color=col, lw=1.6, mutation_scale=12))
+        ax.plot([], [], color=col, lw=1.6, label=lab)
+    ax.scatter(*opt, marker="*", s=130, color="k", zorder=6)
+    ax.text(opt[0] + 0.15, opt[1] - 0.45, r"$\boldsymbol{w}^*$", fontsize=9)
+    ax.set_xlim(w0[0], w0[-1]); ax.set_ylim(w1[0], w1[-1]); ax.set_aspect("equal")
+    ax.set_xlabel(r"$w_0$", fontsize=9); ax.set_ylabel(r"$w_1$", fontsize=9)
+    ax.set_title("固有ベクトルは等高線（楕円）の軸", fontsize=9.5)
+    ax.legend(fontsize=7.5, loc="upper right"); ax.grid(alpha=0.25)
+
+    # right: the same GD path in eigen-coordinates u = Q^T (w - w*)
+    ax = axes[1]
+    U = (path - opt) @ Q
+    u1 = np.linspace(-2.4, 1.8, 320); u2 = np.linspace(-1.5, 0.9, 320)
+    U1, U2 = np.meshgrid(u1, u2)
+    Lu = (lam[0] * U1 ** 2 + lam[1] * U2 ** 2) / 2 + L.min()
+    ax.contour(U1, U2, Lu, levels=[0.1, 0.4, 1.0, 2.2, 4.5, 8.0, 15.0],
+               colors=NAVY, linewidths=0.7, alpha=0.6)
+    ax.plot(U[:, 0], U[:, 1], "-", color=RED, lw=1.0, alpha=0.8)
+    ax.scatter(U[:, 0], U[:, 1], s=9, color=RED, zorder=5)
+    ax.scatter(U[0, 0], U[0, 1], s=36, color="k", zorder=6)
+    ax.text(U[0, 0] + 0.1, U[0, 1] - 0.3, r"$\boldsymbol{e}^{(0)}$", fontsize=8.5)
+    ax.scatter(0, 0, marker="*", s=130, color="k", zorder=6)
+    ax.axhline(0, color=GRAY, lw=0.6); ax.axvline(0, color=GRAY, lw=0.6)
+    ax.set_xlim(u1[0], u1[-1]); ax.set_ylim(u2[0], u2[-1]); ax.set_aspect("equal")
+    ax.set_xlabel(r"$u_1$（$\boldsymbol{v}_1$ 方向の誤差）：毎回 $1 - \eta\lambda_1 \approx -0.66$ 倍", fontsize=8.5)
+    ax.set_ylabel(r"$u_2$（$\boldsymbol{v}_2$ 方向の誤差）：毎回 $1 - \eta\lambda_2 \approx 0.96$ 倍", fontsize=8.5)
+    ax.set_title(r"固有ベクトルの座標で見た勾配降下法（$\eta = 0.15$）", fontsize=9.5)
+    ax.grid(alpha=0.25)
+    save(fig, "ch5_eigen_recap")
+
+
+def fig_optimizers():
+    """The running example again: plain GD, tuned momentum and Adam, 30 steps each."""
+    X, y = _toy(); N = 3
+    A = (2.0 / N) * X.T @ X; b = (2.0 / N) * X.T @ y
+    grad = lambda w: A @ w - b
+    opt = np.linalg.solve(A, b)
+    w0 = np.linspace(-1.0, 4.4, 320); w1 = np.linspace(-0.6, 3.6, 320)
+    W0, W1 = np.meshgrid(w0, w1)
+    L = sum((y[k] - X[k, 0] * W0 - X[k, 1] * W1) ** 2 for k in range(3)) / N
+    steps = 30
+    runs = (
+        (r"勾配降下法（$\eta = 0.15$）", _gd(grad, [0.0, 0.0], 0.15, steps)),
+        (r"モメンタム（$\eta = 0.15,\ \beta = 0.7$）", _momentum(grad, [0.0, 0.0], 0.15, 0.7, steps)),
+        (r"Adam（$\eta = 0.3$）", _adam(grad, [0.0, 0.0], 0.3, steps)),
+    )
+    fig, axes = plt.subplots(1, 3, figsize=(9.8, 3.4))
+    for ax, (title, p) in zip(axes, runs):
+        ax.contour(W0, W1, L, levels=[0.1, 0.4, 1.0, 2.2, 4.5, 8.0, 15.0],
+                   colors=NAVY, linewidths=0.7, alpha=0.6)
+        ax.plot(p[:, 0], p[:, 1], "-", color=RED, lw=1.0, alpha=0.8)
+        ax.scatter(p[:, 0], p[:, 1], s=9, color=RED, zorder=5)
+        ax.scatter(0, 0, s=36, color="k", zorder=6)
+        ax.scatter(*opt, marker="*", s=130, color="k", zorder=6)
+        ax.text(0.06, -0.38, r"$\boldsymbol{w}^{(0)}$", fontsize=8.5)
+        ax.text(opt[0] + 0.15, opt[1] + 0.2, r"$\boldsymbol{w}^*$", fontsize=9)
+        d = np.linalg.norm(p[-1] - opt)
+        ax.set_title(title + "\n" + rf"30回後の誤差 $\|\boldsymbol{{w}}^{{(30)}} - \boldsymbol{{w}}^*\| = {d:.2f}$", fontsize=8.5)
+        ax.set_xlim(w0[0], w0[-1]); ax.set_ylim(w1[0], w1[-1])
+        ax.set_xlabel(r"$w_0$", fontsize=9); ax.grid(alpha=0.25)
+    axes[0].set_ylabel(r"$w_1$", fontsize=9)
+    save(fig, "ch5_optimizers")
 
 
 def fig_convex():
@@ -1401,4 +1648,4 @@ if __name__ == "__main__":
     fig_eigen(); fig_eigen_ml()
     fig_param_to_distance(); fig_ls_projection()
     fig_gradient_concept(); fig_definiteness(); fig_ls_gradient(); fig_pseudoinverse()
-    fig_gd_1d(); fig_gd_path(); fig_scaling(); fig_convex()
+    fig_gd_1d(); fig_gd_path(); fig_gd_ls_update(); fig_scaling(); fig_correlation(); fig_eigen_recap(); fig_optimizers(); fig_convex()
