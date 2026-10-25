@@ -1819,6 +1819,325 @@ def fig_convex():
     save(fig, "ch5_convex")
 
 
+# ---------------------------------------------------------------- chapter 6
+def _poly_data(seed=3, N=11, noise=0.18):
+    """Same data as fig_fit (chapter 1): 0.8 sin(2 pi x) + noise."""
+    rng = np.random.default_rng(seed)
+    x = np.linspace(0, 1, N)
+    y = np.sin(2 * np.pi * x) * 0.8 + rng.normal(0, noise, x.size)
+    return x, y
+
+
+def _poly_features(x, M):
+    """Polynomial features x, x^2, ..., x^M, each standardised with the training statistics."""
+    return np.stack([x ** k for k in range(1, M + 1)], axis=1)
+
+
+class _PolyRidge:
+    """Ridge regression on standardised polynomial features; the intercept is not penalised."""
+
+    def __init__(self, M, lam):
+        self.M, self.lam = M, lam
+
+    def fit(self, x, y):
+        F = _poly_features(x, self.M)
+        self.mu, self.sd = F.mean(0), F.std(0)
+        Z = (F - self.mu) / self.sd
+        self.ybar = y.mean()
+        G = Z.T @ Z + self.lam * np.eye(self.M)
+        self.w = np.linalg.solve(G, Z.T @ (y - self.ybar))
+        return self
+
+    def predict(self, x):
+        Z = (_poly_features(x, self.M) - self.mu) / self.sd
+        return self.ybar + Z @ self.w
+
+
+def fig_poly_ridge():
+    """The chapter-1 overfit (M = 10) tamed by L2 regularisation."""
+    x, y = _poly_data()
+    xs = np.linspace(-0.02, 1.02, 300)
+    fig, axes = plt.subplots(1, 3, figsize=(7.4, 2.6), sharey=True)
+    for ax, lam in zip(axes, [0.0, 1e-2, 10.0]):
+        m = _PolyRidge(10, lam).fit(x, y)
+        ax.plot(xs, np.sin(2 * np.pi * xs) * 0.8, color=GRAY, ls="--", lw=1.2, label="真の関係")
+        ax.plot(xs, m.predict(xs), color=RED, lw=1.8, label=r"リッジ回帰 $h$")
+        ax.scatter(x, y, s=22, color=NAVY, zorder=5, label="訓練データ")
+        lam_s = {0.0: r"$\lambda = 0$（最小二乗法）", 1e-2: r"$\lambda = 10^{-2}$", 10.0: r"$\lambda = 10$"}[lam]
+        nrm = np.linalg.norm(m.w)
+        nrm_s = (r"$\|\boldsymbol{w}\| \approx 10^{%d}$" % round(np.log10(nrm))) if nrm > 1e3 else (r"$\|\boldsymbol{w}\| = %.1f$" % nrm)
+        ax.set_title(f"{lam_s}\n{nrm_s}", fontsize=9.5)
+        ax.set_xlabel("$x$")
+        ax.set_ylim(-1.6, 1.6)
+    axes[0].set_ylabel("$y$")
+    axes[1].legend(loc="upper right", fontsize=7)
+    save(fig, "ch6_poly_ridge")
+
+
+def _toyA():
+    X = np.array([[1., 0.], [1., 1.], [1., 2.]])
+    y = np.array([1., 2., 2.])
+    return X, y
+
+
+def fig_ridge_path():
+    """Example A: contours of the squared error, circles of ||w||^2, and the ridge path."""
+    X, y = _toyA()
+    G, b = X.T @ X, X.T @ y
+    w_star = np.linalg.solve(G, b)
+    lams = np.concatenate([[0.0], np.logspace(-1.5, 2.5, 200)])
+    path = np.array([np.linalg.solve(G + l * np.eye(2), b) for l in lams])
+
+    w0 = np.linspace(-0.3, 1.7, 400)
+    w1 = np.linspace(-0.3, 1.3, 400)
+    W0, W1 = np.meshgrid(w0, w1)
+    E = np.zeros_like(W0)
+    for k in range(3):
+        E += (y[k] - X[k, 0] * W0 - X[k, 1] * W1) ** 2
+
+    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.4))
+    ax = axes[0]
+    levels = [0.3, 0.6, 1.2, 2.4, 4.0, 6.5, 10.0]
+    ax.contour(W0, W1, E, levels=levels, colors=NAVY, linewidths=0.8)
+    ax.plot(path[:, 0], path[:, 1], color=RED, lw=2.0, zorder=4)
+    marks = {0.0: r"$\lambda=0$", 1.0: r"$\lambda=1$", 10.0: r"$\lambda=10$"}
+    for l, lab in marks.items():
+        w = np.linalg.solve(G + l * np.eye(2), b)
+        ax.scatter(*w, s=45, color=RED, zorder=6, edgecolor="white", linewidths=0.8)
+        ax.text(w[0] + 0.05, w[1] + 0.05, lab, fontsize=8, color=RED)
+        if l == 1.0:
+            r = np.linalg.norm(w)
+            th = np.linspace(0, 2 * np.pi, 300)
+            ax.plot(r * np.cos(th), r * np.sin(th), color=GREEN, ls="--", lw=1.1)
+            ax.text(0.45, -0.95, r"$\|\boldsymbol{w}\| = 1$", color=GREEN, fontsize=8)
+    ax.scatter(0, 0, marker="x", s=40, color="k", zorder=6)
+    ax.text(0.03, -0.12, r"$\boldsymbol{0}$", fontsize=9)
+    ax.text(w_star[0] + 0.05, w_star[1] - 0.12, r"$\boldsymbol{w}^*$", fontsize=9, color=RED)
+    ax.set_xlabel("$w_0$"); ax.set_ylabel("$w_1$")
+    ax.set_aspect("equal")
+    ax.set_title(r"$\|\boldsymbol{y}-\boldsymbol{X}\boldsymbol{w}\|^2$ の等高線とリッジ解の軌跡", fontsize=9.5)
+    ax.grid(False)
+
+    ax = axes[1]
+    lam_grid = np.logspace(-2, 3, 300)
+    P = np.array([np.linalg.solve(G + l * np.eye(2), b) for l in lam_grid])
+    err = np.array([np.sum((y - X @ w) ** 2) for w in P])
+    nrm = np.sum(P ** 2, axis=1)
+    ax.semilogx(lam_grid, err, color=NAVY, lw=1.8, label=r"当てはまり $\|\boldsymbol{y}-\boldsymbol{X}\boldsymbol{w}_\lambda\|^2$")
+    ax.semilogx(lam_grid, nrm, color=GREEN, lw=1.8, label=r"大きさ $\|\boldsymbol{w}_\lambda\|^2$")
+    ax.axvline(1.0, color=GRAY, ls=":", lw=1)
+    ax.set_xlabel(r"$\lambda$（対数目盛）")
+    ax.legend(fontsize=7.5, loc="center right")
+    ax.set_title(r"$\lambda$ を増やすと当てはまりは悪くなり $\boldsymbol{w}$ は小さくなる", fontsize=9.5)
+    save(fig, "ch6_ridge_path")
+
+
+def fig_rent_ridge():
+    """The chapter-3 rent example: ridge stabilises the solution in the flat valley."""
+    Xs = np.array([[22., 1.], [38., 2.], [61., 3.], [79., 4.]])
+    w_true = np.array([0.25, 5.0])
+    y0 = Xs @ w_true
+    G = Xs.T @ Xs
+    rng = np.random.default_rng(3)
+    w1 = np.linspace(-0.35, 1.05, 500); w2 = np.linspace(-7.0, 17.0, 500)
+    found = []
+    while len(found) < 2:
+        d = rng.normal(0.0, 0.3, 4)
+        ws = np.linalg.solve(G, Xs.T @ (y0 + d))
+        if w1[0] + 0.12 < ws[0] < w1[-1] - 0.12 and w2[0] + 1.5 < ws[1] < w2[-1] - 1.5:
+            found.append(d)
+    lam_grid = np.logspace(-3, 3, 300)
+    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.3))
+    ax = axes[0]
+    for d, ls, lab in zip(found, ["-", "--"], ["データ1", "データ2"]):
+        P = np.array([np.linalg.solve(G + l * np.eye(2), Xs.T @ (y0 + d)) for l in lam_grid])
+        ax.semilogx(lam_grid, P[:, 0], color=NAVY, ls=ls, lw=1.6, label=f"{lab}：$w_1$（広さ）")
+        ax.semilogx(lam_grid, P[:, 1], color=RED, ls=ls, lw=1.6, label=f"{lab}：$w_2$（部屋数）")
+    ax.axhline(0, color=GRAY, lw=0.6)
+    ax.set_xlabel(r"$\lambda$（対数目盛）"); ax.set_ylabel(r"リッジ回帰の係数 $w_1, w_2$（万円）")
+    ax.set_ylim(-2, 8)
+    ax.legend(fontsize=6.5, loc="upper right", ncol=2)
+    ax.set_title(r"$\lambda$ が $1$ 程度で2つのデータの解がそろう", fontsize=9.5)
+
+    ax = axes[1]
+    W1, W2 = np.meshgrid(w1, w2)
+    L = np.zeros_like(W1)
+    for k in range(4):
+        L += (y0[k] - Xs[k, 0] * W1 - Xs[k, 1] * W2) ** 2
+    L /= 4.0
+    fill = [0.0, 0.2, 1.0, 5.0, 25.0, 120.0, 600.0, L.max()]
+    ax.contourf(W1, W2, L, levels=fill, cmap="Blues", alpha=0.55)
+    ax.contour(W1, W2, L, levels=fill[1:-1], colors="white", linewidths=0.7)
+    for d, mk, lab, off in zip(found, ["X", "P"], ["データ1", "データ2"], [(0.05, -1.6), (0.05, 0.9)]):
+        pts = np.array([np.linalg.solve(G + l * np.eye(2), Xs.T @ (y0 + d)) for l in [0.0, 0.1, 1.0, 10.0]])
+        ax.plot(pts[:, 0], pts[:, 1], color=RED, lw=1.0, alpha=0.7)
+        ax.scatter(pts[0, 0], pts[0, 1], marker=mk, s=70, color=RED, zorder=6)
+        ax.scatter(pts[-1, 0], pts[-1, 1], marker=mk, s=70, color=GREEN, zorder=6)
+        ax.text(pts[0, 0] + off[0], pts[0, 1] + off[1], f"{lab}, $\\lambda=0$", color=RED, fontsize=8)
+        last = pts[-1]
+    ax.text(last[0] + 0.06, last[1] + 0.6, r"$\lambda=10$（両データ）", color=GREEN, fontsize=8)
+    ax.scatter(*w_true, marker="*", s=140, color="k", zorder=6)
+    ax.text(w_true[0] + 0.05, w_true[1] - 1.4, r"$\boldsymbol{w}^*$（真のパラメータ）", fontsize=8)
+    ax.set_xlabel(r"$w_1$（広さの係数）"); ax.set_ylabel(r"$w_2$（部屋数の係数）")
+    ax.set_xlim(w1[0], w1[-1]); ax.set_ylim(w2[0], w2[-1])
+    ax.grid(False)
+    ax.set_title(r"谷に沿って離れていた2つの解が $\lambda$ とともに寄る", fontsize=9.5)
+    save(fig, "ch6_rent_ridge")
+
+
+def _soft(z, t):
+    return np.sign(z) * np.maximum(np.abs(z) - t, 0.0)
+
+
+def fig_shrink():
+    """Left: ridge shrinks each eigen-direction by d/(d+lambda).  Right: ridge vs lasso in 1-D."""
+    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.0))
+    ax = axes[0]
+    d = np.logspace(-2, 2, 300)
+    for lam, c in zip([0.1, 1.0, 10.0], [GREEN, NAVY, RED]):
+        ax.semilogx(d, d / (d + lam), color=c, lw=1.8, label=rf"$\lambda = {lam:g}$")
+    ax.set_xlabel(r"$\boldsymbol{X}^\top\boldsymbol{X}$ の固有値 $d_i$（対数目盛）")
+    ax.set_ylabel(r"縮小率 $d_i/(d_i+\lambda)$")
+    ax.set_ylim(0, 1.05)
+    ax.legend(fontsize=8, loc="upper left")
+    ax.set_title(r"固有値が小さい（平らな谷の）向きほど強く縮む", fontsize=9.5)
+
+    ax = axes[1]
+    z = np.linspace(-3, 3, 400)
+    ax.plot(z, z, color=GRAY, ls="--", lw=1.0, label=r"最小二乗法 $w = \hat{w}$")
+    ax.plot(z, z / (1 + 1.0), color=NAVY, lw=1.8, label=r"リッジ $w = \hat{w}/(1+\lambda)$")
+    ax.plot(z, _soft(z, 0.5), color=RED, lw=1.8, label=r"ラッソ（軟しきい値）")
+    ax.set_xlabel(r"最小二乗解 $\hat{w}$"); ax.set_ylabel(r"正則化した解 $w$")
+    ax.set_aspect("equal")
+    ax.legend(fontsize=7, loc="upper left")
+    ax.set_title(r"直交する特徴のとき（$\lambda = 1$）", fontsize=9.5)
+    save(fig, "ch6_shrink")
+
+
+def fig_validation():
+    """Training and validation error as a function of lambda (polynomial, M = 10)."""
+    x, y = _poly_data()
+    rng = np.random.default_rng(11)
+    xv = rng.uniform(0, 1, 40)
+    yv = np.sin(2 * np.pi * xv) * 0.8 + rng.normal(0, 0.18, xv.size)
+    lams = np.logspace(-5, 2, 120)
+    tr, va = [], []
+    for l in lams:
+        m = _PolyRidge(10, l).fit(x, y)
+        tr.append(np.mean((y - m.predict(x)) ** 2))
+        va.append(np.mean((yv - m.predict(xv)) ** 2))
+    tr, va = np.array(tr), np.array(va)
+    fig, ax = plt.subplots(figsize=(4.8, 3.0))
+    ax.semilogx(lams, tr, color=NAVY, lw=2, label="訓練誤差")
+    ax.semilogx(lams, va, color=RED, lw=2, label="検証誤差")
+    lb = lams[np.argmin(va)]
+    ax.axvline(lb, color=GRAY, ls=":", lw=1.2)
+    ax.annotate(r"検証誤差が最小の $\lambda$", xy=(lb, va.min()), xytext=(lb * 0.02, va.min() + 0.17),
+                fontsize=8, arrowprops=dict(arrowstyle="->", color=GRAY, lw=0.9))
+    ax.text(3e-5, 0.22, "過学習\n（小さすぎる $\\lambda$）", fontsize=8, color=GRAY, ha="center")
+    ax.text(20, 0.40, "未学習\n（大きすぎる $\\lambda$）", fontsize=8, color=GRAY, ha="center")
+    ax.set_xlabel(r"$\lambda$（対数目盛）"); ax.set_ylabel("平均二乗誤差")
+    ax.set_ylim(0, 0.5)
+    ax.legend(fontsize=8, loc="upper left")
+    save(fig, "ch6_validation")
+
+
+def fig_kfold():
+    """k-fold cross-validation layout (k = 5)."""
+    k = 5
+    fig, ax = plt.subplots(figsize=(5.6, 2.3))
+    for r in range(k):
+        for c in range(k):
+            val = (c == r)
+            ax.add_patch(plt.Rectangle((c, k - 1 - r), 1, 1, facecolor=(RED if val else "#DCE6F0"),
+                                       edgecolor="white", lw=1.5))
+            ax.text(c + 0.5, k - 1 - r + 0.5, "検証" if val else "訓練", ha="center", va="center",
+                    fontsize=8, color=("white" if val else INK_T))
+        ax.text(-0.15, k - 1 - r + 0.5, f"第{r+1}回", ha="right", va="center", fontsize=8)
+    for c in range(k):
+        ax.text(c + 0.5, k + 0.15, f"ブロック{c+1}", ha="center", va="bottom", fontsize=8)
+    ax.text(k + 0.2, k / 2, "各回の検証誤差を\n平均して $\\lambda$ を選ぶ", va="center", fontsize=8)
+    ax.set_xlim(-1.2, k + 2.6); ax.set_ylim(-0.1, k + 0.6)
+    ax.axis("off")
+    save(fig, "ch6_kfold")
+
+
+def fig_bias_variance():
+    """Left/middle: 30 fits on 30 resampled data sets.  Right: the scalar bias-variance trade-off."""
+    xs = np.linspace(-0.02, 1.02, 200)
+    truth = np.sin(2 * np.pi * xs) * 0.8
+    fig, axes = plt.subplots(1, 3, figsize=(7.6, 2.7))
+    for ax, lam, title in zip(axes[:2], [1e-4, 3.0],
+                              [r"小さい $\lambda = 10^{-4}$：ばらつき大", r"大きい $\lambda = 3$：偏り大"]):
+        preds = []
+        for seed in range(30):
+            x, y = _poly_data(seed=100 + seed)
+            m = _PolyRidge(10, lam).fit(x, y)
+            p = m.predict(xs)
+            preds.append(p)
+            ax.plot(xs, p, color=NAVY, lw=0.6, alpha=0.35)
+        ax.plot(xs, np.mean(preds, axis=0), color=RED, lw=2.0, label="予測の平均")
+        ax.plot(xs, truth, color="k", ls="--", lw=1.2, label="真の関係")
+        ax.set_ylim(-1.7, 1.7)
+        ax.set_xlabel("$x$")
+        ax.set_title(title, fontsize=9.5)
+    axes[0].legend(fontsize=7, loc="upper right")
+    ax = axes[2]
+    d, sig, wt = 10.0, 1.0, 1.0
+    lam = np.linspace(0, 6, 300)
+    bias2 = (lam / (d + lam) * wt) ** 2
+    var = sig ** 2 * d / (d + lam) ** 2
+    ax.plot(lam, bias2, color=GREEN, lw=1.8, label=r"バイアス$^2$")
+    ax.plot(lam, var, color=NAVY, lw=1.8, label="バリアンス")
+    ax.plot(lam, bias2 + var, color=RED, lw=2.2, label="合計")
+    lo = sig ** 2 / wt ** 2
+    ax.axvline(lo, color=GRAY, ls=":", lw=1.2)
+    ax.text(lo + 0.15, 0.125, r"$\lambda^* = \sigma^2/w^2$", fontsize=8, color=GRAY)
+    ax.set_xlabel(r"$\lambda$"); ax.set_ylim(0, 0.14)
+    ax.legend(fontsize=7, loc="lower right")
+    ax.set_title(r"1変数モデルの分解（$d=10,\ \sigma=1,\ w=1$）", fontsize=9.5)
+    save(fig, "ch6_bias_variance")
+
+
+def fig_constraint():
+    """Constrained view: the L2 disc touches an ellipse on a smooth point, the L1 diamond on a corner."""
+    A = np.array([[1.0, 0.4], [0.4, 1.6]])
+    w_star = np.array([0.5, 1.6])
+    W1, W2 = np.meshgrid(np.linspace(-1.1, 1.6, 400), np.linspace(-1.1, 2.3, 400))
+    D1, D2 = W1 - w_star[0], W2 - w_star[1]
+    F = A[0, 0] * D1 ** 2 + 2 * A[0, 1] * D1 * D2 + A[1, 1] * D2 ** 2
+
+    def f(w):
+        dd = w - w_star
+        return dd @ A @ dd
+
+    r = 0.8
+    th = np.linspace(0, 2 * np.pi, 2000)
+    circ = np.stack([r * np.cos(th), r * np.sin(th)], 1)
+    t = np.linspace(0, 1, 500)
+    diamond = np.concatenate([np.stack([r * t, r * (1 - t)], 1), np.stack([-r * t, r * (1 - t)], 1),
+                              np.stack([-r * t, -r * (1 - t)], 1), np.stack([r * t, -r * (1 - t)], 1)])
+    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.5))
+    for ax, B, name, lab in zip(axes, [circ, diamond],
+                                [r"$L^2$ 制約 $\|\boldsymbol{w}\|_2 \leq r$", r"$L^1$ 制約 $\|\boldsymbol{w}\|_1 \leq r$"],
+                                ["円と接する：どちらの成分も 0 にならない", "角で接する：$w_1 = 0$（疎な解）"]):
+        best = B[np.argmin([f(w) for w in B])]
+        levels = sorted(set([0.08, 0.25, 0.6, 1.2, 2.2, 3.6, 5.5] + [f(best)]))
+        ax.contour(W1, W2, F, levels=levels, colors=NAVY, linewidths=0.7)
+        ax.contour(W1, W2, F, levels=[f(best)], colors=RED, linewidths=1.4)
+        ax.fill(B[:, 0], B[:, 1], color=GREEN, alpha=0.18)
+        ax.plot(B[:, 0], B[:, 1], color=GREEN, lw=1.5)
+        ax.scatter(*w_star, marker="*", s=130, color="k", zorder=6)
+        ax.text(w_star[0] + 0.08, w_star[1] + 0.06, r"$\boldsymbol{w}^*$（制約なし）", fontsize=8)
+        ax.scatter(*best, s=60, color=RED, zorder=7, edgecolor="white")
+        ax.text(best[0] + 0.07, best[1] + 0.08, r"$\boldsymbol{w}_r$", fontsize=9, color=RED)
+        ax.axhline(0, color=GRAY, lw=0.5); ax.axvline(0, color=GRAY, lw=0.5)
+        ax.set_aspect("equal"); ax.grid(False)
+        ax.set_xlabel("$w_1$"); ax.set_ylabel("$w_2$")
+        ax.set_title(f"{name}\n{lab}", fontsize=9.5)
+    save(fig, "ch6_constraint")
+
+
 if __name__ == "__main__":
     print("generating figures...")
     fig_fit(); fig_error_curve()
@@ -1829,3 +2148,4 @@ if __name__ == "__main__":
     fig_param_to_distance(); fig_ls_projection()
     fig_gradient_concept(); fig_definiteness(); fig_ls_gradient(); fig_pseudoinverse()
     fig_gd_1d(); fig_gd_path(); fig_gd_ls_update(); fig_scaling(); fig_correlation(); fig_eigen_recap(); fig_optimizers(); fig_minibatch(); fig_epoch(); fig_convex_set(); fig_convex()
+    fig_poly_ridge(); fig_ridge_path(); fig_rent_ridge(); fig_shrink(); fig_validation(); fig_kfold(); fig_bias_variance(); fig_constraint()

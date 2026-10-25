@@ -1,0 +1,449 @@
+%=====================================================================
+% 機械学習 第6回 演習問題 提出用テンプレート
+%
+% 使い方
+%   1. 下の \学籍番号, \氏名, \提出日 を自分の情報に書き換える
+%      （\提出期限 は書き換えない）
+%   2. 各問題の「解答」枠の中に解答を書く（枠の外の問題文は変更しない）
+%   3. コンパイルして PDF を作成し、PDF を提出する
+%
+% コンパイル方法（ターミナル）
+%   uplatex report_template_06.tex && dvipdfmx report_template_06.dvi
+%
+% Overleaf を使う場合
+%   Menu > Compiler を "LaTeX" にし、プロジェクトに latexmkrc という名前の
+%   ファイルを作って次の3行を書く：
+%     $latex = 'uplatex';
+%     $dvipdf = 'dvipdfmx %O -o %D %S';
+%     $pdf_mode = 3;
+%
+% 提出期限：2026年11月2日（月）
+% ファイル名は  ML06_学籍番号.pdf  として提出すること（例：ML06_2312345.pdf）
+%=====================================================================
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{pdfborder={0 0 0}}
+
+%---- 提出期限（書き換えない）------------------------------------------
+\newcommand{\提出期限}{2026年11月2日（月）}
+%---- 自分の情報を書く -------------------------------------------------
+\newcommand{\学籍番号}{0000000}
+\newcommand{\氏名}{氏名を書く}
+\newcommand{\提出日}{2026年11月2日}
+%----------------------------------------------------------------------
+
+% 解答枠（枠の中に解答を書く）
+\newenvironment{answer}{\begin{itembox}[l]{解答}}{\end{itembox}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE 機械学習　第6回 演習問題}\\[2mm]
+  {\large 提出課題（正則化と汎化）}\\[4mm]
+  {\large\textbf{提出期限：\提出期限}}\\[6mm]
+  \begin{tabular}{ll}
+    学籍番号： & \学籍番号 \\
+    氏名：     & \氏名 \\
+    提出日：   & \提出日 \\
+  \end{tabular}
+\end{center}
+
+\vspace{4mm}
+\noindent
+\textbf{注意}
+\begin{itemize}
+  \item 解答は「解答」の枠内に書くこと。枠外の問題文は変更しないこと。
+  \item 計算問題は結果だけでなく途中の式も書くこと。
+    反復計算は、各ステップの値を式や表で示すこと。
+  \item 分数はそのまま分数で答えてよい。小数で答える場合は有効数字3桁程度でよい。
+  \item 証明問題では、どの定義・性質を使ったか（正定値の定義、ノルムの定義、固有値分解、
+    期待値・分散の性質など）を明記すること。
+  \item 「確認せよ」という問いには、両辺を実際に計算して一致することを示すこと。
+  \item 「説明せよ」という問いには、計算結果だけでなく\textbf{日本語の説明}を書くこと。
+  \item 数式の書き方は末尾の「LaTeX の書き方」を参照すること。
+\end{itemize}
+
+\section*{問題}
+
+\begin{enumerate}
+
+%=====================================================================
+
+%=====================================================================
+  \item \textbf{リッジ回帰の解の導出}\quad
+    $J_\lambda(\bm{w}) = \|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2$ について答えよ。
+    \begin{enumerate}
+      \item $J_\lambda$ を展開し、テキストの公式(4.11)と(4.12)を用いて $\nabla J_\lambda$ を求めよ。
+      \item $\nabla J_\lambda = \bm{0}$ からテキスト式(6.7) $(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{w} = \bm{X}^\top\bm{y}$ を導け。
+      \item $\lambda > 0$ のとき、任意の $\bm{v} \neq \bm{0}$ に対して $\bm{v}^\top(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{v} > 0$ となることを示せ。
+        $\bm{X}$ がランク落ちしていて $\bm{X}\bm{v} = \bm{0}$ となる $\bm{v}$ があっても成り立つ理由を述べよ。
+      \item $J_\lambda$ のヘッセ行列を求め、$J_\lambda$ が狭義凸であることを述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 展開：$J_\lambda(\bm{w}) = $ \phantom{XXXXXXXXXXXXXXXXXXXXXXXX}
+          \vspace{4mm}
+
+          勾配：$\nabla J_\lambda(\bm{w}) = $ \phantom{XXXXXXXXXXXXXXXXXX}
+          \vspace{4mm}
+        \item
+          \vspace{10mm}
+        \item
+          \begin{align*}
+            \bm{v}^\top(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{v}
+              &= \phantom{XXXXXXXXXXXX} && \text{（　　　　　）} \\
+              &= \phantom{XXXXXXXXXXXX} && \text{（　　　　　）}
+          \end{align*}
+          $\bm{X}\bm{v} = \bm{0}$ でも正になる理由：
+          \vspace{10mm}
+        \item ヘッセ行列 $= $ \phantom{XXXXXXXXXX}。狭義凸である理由：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{数値例}\quad
+    $\bm{X} = \begin{pmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{pmatrix}$、$\bm{y} = (1, 2, 2)^\top$ について答えよ
+    （$\bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}$、$\bm{X}^\top\bm{y} = (5, 6)^\top$）。
+    \begin{enumerate}
+      \item $\lambda = 3$ のリッジ回帰の解 $\bm{w}_3$ を求めよ。
+      \item $\bm{w}_3$ に対する残差 $\bm{r} = \bm{y} - \bm{X}\bm{w}_3$ を求め、$\|\bm{r}\|^2$ と $\|\bm{w}_3\|^2$ を計算せよ。
+        テキスト表6.1の $\lambda = 1$ の行（$\|\bm{r}\|^2 = 0.400$、$\|\bm{w}_1\|^2 = 1.000$）と比べ、どちらがどう変わったか述べよ。
+      \item 最小二乗法では $\bm{X}^\top\bm{r} = \bm{0}$（残差と列の直交性）が成り立った。
+        $\bm{w}_3$ の残差について $\bm{X}^\top\bm{r}$ を計算し、$\bm{0}$ にならないこと、および $\bm{X}^\top\bm{r} = \lambda\bm{w}_3$ となることを確かめよ。
+        この等式をテキスト式(6.7)から説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{align*}
+            \bm{X}^\top\bm{X} + 3\bm{I} &= \phantom{XXXXXXXX}, \qquad
+            (\bm{X}^\top\bm{X} + 3\bm{I})^{-1} = \phantom{XXXXXXXXXX} \\
+            \bm{w}_3 &= \phantom{XXXXXXXXXXXXXXXX}
+          \end{align*}
+        \item $\bm{r} = $ \phantom{XXXXXXXXXX}、$\|\bm{r}\|^2 = $ \phantom{XXXX}、$\|\bm{w}_3\|^2 = $ \phantom{XXXX}
+          \vspace{4mm}
+
+          $\lambda = 1$ との比較：
+          \vspace{8mm}
+        \item $\bm{X}^\top\bm{r} = $ \phantom{XXXXXXXX}、$\lambda\bm{w}_3 = $ \phantom{XXXXXXXX}
+          \vspace{4mm}
+
+          式(6.7)からの説明：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{固有値で見る}\quad
+    問2の $\bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}$ について答えよ。
+    \begin{enumerate}
+      \item 固有値 $d_1 > d_2$ を特性方程式から求めよ（$4 \pm \sqrt{10}$ の形になる）。
+      \item $\lambda = 1$ と $\lambda = 10$ について、縮小率 $d_i/(d_i + \lambda)$ を2つの固有値それぞれについて求めよ。
+      \item 条件数 $\kappa = d_1/d_2$ と、$\lambda = 1, 10$ のときの $(d_1 + \lambda)/(d_2 + \lambda)$ を求めよ。
+      \item 有効自由度 $\mathrm{df}(\lambda) = \sum_i d_i/(d_i + \lambda)$ を $\lambda = 0, 1, 10$ について求めよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 特性方程式：$\det(\bm{X}^\top\bm{X} - d\bm{I}) = $ \phantom{XXXXXXXXXXXX} $= 0$
+          \vspace{2mm}
+
+          $d_1 = $ \phantom{XXXXXX}（$\approx$ \phantom{XXXX}）, \quad $d_2 = $ \phantom{XXXXXX}（$\approx$ \phantom{XXXX}）
+        \item
+          \begin{center}
+            \begin{tabular}{c|c|c}
+              & $d_1/(d_1 + \lambda)$ & $d_2/(d_2 + \lambda)$ \\ \hline
+              $\lambda = 1$ & \phantom{XXXXXX} & \phantom{XXXXXX} \\
+              $\lambda = 10$ & \phantom{XXXXXX} & \phantom{XXXXXX}
+            \end{tabular}
+          \end{center}
+        \item $\kappa = $ \phantom{XXXXXX}、$\lambda = 1$：\phantom{XXXXXX}、$\lambda = 10$：\phantom{XXXXXX}
+          \vspace{2mm}
+        \item $\mathrm{df}(0) = $ \phantom{XXXX}、$\mathrm{df}(1) = $ \phantom{XXXX}、$\mathrm{df}(10) = $ \phantom{XXXX}
+          \vspace{2mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{単位と標準化}\quad
+    切片のない1変数のリッジ回帰 $\min_w \sum_i (y_i - w x_i)^2 + \lambda w^2$ を考える。
+    $x_i$ の単位を変えて $x'_i = c\,x_i$（$c > 0$）としたときの解を $w'_\lambda$ とする。
+    \begin{enumerate}
+      \item $w_\lambda$ と $w'_\lambda$ をそれぞれ $\sum_i x_i y_i$、$\sum_i x_i^2$、$c$、$\lambda$ で表せ。
+      \item 予測 $w_\lambda x_i$ と $w'_\lambda x'_i$ は一致するか。一致しないなら、$\lambda$ を変えずに単位だけ変えると正則化の強さがどう変わるか説明せよ。
+      \item 単位を変えた後に同じ予測を得るには $\lambda$ をどう変えればよいか。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $w_\lambda = \dfrac{\phantom{XXXXXX}}{\phantom{XXXXXX}}$、\quad
+          $w'_\lambda = \dfrac{\phantom{XXXXXX}}{\phantom{XXXXXX}}$
+          \vspace{6mm}
+        \item 一致する／しない（　　　）。理由と、正則化の強さの変化：
+          \vspace{14mm}
+        \item $\lambda' = $ \phantom{XXXXXX}。理由：
+          \vspace{8mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{重み減衰}\quad
+    $L_D(\bm{w}) = \frac{1}{N}\|\bm{y} - \bm{X}\bm{w}\|^2$ に罰則 $\lambda\|\bm{w}\|^2$ を加えた目的関数を勾配降下法で最小化する。
+    \begin{enumerate}
+      \item 更新式が $\bm{w}^{(t+1)} = (1 - 2\eta\lambda)\bm{w}^{(t)} - \eta\nabla L_D(\bm{w}^{(t)})$ となることを示せ。
+      \item 問2のデータで $\lambda = 1$、$\eta = 0.1$、$\bm{w}^{(0)} = \bm{0}$ として $\bm{w}^{(1)}, \bm{w}^{(2)}$ を計算せよ
+        （$\nabla L_D(\bm{w}) = \frac{2}{N}(\bm{X}^\top\bm{X}\bm{w} - \bm{X}^\top\bm{y})$、$N = 3$）。
+      \item この反復の停留点（$\bm{w}^{(t+1)} = \bm{w}^{(t)}$ となる点）が、$\frac{1}{N}$ を含めた定義でのリッジ回帰の解
+        $(\bm{X}^\top\bm{X} + N\lambda\bm{I})^{-1}\bm{X}^\top\bm{y}$ に一致することを示せ。
+      \item 目的関数のヘッセ行列の最大固有値を用いて、この反復が収束する学習率の範囲を書け（テキスト第5.3.2項）。
+        罰則を加えると収束の上限はどう変わるか。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 目的関数の勾配 $= \nabla L_D + $ \phantom{XXXXXX} なので
+          \vspace{10mm}
+        \item
+          \begin{align*}
+            \bm{w}^{(1)} &= \\
+            \bm{w}^{(2)} &=
+          \end{align*}
+        \item 停留点の条件：\phantom{XXXXXXXXXXXXXXXX}
+          \vspace{12mm}
+        \item ヘッセ行列 $= $ \phantom{XXXXXXXXXX}、最大固有値 $= $ \phantom{XXXXXX}、
+          収束する範囲：$0 < \eta < $ \phantom{XXXXXX}
+          \vspace{2mm}
+
+          罰則による上限の変化：
+          \vspace{8mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{早期終了}\quad
+    $J(\bm{w}) = \|\bm{y} - \bm{X}\bm{w}\|^2$ に対する勾配降下法 $\bm{w}^{(t+1)} = \bm{w}^{(t)} - \eta\nabla J(\bm{w}^{(t)})$ を $\bm{w}^{(0)} = \bm{0}$ から始める。
+    $\bm{X}$ はフルランクとし、$\bm{X}^\top\bm{X} = \bm{Q}\bm{D}\bm{Q}^\top$、最小二乗解を $\bm{w}^*$ とする。
+    \begin{enumerate}
+      \item 誤差 $\bm{e}^{(t)} = \bm{w}^{(t)} - \bm{w}^*$ が $\bm{e}^{(t+1)} = (\bm{I} - 2\eta\bm{X}^\top\bm{X})\bm{e}^{(t)}$ を満たすことを示せ。
+      \item $\bm{v}_i$ 方向の成分 $u_i^{(t)} = \bm{v}_i^\top\bm{w}^{(t)}$ が $u_i^{(t)} = \{1 - (1 - 2\eta d_i)^t\}\,u_i^*$ となることを示せ
+        （$u_i^* = \bm{v}_i^\top\bm{w}^*$）。
+      \item $2\eta d_i t \ll 1$ のとき $1 - (1 - 2\eta d_i)^t \approx 2\eta t\,d_i$ であることを用いて、
+        $t$ 回で止めた解がリッジ回帰の縮小率 $d_i/(d_i + \lambda)$ とどう対応するか述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\nabla J(\bm{w}) = $ \phantom{XXXXXXXXXX}。$\bm{X}^\top\bm{y} = \bm{X}^\top\bm{X}\bm{w}^*$ を使うと
+          \vspace{12mm}
+        \item $\bm{v}_i^\top\bm{e}^{(t+1)} = $ \phantom{XXXXXXXXXX} より $\bm{v}_i^\top\bm{e}^{(t)} = $ \phantom{XXXXXXXXXX}
+          \vspace{12mm}
+        \item $d_i$ が小さいとき $u_i^{(t)} \approx $ \phantom{XXXXXX}、リッジ回帰では $u_i \approx $ \phantom{XXXXXX}。
+          対応する $\lambda \approx $ \phantom{XXXXXX}
+          \vspace{8mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{バイアスとバリアンス}\quad
+    テキスト第6.4.3項の1変数モデル $y_i = w x_i + \varepsilon_i$ について答えよ。
+    $d = \sum_i x_i^2$ とし、リッジ回帰の推定誤差の平均はテキスト式(6.21)
+    $\mathrm{MSE}(\lambda) = \dfrac{\lambda^2 w^2 + \sigma^2 d}{(d + \lambda)^2}$ である。
+    \begin{enumerate}
+      \item $\mathrm{MSE}(\lambda)$ を $\lambda$ で微分し、$\lambda^* = \sigma^2/w^2$ で最小になることを示せ。
+      \item $\mathrm{MSE}(\lambda^*) = \sigma^2/(d + \sigma^2/w^2)$ を導き、これが $\mathrm{MSE}(0) = \sigma^2/d$ より小さいことを確かめよ。
+      \item $d = 10$、$\sigma = 1$、$w = 0.5$ のとき、$\lambda = 0, 1, 4, 10$ についてバイアス$^2$、バリアンス、$\mathrm{MSE}$ を計算せよ。
+      \item 真のパラメータが $w = 0$（その特徴は実は無関係）だったとき、$\lambda^*$ はどうなるか。この結果の意味を説明せよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \frac{d}{d\lambda}\mathrm{MSE}(\lambda) = \phantom{XXXXXXXXXXXXXXXXXXXX}
+          \end{equation*}
+          $= 0$ となるのは $\lambda = $ \phantom{XXXXXX}。最小である理由：
+          \vspace{8mm}
+        \item
+          \vspace{14mm}
+        \item
+          \begin{center}
+            \begin{tabular}{c|c|c|c}
+              $\lambda$ & バイアス$^2$ & バリアンス & $\mathrm{MSE}$ \\ \hline
+              $0$ & \phantom{XXXXXX} & \phantom{XXXXXX} & \phantom{XXXXXX} \\
+              $1$ & \phantom{XXXXXX} & \phantom{XXXXXX} & \phantom{XXXXXX} \\
+              $4$ & \phantom{XXXXXX} & \phantom{XXXXXX} & \phantom{XXXXXX} \\
+              $10$ & \phantom{XXXXXX} & \phantom{XXXXXX} & \phantom{XXXXXX}
+            \end{tabular}
+          \end{center}
+        \item $\lambda^* = $ \phantom{XXXXXX}。意味：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{制約形式との対応}\quad
+    問2のデータについて答えよ。
+    \begin{enumerate}
+      \item $\lambda = 10$ の解 $\bm{w}_{10} \approx (0.306, 0.339)^\top$ について、
+        $\nabla\|\bm{y} - \bm{X}\bm{w}\|^2 = 2(\bm{X}^\top\bm{X}\bm{w} - \bm{X}^\top\bm{y})$ を $\bm{w} = \bm{w}_{10}$ で計算し、
+        $-2\mu\bm{w}_{10}$ の形になることを確かめて $\mu$ を求めよ。
+      \item 制約付き問題 $\min \|\bm{y} - \bm{X}\bm{w}\|^2$ subject to $\|\bm{w}\|^2 \leq r^2$ の解が $\bm{w}_{10}$ となる $r$ を求めよ。
+      \item $r = 2$ としたとき、制約付き問題の解は何か。ラグランジュ乗数 $\mu$ の値とともに答えよ
+        （ヒント：$\|\bm{w}^*\|$ と $r$ を比べる）。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 勾配 $= $ \phantom{XXXXXXXXXXXX} $= -2\mu\bm{w}_{10}$、$\mu = $ \phantom{XXXX}
+          \vspace{6mm}
+        \item $r = \|\bm{w}_{10}\| = $ \phantom{XXXXXX}
+          \vspace{4mm}
+        \item $\|\bm{w}^*\| = $ \phantom{XXXXXX} なので、解は \phantom{XXXXXXXXXX}、$\mu = $ \phantom{XXXX}。理由：
+          \vspace{8mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{軟しきい値処理}\quad
+    1変数の関数 $\phi(w) = (\hat{w} - w)^2 + \lambda|w|$（$\lambda > 0$）の最小点を求める。
+    \begin{enumerate}
+      \item $w > 0$ の範囲で $\phi$ を微分し、停留点 $w = \hat{w} - \lambda/2$ を得よ。これが $w > 0$ の範囲に入る条件を述べよ。
+      \item $w < 0$ の範囲で同様に考えよ。
+      \item $|\hat{w}| \leq \lambda/2$ のとき最小点が $w = 0$ であることを、$\phi(w) \geq \phi(0)$ を示すことで確かめよ
+        （ヒント：$(\hat{w} - w)^2 - \hat{w}^2 = w^2 - 2\hat{w}w \geq -2|\hat{w}||w|$）。
+      \item 以上をまとめてテキスト式(6.29) $w = \mathrm{sign}(\hat{w})\max(|\hat{w}| - \lambda/2,\, 0)$ を導け。
+        $\hat{w} = (2, 0.3, -1)^\top$、$\lambda = 1$ のときのラッソの解と、
+        同じ設定でのリッジ回帰の解 $\hat{w}_j/(1 + \lambda)$ を比べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $w > 0$ のとき $\phi'(w) = $ \phantom{XXXXXXXXXX}、停留点 $w = $ \phantom{XXXXXX}、条件：\phantom{XXXXXX}
+          \vspace{4mm}
+        \item $w < 0$ のとき $\phi'(w) = $ \phantom{XXXXXXXXXX}、停留点 $w = $ \phantom{XXXXXX}、条件：\phantom{XXXXXX}
+          \vspace{4mm}
+        \item $\phi(w) - \phi(0) = $ \phantom{XXXXXXXXXXXXXXXX} $\geq 0$ となる理由：
+          \vspace{12mm}
+        \item ラッソの解：\phantom{XXXXXXXXXXXX}、リッジの解：\phantom{XXXXXXXXXXXX}。比較：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{交差検証}\quad
+    あるデータを5分割して交差検証を行い、各 $\lambda$ について次の検証誤差（平均二乗誤差）が得られた。
+    \begin{center}
+      \begin{tabular}{c|ccccc}
+        \hline
+        $\lambda$ & 第1回 & 第2回 & 第3回 & 第4回 & 第5回 \\
+        \hline\hline
+        $0$ & $0.35$ & $0.12$ & $0.41$ & $0.18$ & $0.29$ \\
+        $0.1$ & $0.20$ & $0.14$ & $0.22$ & $0.16$ & $0.18$ \\
+        $1$ & $0.17$ & $0.18$ & $0.18$ & $0.19$ & $0.16$ \\
+        $10$ & $0.30$ & $0.33$ & $0.29$ & $0.34$ & $0.31$ \\
+        \hline
+      \end{tabular}
+    \end{center}
+    \begin{enumerate}
+      \item 各 $\lambda$ について検証誤差の平均を求め、選ぶべき $\lambda$ を答えよ。
+      \item $\lambda = 0$ の行は平均だけでなくばらつきも大きい。この理由をバイアスとバリアンスの言葉で説明せよ。
+      \item 訓練誤差が最小になる $\lambda$ を選んではいけない理由を述べよ。
+      \item 選んだ $\lambda$ で全データを使って学習し直したモデルの性能を見積もるには、どのデータを使うべきか。
+        交差検証の平均値をそのまま使うことの問題点を述べよ。
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 平均：$\lambda = 0$：\phantom{XXXX}、$\lambda = 0.1$：\phantom{XXXX}、$\lambda = 1$：\phantom{XXXX}、$\lambda = 10$：\phantom{XXXX}。
+          選ぶ $\lambda = $ \phantom{XXXX}
+          \vspace{2mm}
+        \item
+          \vspace{12mm}
+        \item
+          \vspace{10mm}
+        \item
+          \vspace{12mm}
+      \end{enumerate}
+    \end{answer}
+
+\end{enumerate}
+
+\newpage
+\section*{LaTeX の書き方（参考）}
+
+第6回の課題で使う数式の書き方をまとめる。
+数式は \verb|$ ... $| で囲む（行の中に書く場合）か、
+\verb|\begin{equation*} ... \end{equation*}| で囲む（1行独立させる場合）。
+
+\begin{center}
+\small
+\begin{tabular}{l|l}
+\hline
+表示 & 書き方 \\
+\hline\hline
+$\bm{X}^\top\bm{X} + \lambda\bm{I}$ & \verb|\bm{X}^\top\bm{X} + \lambda\bm{I}| \\
+$(\bm{X}^\top\bm{X} + \lambda\bm{I})^{-1}$（逆行列） & \verb|(\bm{X}^\top\bm{X} + \lambda\bm{I})^{-1}| \\
+$\bm{w}_\lambda$, $\bm{w}^*$, $\hat{w}$ & \verb|\bm{w}_\lambda|, \verb|\bm{w}^*|, \verb|\hat{w}| \\
+$\|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2$ & \verb!\|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2! \\
+$\|\bm{w}\|_1$, $|w|$ & \verb+\|\bm{w}\|_1+, \verb+|w|+ \\
+$\nabla J_\lambda(\bm{w})$（勾配） & \verb|\nabla J_\lambda(\bm{w})| \\
+$\dfrac{d_i}{d_i + \lambda}$ & \verb|\frac{d_i}{d_i + \lambda}| \\
+$\mathrm{tr}(\bm{H}_\lambda)$, $\mathrm{df}(\lambda)$ & \verb|\mathrm{tr}(\bm{H}_\lambda)|, \verb|\mathrm{df}(\lambda)| \\
+$\mathbb{E}[\hat{w}]$, $\mathrm{Var}[\hat{w}]$, $\sigma^2$ & \verb|\mathbb{E}[\hat{w}]|, \verb|\mathrm{Var}[\hat{w}]|, \verb|\sigma^2| \\
+$\mathrm{MSE}(\lambda)$, $\lambda^*$ & \verb|\mathrm{MSE}(\lambda)|, \verb|\lambda^*| \\
+$\mathrm{sign}(\hat{w})\max(|\hat{w}| - \lambda/2,\, 0)$ & \verb!\mathrm{sign}(\hat{w})\max(|\hat{w}| - \lambda/2,\, 0)! \\
+$\min_{\bm{w}} f(\bm{w})$ subject to $g(\bm{w}) \leq 0$ & \verb|\min_{\bm{w}} f(\bm{w})| \verb|\ \text{subject to}\ | \verb|g(\bm{w}) \leq 0| \\
+$\mu$, $\kappa$, $\varepsilon$, $\phi(w)$ & \verb|\mu|, \verb|\kappa|, \verb|\varepsilon|, \verb|\phi(w)| \\
+$\frac{1}{15}$, $\tfrac{7}{6}$（分数） & \verb|\frac{1}{15}|, \verb|\tfrac{7}{6}| \\
+$\Longrightarrow$, $\approx$, $\ll$ & \verb|\Longrightarrow|, \verb|\approx|, \verb|\ll| \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{行列の書き方}（\verb|pmatrix| 環境。\verb|&| で列を区切り、\verb|\\| で行を変える）：
+\begin{verbatim}
+\begin{equation*}
+  \bm{X}^\top\bm{X} + \bm{I} = \begin{pmatrix} 4 & 3 \\ 3 & 6 \end{pmatrix}
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  \bm{X}^\top\bm{X} + \bm{I} = \begin{pmatrix} 4 & 3 \\ 3 & 6 \end{pmatrix}
+\end{equation*}
+
+\noindent
+\textbf{分数を係数にもつ行列}（全体を $\frac{1}{15}$ 倍するときは前に出す）：
+\begin{verbatim}
+\begin{align*}
+  \bm{w}_1 &= \frac{1}{15}\begin{pmatrix} 6 & -3 \\ -3 & 4 \end{pmatrix}
+              \begin{pmatrix} 5 \\ 6 \end{pmatrix}
+           = \frac{1}{15}\begin{pmatrix} 12 \\ 9 \end{pmatrix}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \bm{w}_1 &= \frac{1}{15}\begin{pmatrix} 6 & -3 \\ -3 & 4 \end{pmatrix}
+              \begin{pmatrix} 5 \\ 6 \end{pmatrix}
+           = \frac{1}{15}\begin{pmatrix} 12 \\ 9 \end{pmatrix}
+\end{align*}
+
+\noindent
+\textbf{証明で「どの性質を使ったか」を右側に書く例}（\verb|&&\text{...}| を使う）：
+\begin{verbatim}
+\begin{align*}
+  \bm{v}^\top(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{v}
+    &= \bm{v}^\top\bm{X}^\top\bm{X}\bm{v} + \lambda\bm{v}^\top\bm{v} && \text{（分配法則）} \\
+    &= \|\bm{X}\bm{v}\|^2 + \lambda\|\bm{v}\|^2 && \text{（ノルムの定義）}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \bm{v}^\top(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{v}
+    &= \bm{v}^\top\bm{X}^\top\bm{X}\bm{v} + \lambda\bm{v}^\top\bm{v} && \text{（分配法則）} \\
+    &= \|\bm{X}\bm{v}\|^2 + \lambda\|\bm{v}\|^2 && \text{（ノルムの定義）}
+\end{align*}
+
+\noindent
+\textbf{注意}：テンプレート中の \verb|\phantom{XXXX}| は答えを書く空白である。
+解答を書くときはこの部分を自分の答えで置き換えること。
+
+\end{document}

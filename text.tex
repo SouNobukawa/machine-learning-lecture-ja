@@ -103,7 +103,7 @@ Copyright \copyright\ 2026 信川創．無断転載を禁じます．
     \hline
     5 & 勾配降下法 & 反復による最小化、学習率と収束、凸関数の概念、SGD と Adam & 凸関数の定義 \\
     \hline
-    6 & 正則化と汎化 & L2正則化、バイアス--バリアンス、制約付き最適化の導入 & ノルムと制約の幾何学 \\
+    6 & 正則化と汎化 & リッジ回帰、正則化係数の選び方（交差検証）、バイアス--バリアンス、制約付き最適化の導入、L1正則化 & ノルムと制約の幾何学 \\
     \hline
     7 & 確率とベイズの定理 & 条件付き確率、ベイズの定理、事前・尤度・事後 & 確率の基本公式の導出 \\
     \hline
@@ -5602,6 +5602,1142 @@ Adam は同じ $\eta$ のまま、ほぼ同じ回数で収束する。
       \item Adam の更新則\eqref{eq:adam}で $t = 1$ のとき、$\epsilon$ を無視すれば
         $\bm{w}^{(1)} = \bm{w}^{(0)} - \eta\,\mathrm{sign}(\bm{g}^{(0)})$ となることを示せ
         （$\mathrm{sign}$ は成分ごとの符号）。これが「勾配の大きさによらず各成分が $\eta$ だけ動く」ことを意味する理由を述べよ。
+    \end{enumerate}
+
+\end{enumerate}
+
+
+%===========================================
+% Chapter 6: Regularisation and generalisation
+%===========================================
+\clearpage
+\section{正則化と汎化}
+
+第4回と第5回で、経験損失 $L_D(\bm{w}) = \frac{1}{N}\|\bm{y} - \bm{X}\bm{w}\|^2$ を最小にするパラメータを求める方法が2通り揃った。
+しかし第1回で述べたとおり、学習の真の目標は訓練データへの当てはまりではなく、
+\textbf{未知のデータに対する誤差}（汎化誤差）を小さくすることである。
+経験損失を限界まで小さくすると、かえって汎化誤差が増える。これが\textbf{過学習}であった（第1.5節）。
+
+本章では、過学習に対する最も基本的で、現在の深層学習でも使われ続けている処方箋、
+\textbf{正則化}（regularization）を学ぶ。
+考え方は単純で、経験損失に「パラメータが大きいことへの罰則」を加えて最小化する。
+第4回・第5回で何度も顔を出した $\lambda\|\bm{w}\|^2$ という項が、その主役である。
+
+本章の流れは次のとおりである。
+まず、なぜ正則化が必要なのかを、過学習と多重共線性という2つの症状から確認する（第6.1節）。
+次に、L2正則化を加えた最小二乗法である\textbf{リッジ回帰}を定義し、解を導き、
+固有値の目で「何が起きているのか」を理解する（第6.2節）。
+正則化の強さ $\lambda$ をどう選ぶかという実務上の問題（第6.3節）を経て、
+正則化がなぜ汎化誤差を減らせるのかを\textbf{バイアスとバリアンス}の分解で説明する（第6.4節）。
+最後に、罰則を「制約」として読み替える\textbf{制約付き最適化}の見方を導入し、
+ノルムの形が解の形を決めること（L1正則化と疎な解）を見る（第6.5節）。
+この見方は第10回・第11回のサポートベクターマシンへの準備でもある。
+
+
+\subsection{なぜ正則化が必要か}
+
+\subsubsection{経験損失を最小にすると何が起きるか}
+
+第1回の図\ref{fig:fit}を思い出そう。$11$ 個の訓練データに $10$ 次多項式を当てはめると、
+曲線はすべての点をほぼ通過するが、点と点の間で激しく波打ち、真の関係からは遠ざかった。
+訓練誤差は最小なのに汎化誤差は大きい。これが過学習である。
+
+このとき、パラメータの\textbf{値}に何が起きているかを見てみよう。
+図\ref{fig:poly-ridge}の左は同じ当てはめであり、
+係数ベクトルの大きさは $\|\bm{w}\| \approx 10^6$ に達している
+（多項式の特徴 $x, x^2, \ldots, x^{10}$ を標準化した上での値）。
+隣り合う次数の係数が巨大な正と負の値をとり、互いに打ち消し合いながら、
+訓練データの点だけを正確に通るように曲線を曲げているのである。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch6_poly_ridge}
+  \caption{第1回と同じ $11$ 点のデータに $10$ 次多項式を当てはめたもの。
+  左：最小二乗法（$\lambda = 0$）。すべての点を通ろうとして係数が $10^6$ の桁まで膨らみ、点の間で暴れる。
+  中：罰則 $\lambda\|\bm{w}\|^2$（$\lambda = 10^{-2}$）を加えると、係数は $\|\bm{w}\| = 4.8$ に収まり、真の関係に近い滑らかな曲線になる。
+  右：罰則が強すぎる（$\lambda = 10$）と係数が小さくなりすぎ、構造を捉えられない（未学習）。}
+  \label{fig:poly-ridge}
+\end{figure}
+
+\subsubsection{もう一つの症状：解が定まらない}
+
+第3.5.5項の家賃の例では、別の形の困難を見た。
+「広さ」と「部屋数」のように強く相関した特徴が並ぶと（多重共線性）、
+経験損失の谷はある方向にほぼ平らになり（図\ref{fig:flat-valley}）、
+家賃に $0.3$ 万円程度の誤差を加えただけで最適解が谷に沿って大きく滑った。
+「広さ中心のモデル」にも「部屋数中心のモデル」にもなりうる、つまり\textbf{推定が不安定}なのである。
+完全に線形従属なら、解はそもそも一意に定まらない（第4.7節）。
+
+一見すると、過学習（データのノイズまで再現する）と多重共線性（解が定まらない）は別の問題に見える。
+しかし両者には共通の原因がある。
+\textbf{モデルの自由度が、データが決められる量に比べて過剰である}ことである。
+多項式の例では「$11$ 点を決めるのに $11$ 個の係数」があり、
+家賃の例では「ほとんど同じ情報をもつ2つの列に別々の係数」があった。
+データが決めきれない自由度は、ノイズが決めることになる。
+そして、ノイズに合わせて動いたパラメータは、どちらの例でも\textbf{不必要に大きな値}をとっていた。
+
+\subsubsection{重みが大きいことの害}
+
+パラメータが大きいこと自体がなぜ悪いのか。
+線形モデル $h(\bm{x}; \bm{w}) = \bm{w}^\top\tilde{\bm{x}}$ では、
+入力が $\Delta\bm{x}$ だけ変わると出力は $\bm{w}^\top\Delta\bm{x}$ だけ変わる。
+コーシー・シュワルツの不等式（第2.4.1項）より
+\begin{equation}
+  |\bm{w}^\top\Delta\bm{x}| \leq \|\bm{w}\|\,\|\Delta\bm{x}\|
+  \label{eq:reg-lipschitz}
+\end{equation}
+であり、$\|\bm{w}\|$ は「入力のわずかな違いが出力にどれだけ増幅されるか」の上限である。
+$\|\bm{w}\|$ が大きいモデルは、入力のノイズや訓練データにない微妙な違いに過敏に反応する。
+図\ref{fig:poly-ridge}左の曲線が点の間で暴れるのは、まさにこの増幅の現れである。
+逆に、\textbf{同じ程度に当てはまるなら、$\|\bm{w}\|$ が小さいモデルのほうが滑らかで、未知のデータに対して安全}である。
+第4.7.5項で最小ノルム解を選んだ理由も、同じ考えに基づいていた。
+
+\subsubsection{正則化の考え方}
+
+以上から、処方箋は自然に導かれる。
+経験損失だけを最小にするのではなく、
+「当てはまりの良さ」と「パラメータの小ささ」を\textbf{同時に}要求するのである。
+
+\begin{itembox}[l]{定義：正則化}
+経験損失 $L_D(\bm{w})$ に、パラメータの大きさや複雑さを測る\textbf{正則化項}（regularization term、罰則項）$R(\bm{w}) \geq 0$ を加えた
+\begin{equation}
+  J_\lambda(\bm{w}) = L_D(\bm{w}) + \lambda R(\bm{w}), \qquad \lambda \geq 0
+  \label{eq:reg-general}
+\end{equation}
+を最小化することを\textbf{正則化}（regularization）と呼ぶ。
+$\lambda$ は\textbf{正則化係数}であり、当てはまりと単純さのどちらをどれだけ重視するかを決める。
+\end{itembox}
+
+$\lambda = 0$ なら元の経験損失最小化に戻り、$\lambda$ を大きくするほど「小さい $\bm{w}$」が優先される。
+$R(\bm{w})$ の選び方はいくつかあるが、最も基本的なのは
+\begin{equation}
+  R(\bm{w}) = \|\bm{w}\|^2 = \sum_{j} w_j^2
+\end{equation}
+とする\textbf{L2正則化}である。これを線形回帰に適用したものを次節で詳しく調べる。
+なお「正則化」という語は、第4.5.3項の「正則な行列」（逆行列をもつ行列）と無関係ではない。
+次節で見るとおり、罰則を加えると正規方程式の係数行列がつねに正則になるからである。
+
+
+\subsection{L2正則化：リッジ回帰}
+
+\subsubsection{定義}
+
+\begin{itembox}[l]{定義：リッジ回帰}
+計画行列 $\bm{X} \in \mathbb{R}^{N \times (d+1)}$、出力 $\bm{y} \in \mathbb{R}^N$、正則化係数 $\lambda \geq 0$ に対して、
+\begin{equation}
+  J_\lambda(\bm{w}) = \|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2
+  \label{eq:ridge}
+\end{equation}
+を最小にする $\bm{w} \in \mathbb{R}^{d+1}$ を求める問題を\textbf{リッジ回帰}（ridge regression）
+または\textbf{L2正則化付き最小二乗法}と呼ぶ。最小解を $\bm{w}_\lambda$ と書く。
+\end{itembox}
+
+いくつか注意しておく。
+\begin{itemize}
+  \item 式\eqref{eq:ridge}では経験損失の $1/N$ を省いた。$1/N$ を付けた定義 $L_D + \lambda'\|\bm{w}\|^2$ と比べると
+    $\lambda = N\lambda'$ の違いがあるだけで、解の性質は変わらない。
+    文献やライブラリによって流儀が異なるので、$\lambda$ の値を比べるときは定義を確認する必要がある。
+  \item 実務では、バイアス項 $w_0$ は罰則に含めないのが普通である。
+    $w_0$ は出力全体の平均的な水準を表すだけで、モデルの複雑さとは無関係だからである。
+    扱いは第6.3.4項で述べる。本節の数値例では、式を簡単にするため $w_0$ も含めて罰する。
+  \item 「リッジ」（ridge、尾根）という名前は、次項で見るように $\bm{X}^\top\bm{X}$ の対角成分（行列の尾根）に $\lambda$ を足すことに由来する。
+\end{itemize}
+
+\subsubsection{解の導出}
+
+第4.3節の手順をそのまま使う。$J_\lambda$ を展開すると、第4.3.4項の式に $\lambda\bm{w}^\top\bm{w}$ が加わるだけで
+\begin{equation}
+  J_\lambda(\bm{w}) = \bm{y}^\top\bm{y} - 2\bm{y}^\top\bm{X}\bm{w} + \bm{w}^\top\bm{X}^\top\bm{X}\bm{w} + \lambda\bm{w}^\top\bm{w}
+\end{equation}
+である。公式\eqref{eq:grad-linear}と\eqref{eq:grad-quad}を用いると（最後の項は $\bm{A} = \bm{I}$ とした式\eqref{eq:grad-quad}）
+\begin{equation}
+  \nabla J_\lambda(\bm{w}) = -2\bm{X}^\top\bm{y} + 2\bm{X}^\top\bm{X}\bm{w} + 2\lambda\bm{w}
+  = 2\left\{ (\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{w} - \bm{X}^\top\bm{y} \right\}
+  \label{eq:ridge-grad}
+\end{equation}
+となる。$\nabla J_\lambda = \bm{0}$ とおけば
+\begin{equation}
+  (\bm{X}^\top\bm{X} + \lambda\bm{I})\,\bm{w} = \bm{X}^\top\bm{y}
+  \label{eq:ridge-normal}
+\end{equation}
+を得る。正規方程式\eqref{eq:normal-equation}の $\bm{X}^\top\bm{X}$ が $\bm{X}^\top\bm{X} + \lambda\bm{I}$ に置き換わった形である。
+
+\begin{itembox}[l]{定理：リッジ回帰の解}
+$\lambda > 0$ ならば、$\bm{X}$ のランクによらず $\bm{X}^\top\bm{X} + \lambda\bm{I}$ は正則であり、リッジ回帰の解はただ一つ
+\begin{equation}
+  \bm{w}_\lambda = (\bm{X}^\top\bm{X} + \lambda\bm{I})^{-1}\bm{X}^\top\bm{y}
+  \label{eq:ridge-sol}
+\end{equation}
+で与えられる。
+\end{itembox}
+
+正則性の理由は第4.7.5項で見た。任意の $\bm{v} \neq \bm{0}$ に対して
+\begin{equation}
+  \bm{v}^\top(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{v} = \|\bm{X}\bm{v}\|^2 + \lambda\|\bm{v}\|^2 > 0
+  \label{eq:ridge-pd}
+\end{equation}
+なので $\bm{X}^\top\bm{X} + \lambda\bm{I}$ は正定値であり、正定値行列は正則である（第4.5.3項）。
+同じ理由で $J_\lambda$ のヘッセ行列 $2(\bm{X}^\top\bm{X} + \lambda\bm{I})$ は正定値、
+すなわち $J_\lambda$ は狭義凸であり、停留点\eqref{eq:ridge-normal}は唯一の大域的最小点である（第5.4.4項）。
+式\eqref{eq:ridge-pd}の第2項 $\lambda\|\bm{v}\|^2$ が、$\bm{X}\bm{v} = \bm{0}$ となる方向（零空間、第4.7.1項）でも
+値を正に保っている点が要である。
+罰則を加えた瞬間、ランク落ちによる「解が無数にある」問題は消える。
+
+\subsubsection{数値例}
+
+第4回演習問題1のデータ
+\begin{equation*}
+  \bm{X} = \begin{pmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{pmatrix}, \qquad
+  \bm{y} = \begin{pmatrix} 1 \\ 2 \\ 2 \end{pmatrix}, \qquad
+  \bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}, \qquad
+  \bm{X}^\top\bm{y} = \begin{pmatrix} 5 \\ 6 \end{pmatrix}
+\end{equation*}
+で計算してみよう。最小二乗解は $\bm{w}^* = (7/6, 1/2)^\top \approx (1.167, 0.5)^\top$ であった。
+$\lambda = 1$ とすると
+\begin{equation*}
+  \bm{X}^\top\bm{X} + \bm{I} = \begin{pmatrix} 4 & 3 \\ 3 & 6 \end{pmatrix}, \qquad
+  (\bm{X}^\top\bm{X} + \bm{I})^{-1} = \frac{1}{15}\begin{pmatrix} 6 & -3 \\ -3 & 4 \end{pmatrix}
+\end{equation*}
+なので
+\begin{equation*}
+  \bm{w}_1 = \frac{1}{15}\begin{pmatrix} 6 & -3 \\ -3 & 4 \end{pmatrix}\begin{pmatrix} 5 \\ 6 \end{pmatrix}
+  = \frac{1}{15}\begin{pmatrix} 12 \\ 9 \end{pmatrix}
+  = \begin{pmatrix} 0.8 \\ 0.6 \end{pmatrix}
+\end{equation*}
+となる。表\ref{tab:ridge-example}に $\lambda$ を変えたときの解をまとめた。
+
+\begin{table}[H]
+  \centering
+  \caption{数値例におけるリッジ回帰の解。$\lambda$ を増やすと当てはまり $\|\bm{y} - \bm{X}\bm{w}_\lambda\|^2$ は悪くなり、$\|\bm{w}_\lambda\|^2$ は小さくなる。}
+  \label{tab:ridge-example}
+  \begin{tabular}{c|c|c|c|c}
+    \hline
+    $\lambda$ & $\bm{w}_\lambda$ & $\|\bm{y} - \bm{X}\bm{w}_\lambda\|^2$ & $\|\bm{w}_\lambda\|^2$ & $J_\lambda(\bm{w}_\lambda)$ \\
+    \hline\hline
+    $0$ & $(1.167,\ 0.500)^\top$ & $0.167$ & $1.611$ & $0.167$ \\
+    $1$ & $(0.800,\ 0.600)^\top$ & $0.400$ & $1.000$ & $1.400$ \\
+    $10$ & $(0.306,\ 0.339)^\top$ & $3.349$ & $0.209$ & $5.436$ \\
+    $100$ & $(0.047,\ 0.056)^\top$ & $7.899$ & $0.005$ & $8.431$ \\
+    \hline
+  \end{tabular}
+\end{table}
+
+表から読み取れることを整理する。
+\begin{itemize}
+  \item $\lambda$ が大きいほど $\|\bm{w}_\lambda\|$ は小さく、$\lambda \to \infty$ で $\bm{w}_\lambda \to \bm{0}$ となる。
+    罰則だけが効いて「何も予測しないモデル」に近づく。
+  \item 引き換えに当てはまりは悪くなる。$\lambda = 1$ では残差の二乗和が $0.167$ から $0.400$ に増えた。
+    これは正則化の本質であり、\textbf{訓練データへの当てはまりを少し犠牲にする}代わりに、小さく安定したパラメータを得ている。
+  \item $\bm{w}_\lambda$ は $\bm{w}^*$ と $\bm{0}$ を結ぶ直線上を動くわけではない。
+    図\ref{fig:ridge-path}左のように、等高線の形（＝$\bm{X}^\top\bm{X}$ の固有ベクトル）に沿って曲がった軌跡を描く。
+    この理由は第6.2.5項で明らかになる。
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch6_ridge_path}
+  \caption{数値例のリッジ回帰。左：$\|\bm{y} - \bm{X}\bm{w}\|^2$ の等高線と、$\lambda$ を $0$ から大きくしたときの解 $\bm{w}_\lambda$ の軌跡（赤）。
+  $\lambda = 1$ の解は原点中心の円 $\|\bm{w}\| = 1$ の上にあり、その円と等高線が接している（第6.5節）。
+  右：当てはまりと $\|\bm{w}_\lambda\|^2$ の $\lambda$ 依存性。}
+  \label{fig:ridge-path}
+\end{figure}
+
+\subsubsection{多重共線性への効果}
+
+第3.5.5項の家賃の例（広さと部屋数、$N = 4$）にリッジ回帰を適用した結果が図\ref{fig:rent-ridge}である
+（図\ref{fig:flat-valley}と同じく切片を除いた2係数で描いている）。
+誤差のない家賃に標準偏差 $0.3$ 万円の正規乱数を加えた2通りのデータ（データ1・データ2。誤差の値は図の説明を参照）に対し、
+最小二乗解は $(0.55, -1.05)$ と $(0.16, 6.80)$ で、部屋数の係数の符号さえ一致しなかった。
+ところが $\lambda = 1$ で $(0.50, 0.00)$ と $(0.49, 0.19)$、$\lambda = 10$ では $(0.498, 0.022)$ と $(0.495, 0.041)$ となり、
+2つの解はほとんど一致する。
+しかも予測値は $\lambda = 0$ のときと $0.1$ 万円程度しか違わない。
+当てはまりをほぼ保ったまま、推定の不安定さだけが消えたのである。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch6_rent_ridge}
+  \caption{家賃の例（第3.5.5項）にリッジ回帰を適用した結果。
+  2通りのデータは、真のパラメータ $\bm{w}^* = (0.25, 5.0)^\top$（右図の星印）から作った誤差のない家賃
+  $\bm{X}\bm{w}^* = (10.5, 19.5, 30.25, 39.75)^\top$（万円）に、
+  4件の物件それぞれ独立に平均 $0$・標準偏差 $0.3$ 万円の正規乱数を加えたものである（図\ref{fig:flat-valley}右と同じデータ）。
+  家賃に加えた誤差は、物件1〜4の順に、データ1が $(0.61, -0.77, 0.13, -0.17)$、データ2が $(-0.14, -0.06, -0.61, -0.07)$ である
+  （例えばデータ1の物件1の家賃は $10.5 + 0.61 = 11.11$ 万円）。
+  左：2通りのデータに対するリッジ回帰の解 $\bm{w}_\lambda = (w_1, w_2)^\top$ の各成分の $\lambda$ 依存性。$w_1$ は広さ $1\,\mathrm{m}^2$ あたりの家賃（万円）、$w_2$ は部屋数1室あたりの家賃（万円）の係数である。
+  $\lambda = 0$（最小二乗解）付近で大きく食い違っていた部屋数の係数 $w_2$ が、$\lambda$ が $1$ 程度で一致する。
+  右：図\ref{fig:flat-valley}と同じ経験損失の等高線の上に描いた解の位置。
+  赤の $\times$ はデータ1、赤の $+$ はデータ2の最小二乗解（$\lambda = 0$）で、谷に沿って大きく離れている。
+  各点から伸びる線は $\lambda = 0.1, 1, 10$ と増やしたときの解の軌跡で、終点の緑の印が $\lambda = 10$ の解である。
+  2つのデータの $\lambda = 10$ の解は $(0.498, 0.022)$ と $(0.495, 0.041)$ でほぼ重なるため、緑の印は一つに見える。
+  星印は真のパラメータ $\bm{w}^*$。}
+  \label{fig:rent-ridge}
+\end{figure}
+
+なぜ安定するのかは、条件数で見るとはっきりする。
+$\bm{X}^\top\bm{X}$ の固有値を $d_1 \geq d_2 \geq \cdots \geq d_{d+1} \geq 0$ とすると、
+$\bm{X}^\top\bm{X} + \lambda\bm{I}$ の固有値は $d_i + \lambda$ である
+（固有ベクトル $\bm{v}_i$ に対して $(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{v}_i = d_i\bm{v}_i + \lambda\bm{v}_i$）。
+したがって条件数は
+\begin{equation}
+  \kappa(\bm{X}^\top\bm{X} + \lambda\bm{I}) = \frac{d_1 + \lambda}{d_{d+1} + \lambda}
+  \label{eq:ridge-kappa}
+\end{equation}
+となり、$\lambda$ を足すことで\textbf{最小固有値が $\lambda$ だけ持ち上がり}、条件数が改善する（第4.8.3項で予告した事実である）。
+家賃の例では固有値が $d_1 \approx 1.2 \times 10^4$、$d_2 \approx 0.024$ で $\kappa \approx 4.9 \times 10^5$ だったものが、
+$\lambda = 1$ で $\kappa \approx 1.2 \times 10^4$、$\lambda = 10$ で $\kappa \approx 1.2 \times 10^3$ まで下がる。
+
+条件数が改善すると何がよいのか。条件数は「入力のわずかな誤差が解の誤差にどれだけ増幅されるか」の上限であった（第4.8.1項）。
+方程式\eqref{eq:ridge-normal}の右辺 $\bm{X}^\top\bm{y}$ は家賃 $\bm{y}$ の誤差をそのまま受け取るので、
+その誤差が解 $\bm{w}_\lambda$ に現れるときの増幅率が、係数行列の条件数で決まる。
+最小二乗法（$\lambda = 0$）では増幅率が $10^5$ 倍の桁であり、家賃の $0.3$ 万円程度の誤差が係数の数単位の違いになって現れた。
+$\lambda = 10$ ではこれが $10^3$ 倍の桁に下がり、同じ誤差に対する解の変動は $100$ 分の $1$ 程度になる。
+図\ref{fig:rent-ridge}で2つの解が一致したのは、この増幅率の低下そのものである。
+増幅率が小さいことは、計算機の丸め誤差の影響も小さいことを意味し（第4.8.1項）、
+さらに勾配降下法で解く場合には反復回数が条件数に比例して減る（第5.3.2項）という利点もある。
+固有値の言葉で言い直せば、小さいほうの固有値は「ほぼ平らな谷」の方向の曲率であり、
+その方向では損失がほとんど変わらないため解がどこにでも滑ってしまう。
+$\lambda$ はその谷に「お椀の底」を作り、解を一か所に留めているのである。
+
+なお、リッジ回帰が選んだのは「広さ中心」のモデル（$w_2 \approx 0$）であった。
+これは偶然ではない。同じ予測を与える $\bm{w}^{(\mathrm{A})} = (0.5, 0)$ と $\bm{w}^{(\mathrm{B})} = (0, 10)$ のうち、
+罰則 $\|\bm{w}\|^2$ が小さいのは前者だからである。
+ただしこの選択は特徴の\textbf{単位}に依存する。
+広さを $\mathrm{m}^2$ ではなく $\mathrm{cm}^2$ で測れば係数は $10^{-4}$ 倍になり、罰則はほとんど効かなくなる。
+正則化を使う前に特徴を標準化すべき理由がここにある（第6.3.4項）。
+
+\subsubsection{固有値で見るリッジ回帰}
+
+リッジ回帰が「何を縮めているのか」を正確に述べよう。
+$\bm{X}^\top\bm{X}$ は対称なので固有値分解 $\bm{X}^\top\bm{X} = \bm{Q}\bm{D}\bm{Q}^\top$
+（$\bm{Q}$ は固有ベクトル $\bm{v}_i$ を並べた直交行列、$\bm{D} = \mathrm{diag}(d_1, \ldots, d_{d+1})$）をもつ（第3.7節、付録\ref{sec:app-gd-eig}）。
+すると $\bm{X}^\top\bm{X} + \lambda\bm{I} = \bm{Q}(\bm{D} + \lambda\bm{I})\bm{Q}^\top$ であり、逆行列は
+$\bm{Q}(\bm{D} + \lambda\bm{I})^{-1}\bm{Q}^\top$ である。
+$\bm{X}$ がフルランクなら最小二乗解 $\bm{w}^*$ は $\bm{X}^\top\bm{y} = \bm{X}^\top\bm{X}\bm{w}^* = \bm{Q}\bm{D}\bm{Q}^\top\bm{w}^*$ を満たすので、
+\begin{equation}
+  \bm{w}_\lambda = \bm{Q}(\bm{D} + \lambda\bm{I})^{-1}\bm{Q}^\top \cdot \bm{Q}\bm{D}\bm{Q}^\top\bm{w}^*
+  = \bm{Q}\,\mathrm{diag}\!\left( \frac{d_1}{d_1 + \lambda}, \ldots, \frac{d_{d+1}}{d_{d+1} + \lambda} \right)\bm{Q}^\top\bm{w}^*
+  \label{eq:ridge-eig}
+\end{equation}
+を得る。
+
+式\eqref{eq:ridge-eig}を読み解くために、$\bm{Q}^\top\bm{w}^*$ が何を表すかを確認しておく。
+$\bm{Q} = (\bm{v}_1 \cdots \bm{v}_{d+1})$ の列は互いに直交する単位ベクトルなので、
+$\bm{Q}^\top\bm{w}^*$ の第 $i$ 成分は内積 $\bm{v}_i^\top\bm{w}^*$ である。
+第2.4.3項で見たとおり、単位ベクトルとの内積は\textbf{その向きへの正射影の長さ}であり、
+$c_i = \bm{v}_i^\top\bm{w}^*$ は「$\bm{w}^*$ が $\bm{v}_i$ の向きにどれだけ伸びているか」を表す。
+固有ベクトルは $\mathbb{R}^{d+1}$ の直交する座標軸をなすので、$\bm{w}^*$ はこれらの軸に沿った成分の和
+\begin{equation}
+  \bm{w}^* = c_1\bm{v}_1 + c_2\bm{v}_2 + \cdots + c_{d+1}\bm{v}_{d+1}, \qquad c_i = \bm{v}_i^\top\bm{w}^*
+  \label{eq:ridge-decomp}
+\end{equation}
+として一通りに書ける（両辺に $\bm{v}_i^\top$ を掛けると、直交性から右辺は $c_i$ だけが残ることで確かめられる）。
+$\bm{Q}^\top\bm{w}^*$ はこの係数 $(c_1, \ldots, c_{d+1})^\top$ を並べたベクトル、
+すなわち\textbf{$\bm{w}^*$ を固有ベクトルの座標軸で測り直したもの}である。
+通常の座標 $(w_0, w_1, \ldots)$ が「標準基底の向きにどれだけ伸びているか」であるのに対し、
+$c_i$ は「固有ベクトルの向きにどれだけ伸びているか」であり、同じベクトルを別の軸で表しているにすぎない。
+図\ref{fig:ridge-path}左でいえば、楕円の長軸と短軸の向きが $\bm{v}_1, \bm{v}_2$ であり、
+$c_1, c_2$ はその軸に沿って $\bm{w}^*$ の位置を読んだ値である。
+
+式\eqref{eq:ridge-eig}は、まず $\bm{Q}^\top$ で $\bm{w}^*$ をこの座標に直し、各成分 $c_i$ に $d_i/(d_i + \lambda)$ を掛け、
+最後に $\bm{Q}$ で元の座標に戻す、という3段階の操作を表している。すなわち
+\begin{equation}
+  \bm{w}_\lambda = \sum_{i=1}^{d+1} \frac{d_i}{d_i + \lambda}\, c_i\, \bm{v}_i
+  \label{eq:ridge-eig-sum}
+\end{equation}
+であり、式\eqref{eq:ridge-decomp}と比べると、\textbf{各軸の成分がそれぞれ別の倍率で縮められている}ことが分かる。
+式\eqref{eq:ridge-eig}の意味は次のとおりである。
+
+\begin{itembox}[l]{リッジ回帰の正体}
+リッジ回帰は、最小二乗解 $\bm{w}^*$ の $\bm{v}_i$ 方向の成分を、それぞれ
+\begin{equation}
+  \frac{d_i}{d_i + \lambda} \quad (0 < \cdot \leq 1)
+  \label{eq:shrink}
+\end{equation}
+倍に縮める操作である。固有値 $d_i$ が $\lambda$ より十分大きい向きはほとんど縮まず、
+$d_i$ が $\lambda$ より小さい向きはほぼ $0$ に潰される。
+\end{itembox}
+
+固有値 $d_i$ の意味を思い出そう。$d_i = \|\bm{X}\bm{v}_i\|^2$ は、パラメータを $\bm{v}_i$ の向きに動かしたときに
+\textbf{予測がどれだけ変わるか}を表す（$\bm{v}_i^\top\bm{X}^\top\bm{X}\bm{v}_i = \|\bm{X}\bm{v}_i\|^2$、式\eqref{eq:ch4-psd}。第3.5.5項で谷の細さを測ったのと同じ量である）。
+$d_i$ が大きい向きは、データがパラメータをしっかり決めている向きである。
+$d_i$ が小さい向きは、動かしても予測がほとんど変わらない「平らな谷」の向きであり、
+データからはほとんど決まらず、ノイズが決めてしまう向きである。
+リッジ回帰は、\textbf{データが決めている成分は残し、ノイズが決めている成分だけを削る}（図\ref{fig:shrink}左）。
+図\ref{fig:ridge-path}左の軌跡が曲がっていたのは、2つの固有ベクトルの向きで縮み方が違うからである。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch6_shrink}
+  \caption{左：縮小率 $d_i/(d_i + \lambda)$。固有値 $d_i$ が $\lambda$ より大きい向きはほぼそのまま残り、小さい向きは $0$ に近づく。
+  右：特徴が直交している（$\bm{X}^\top\bm{X} = \bm{I}$）ときの、最小二乗解 $\hat{w}$ と正則化した解 $w$ の関係。
+  リッジ回帰は一律に $1/(1 + \lambda)$ 倍に縮め、ラッソ（第6.5.3項）は $\lambda/2$ だけ引いて小さいものを $0$ にする。}
+  \label{fig:shrink}
+\end{figure}
+
+この見方から、第4.7.5項で予告した事実も読み取れる。
+ランクが落ちて $d_i = 0$ となる向きがあれば、その成分の縮小率は $\lambda > 0$ である限り $0/(0 + \lambda) = 0$ である。
+$\lambda \to 0$ としても、零空間の成分は $0$ のまま、他の成分は $1$ 倍に戻る。
+したがって $\bm{w}_\lambda$ の極限は「零空間の成分をもたない解」、すなわち最小ノルム解 $\bm{w}^{+}$ である。
+
+\subsubsection{自由度}
+
+第4.6.3項で、ハット行列のトレース $\mathrm{tr}(\bm{H}) = d+1$ をモデルの自由度と呼んだ。
+そこでは「パラメータの個数と一致する」という計算結果を述べただけだったので、
+なぜトレースが「データに合わせて回せるつまみの数」を表すのかを、ここで2つの見方から説明しておく。
+正則化では後者の見方が本質的になる。
+
+\paragraph{(1) 射影として見る}
+$\bm{H} = \bm{X}(\bm{X}^\top\bm{X})^{-1}\bm{X}^\top$ は $\bm{y}$ を列空間（$d+1$ 次元）へ射影する行列であり、
+対称性 $\bm{H}^\top = \bm{H}$ と冪等性 $\bm{H}^2 = \bm{H}$ をもつのであった（第4.6.2項）。
+ここから、\textbf{$\bm{H}$ の固有値は $1$ か $0$ しかない}ことが分かる。
+$\bm{H}\bm{v} = \mu\bm{v}$（$\bm{v} \neq \bm{0}$）とすると、冪等性より
+\begin{equation*}
+  \mu\bm{v} = \bm{H}\bm{v} = \bm{H}^2\bm{v} = \bm{H}(\mu\bm{v}) = \mu\bm{H}\bm{v} = \mu^2\bm{v}
+\end{equation*}
+なので $\mu^2 = \mu$、すなわち $\mu \in \{0, 1\}$ である。
+「一度影を落としたものにもう一度影を落としても変わらない」という性質が、固有値を $0$ と $1$ に限定しているのである。
+どのベクトルがどちらの固有値をもつかも具体的に分かる。
+\begin{itemize}
+  \item 列空間の中のベクトル $\bm{v} = \bm{X}\bm{a}$ は、
+    $\bm{H}\bm{X}\bm{a} = \bm{X}(\bm{X}^\top\bm{X})^{-1}\bm{X}^\top\bm{X}\bm{a} = \bm{X}\bm{a}$ より\textbf{固有値 $1$}。
+    すでに列空間にあるので射影しても動かない。列空間は $d+1$ 次元なので、このようなベクトルは独立に $d+1$ 本ある
+  \item 列空間と直交するベクトル（$\bm{X}^\top\bm{v} = \bm{0}$）は、$\bm{H}\bm{v} = \bm{X}(\bm{X}^\top\bm{X})^{-1}\bm{X}^\top\bm{v} = \bm{0}$ より\textbf{固有値 $0$}。
+    射影すると影が消える。このようなベクトルは独立に $N - (d+1)$ 本ある（$\mathbb{R}^N$ の次元 $N$ から列空間の次元 $d+1$ を引いた分）
+\end{itemize}
+したがって $\bm{H}$ の固有値は「$1$ が $d+1$ 個、$0$ が $N - (d+1)$ 個」である。
+対称行列のトレースは固有値の和に等しいので（第3.7節）、
+\begin{equation*}
+  \mathrm{tr}(\bm{H}) = \underbrace{1 + \cdots + 1}_{d+1 \text{ 個}} + \underbrace{0 + \cdots + 0}_{N-(d+1) \text{ 個}} = d+1
+\end{equation*}
+となり、式\eqref{eq:hat-trace}の計算結果が固有値の側から再現される。
+つまりトレースは、\textbf{予測 $\hat{\bm{y}}$ が自由に動ける方向の数}（固有値 $1$ の方向の数 $=$ 列空間の次元）を数えている。
+予測を動かせる独立な方向が $d+1$ 本あるということが、「つまみが $d+1$ 個ある」ということの正確な意味である。
+
+\paragraph{(2) データへの追従度として見る}
+もう一つの見方は、$\bm{H}$ の対角成分に注目するものである。
+$\hat{y}_i = \sum_j H_{ij} y_j$ なので、対角成分 $H_{ii}$ は
+「$i$ 番目のデータの値 $y_i$ を少し動かしたとき、その点での当てはめ値 $\hat{y}_i$ がどれだけ追いかけて動くか」
+という感度 $\partial\hat{y}_i/\partial y_i$ である。
+極端な場合を考えると意味がはっきりする。
+データを丸暗記するモデル（$\hat{\bm{y}} = \bm{y}$、$\bm{H} = \bm{I}$）では $H_{ii} = 1$ がすべての $i$ で成り立ち、
+トレースは $N$ になる。$N$ 個のデータすべてに自由に合わせているので、自由度 $N$ である。
+逆に、データによらず同じ値を返すモデルでは $H_{ii} = 0$ で、自由度は $0$ である。
+その中間として、$\mathrm{tr}(\bm{H}) = \sum_i H_{ii}$ は\textbf{モデルが訓練データを「何個分」追いかけているか}を測る量になっている。
+第4.6.3項の数値例では $H_{11} = H_{33} = 5/6$、$H_{22} = 1/3$ であり、
+両端の点は自分の値を強く反映し、中央の点はそれほどでもない、という当てはめの性格まで読み取れる。
+合計は $2 = d+1$ である。
+
+この第2の見方は、$\bm{H}$ が射影でなくても通用する。リッジ回帰の予測は
+\begin{equation}
+  \hat{\bm{y}}_\lambda = \bm{X}\bm{w}_\lambda = \underbrace{\bm{X}(\bm{X}^\top\bm{X} + \lambda\bm{I})^{-1}\bm{X}^\top}_{\bm{H}_\lambda}\,\bm{y}
+\end{equation}
+と書け、$\bm{H}_\lambda$ のトレースは、$\mathrm{tr}(\bm{A}\bm{B}) = \mathrm{tr}(\bm{B}\bm{A})$ と式\eqref{eq:ridge-eig}の計算から
+\begin{equation}
+  \mathrm{df}(\lambda) = \mathrm{tr}(\bm{H}_\lambda)
+  = \mathrm{tr}\left( (\bm{X}^\top\bm{X} + \lambda\bm{I})^{-1}\bm{X}^\top\bm{X} \right)
+  = \sum_{i=1}^{d+1} \frac{d_i}{d_i + \lambda}
+  \label{eq:ridge-df}
+\end{equation}
+となる。これを\textbf{有効自由度}（effective degrees of freedom）と呼ぶ。
+$\bm{H}_\lambda$ はもはや射影ではなく、固有値は $1$ か $0$ ではなく $d_i/(d_i + \lambda) \in (0, 1]$ である。
+すなわち各方向を「完全に追いかける（$1$）」か「無視する（$0$）」かではなく、
+\textbf{方向ごとに $d_i/(d_i + \lambda)$ の割合だけ部分的に追いかける}モデルになっており、
+その割合の合計が有効自由度である。
+$\lambda = 0$ で $d+1$、$\lambda \to \infty$ で $0$ に向かい、その間を連続的に動く。
+対角成分で見ても同じことで、数値例で $\lambda = 1$ とすると $(H_\lambda)_{11} = 0.400$、$(H_\lambda)_{22} = 0.267$、$(H_\lambda)_{33} = 0.667$ であり、
+どの点も $\lambda = 0$ のとき（$5/6, 1/3, 5/6$）より自分の値を追いかけなくなっている。
+数値例では $d_1 \approx 7.16$、$d_2 \approx 0.84$ であり、
+$\mathrm{df}(1) \approx 0.88 + 0.46 = 1.33$、$\mathrm{df}(10) \approx 0.42 + 0.08 = 0.49$ となる。
+「$\lambda = 1$ のリッジ回帰は、パラメータ $2$ 個のモデルというより $1.3$ 個分のモデルである」と読める。
+正則化とは、パラメータの\textbf{個数}を変えずに、データに合わせて動かせる\textbf{実質的な自由度}を減らす操作なのである。
+第1回の図\ref{fig:errorcurve}の横軸「モデルの複雑さ」は、$\lambda$ を通じて連続的に調整できる量になった。
+
+\subsubsection{勾配降下法で見る：重み減衰}
+
+リッジ回帰の解は閉じた式\eqref{eq:ridge-sol}で求まるが、
+ニューラルネットワークのように閉じた式が使えないモデルでも正則化は必要である。
+そこで勾配降下法（第5回）に正則化を組み込んでみよう。
+式\eqref{eq:ridge-grad}より、罰則の勾配は $2\lambda\bm{w}$ である。
+経験損失 $L_D$ に $\lambda\|\bm{w}\|^2$ を加えた目的関数の勾配降下法は
+\begin{equation}
+  \bm{w}^{(t+1)} = \bm{w}^{(t)} - \eta\left( \nabla L_D(\bm{w}^{(t)}) + 2\lambda\bm{w}^{(t)} \right)
+  = (1 - 2\eta\lambda)\,\bm{w}^{(t)} - \eta\nabla L_D(\bm{w}^{(t)})
+  \label{eq:weight-decay}
+\end{equation}
+となる。
+
+\begin{itembox}[l]{定義：重み減衰}
+各更新のたびにパラメータを $(1 - 2\eta\lambda)$ 倍（$1$ よりわずかに小さい定数倍）に縮めてから勾配の方向へ進む操作を
+\textbf{重み減衰}（weight decay）と呼ぶ。L2正則化を勾配降下法で実行したものにほかならない。
+\end{itembox}
+
+更新式\eqref{eq:weight-decay}の読み方は単純である。
+勾配の項がなければ $\bm{w}$ は毎回一定の割合で $\bm{0}$ に向かって減衰する。
+勾配の項は、損失を減らすために必要な向きへ $\bm{w}$ を押し戻す。
+両者が釣り合う点が停留点であり、$\bm{w}^{(t+1)} = \bm{w}^{(t)}$ とおけば $\nabla L_D + 2\lambda\bm{w} = \bm{0}$、
+すなわちリッジ回帰の解である。
+
+ニューラルネットワークではパラメータは行列 $\bm{W}$ であり、罰則にはフロベニウスノルム $\|\bm{W}\|_F^2$（第3.6.3項）を用いる。
+成分ごとに見れば $\sum_{jk} W_{jk}^2$ なので、更新式は式\eqref{eq:weight-decay}と全く同じ形になる。
+深層学習のライブラリで weight decay という引数を指定したとき、内部で起きているのはこの操作である。
+また第5.6節の Adam のように歩幅を成分ごとに変える手法では、罰則の勾配を損失の勾配に足してから歩幅を調整する流儀と、
+減衰 $(1 - 2\eta\lambda)\bm{w}$ を歩幅調整の外で別に掛ける流儀（AdamW と呼ばれる）があり、後者のほうが性能がよいことが知られている。
+
+\begin{mlcolumn}{早期終了は正則化である}
+勾配降下法には、罰則を加えなくても正則化と同じ効果を生む側面がある。
+$\bm{w}^{(0)} = \bm{0}$ から出発した勾配降下法を、収束する前に $t$ 回で\textbf{止めて}しまう操作を
+\textbf{早期終了}（early stopping）と呼ぶ。
+
+付録\ref{sec:app-gd-eig}の計算を $J = \|\bm{y} - \bm{X}\bm{w}\|^2$ に適用すると、
+$\bm{w}^{(t)}$ の固有ベクトル $\bm{v}_i$ 方向の成分は、最小二乗解の同じ成分の
+\begin{equation*}
+  1 - (1 - 2\eta d_i)^t
+\end{equation*}
+倍である（演習問題6）。$d_i$ が大きい向きはこの値がすぐに $1$ に達する（速く収束する）が、
+$d_i$ が小さい向きは $t$ が小さいうちはほぼ $2\eta t\,d_i$ にとどまる。
+これをリッジ回帰の縮小率 $d_i/(d_i + \lambda)$ と見比べると、$d_i$ が小さいときの $d_i/\lambda$ と同じ形であり、
+$\lambda \approx 1/(2\eta t)$ と対応する。
+つまり\textbf{$t$ 回で止めた勾配降下法は、$\lambda \approx 1/(2\eta t)$ のリッジ回帰とほぼ同じ解を与える}。
+反復回数を増やすことは $\lambda$ を小さくすることに相当し、
+「十分に収束させない」ことが、データが決めきれない向き（小さい $d_i$）の成分を小さく保っているのである。
+
+深層学習で、検証誤差が増え始めたところで学習を打ち切る早期終了が標準的に使われるのは、この理由による。
+第6.3節で述べる検証データが、ここでも止めどきを決める役割を担う。
+\end{mlcolumn}
+
+
+\subsection{正則化係数の選び方}
+
+\subsubsection{ハイパーパラメータ}
+
+$\lambda$ は、学習によって決まるパラメータ $\bm{w}$ とは性格の異なる量である。
+
+\begin{itembox}[l]{定義：ハイパーパラメータ}
+学習アルゴリズムが訓練データから決めるパラメータ（$\bm{w}$）に対して、
+学習を始める前に人が与えておく設定値を\textbf{ハイパーパラメータ}（hyperparameter）と呼ぶ。
+正則化係数 $\lambda$、多項式の次数 $M$、学習率 $\eta$、ミニバッチの大きさ、反復回数などがこれにあたる。
+\end{itembox}
+
+$\lambda$ を「訓練誤差が最小になるように」選ぶことはできない。
+訓練誤差は $\lambda = 0$ で最小になる（罰則がないほうが当てはまりは必ず良い）ので、
+その基準で選べば正則化は常に無意味と判定されてしまう。
+$\lambda$ は\textbf{汎化誤差}を小さくするために入れたのだから、汎化誤差の推定値で選ぶ必要がある。
+
+\subsubsection{検証データ}
+
+\begin{itembox}[l]{定義：検証データ}
+手元のデータを、パラメータの学習に使う\textbf{訓練データ}と、ハイパーパラメータの選択に使う\textbf{検証データ}（validation data）に分ける。
+検証データに対する誤差を\textbf{検証誤差}と呼ぶ。
+候補となる各 $\lambda$ について訓練データでパラメータを学習し、検証誤差が最小となる $\lambda$ を選ぶ。
+\end{itembox}
+
+検証データは学習に使われていないので、その誤差は汎化誤差の近似になる。
+図\ref{fig:validation}は、$10$ 次多項式のリッジ回帰について訓練誤差と検証誤差を $\lambda$ の関数として描いたものである。
+訓練誤差は $\lambda$ について単調に増えるだけだが、検証誤差は U 字型になり、
+$\lambda \approx 10^{-2}$ で最小になる。
+左端（$\lambda$ が小さすぎる）が過学習、右端（大きすぎる）が未学習であり、
+第1回の図\ref{fig:errorcurve}の横軸を $\lambda$ に置き換えたものになっている。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.64\linewidth]{figures/ch6_validation}
+  \caption{$10$ 次多項式のリッジ回帰（図\ref{fig:poly-ridge}のデータ）における訓練誤差と検証誤差。
+  訓練誤差は $\lambda$ が小さいほど小さいが、検証誤差は $\lambda \approx 10^{-2}$ で最小となる。
+  $\lambda$ の候補は対数目盛で等間隔（$10^{-5}, 10^{-4}, \ldots$）にとるのが普通である。}
+  \label{fig:validation}
+\end{figure}
+
+ここで、第1回で導入したテストデータとの役割の違いに注意する。
+検証データで $\lambda$ を選ぶと、その検証誤差は「候補の中で最も小さかった値」であり、
+やや楽観的に偏っている（選択にデータを使った時点で、もはや完全に未知のデータではない）。
+最終的な性能の見積もりには、$\lambda$ の選択にも使っていない\textbf{テストデータ}を残しておき、最後に一度だけ使う。
+すなわち、データは「訓練・検証・テスト」の3つに分ける。
+
+\subsubsection{交差検証}
+
+データが少ないとき、検証用に一部を取り分けると訓練データがさらに減り、検証誤差も少数のデータに左右されてしまう。
+これを緩和するのが交差検証である。
+
+\begin{itembox}[l]{定義：$k$ 分割交差検証}
+データを $k$ 個のブロックに等分し、$j = 1, \ldots, k$ について
+「ブロック $j$ を検証データ、残りの $k-1$ ブロックを訓練データ」として検証誤差を求め、
+$k$ 個の検証誤差の平均を $\lambda$ の評価値とする（図\ref{fig:kfold}）。
+これを\textbf{$k$ 分割交差検証}（$k$-fold cross-validation）と呼ぶ。$k = 5$ または $10$ がよく使われる。
+\end{itembox}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{figures/ch6_kfold}
+  \caption{$5$ 分割交差検証。すべてのデータが一度ずつ検証に使われ、訓練にも $4/5$ が使える。}
+  \label{fig:kfold}
+\end{figure}
+
+すべてのデータが一度は検証に使われるので評価が安定し、訓練にも各回 $(k-1)/k$ のデータが使える。
+代償は計算量で、$\lambda$ の候補1つにつき $k$ 回の学習が必要になる。
+$k = N$（1件ずつ検証する）とした極端な場合を一つ抜き交差検証（leave-one-out）と呼ぶ。
+交差検証で $\lambda$ を決めた後は、全データで学習し直した $\bm{w}_\lambda$ を最終的なモデルとする。
+
+
+\begin{mlcolumn}{ハイパーパラメータ探索の実際：グリッドサーチから Optuna まで}
+本文では $\lambda$ を対数目盛で等間隔に並べ、各候補の検証誤差を比べた。
+候補をあらかじめ格子状に並べて全部試すこの方法を\textbf{グリッドサーチ}（grid search）と呼ぶ。
+ハイパーパラメータが $\lambda$ 一つなら十分だが、実際のモデルでは
+$\lambda$、多項式の次数 $M$、学習率 $\eta$、ミニバッチの大きさ、ニューラルネットワークの層数や幅など、
+複数のハイパーパラメータを同時に決めなければならない。
+各 $10$ 通りで $5$ 個あれば $10^5$ 通りの組合せになり、1組ごとに交差検証（$k$ 回の学習）を行うのは現実的でない。
+
+対処の第一歩は\textbf{ランダムサーチ}（random search）である。
+格子を全部試す代わりに、各ハイパーパラメータを範囲内からランダムに選んだ組を一定数だけ試す。
+一見乱暴だが、「本当に効くハイパーパラメータは少数」という状況では、グリッドサーチより効率がよいことが知られている。
+格子では効かない軸にも同じ数の試行を費やすのに対し、ランダムサーチは効く軸について格子より多くの異なる値を試せるからである。
+
+さらに進んだ方法が\textbf{ベイズ最適化}（Bayesian optimization）であり、
+「これまでに試した組とその検証誤差」から「次にどこを試せば誤差が小さそうか」を推定して、試行を有望な領域に集中させる。
+Python のライブラリ \textbf{Optuna} はこの考え方を実装したもので、使い方は次のように単純である。
+\begin{verbatim}
+import optuna
+
+def objective(trial):
+    # Each call draws one candidate setting (a "trial").
+    lam = trial.suggest_float("lambda", 1e-5, 1e2, log=True)
+    M = trial.suggest_int("degree", 1, 12)
+    return cross_validation_error(lam, M)   # mean validation MSE over k folds
+
+study = optuna.create_study(direction="minimize")
+study.optimize(objective, n_trials=100)
+print(study.best_params)   # e.g. {'lambda': 0.0083, 'degree': 9}
+\end{verbatim}
+\texttt{suggest\_float} の \texttt{log=True} は、本文と同じく $\lambda$ を対数目盛で探すという指定である。
+Optuna の標準の方法（TPE）は、試行結果を「誤差が小さかった組」と「大きかった組」に分け、
+前者が多く後者が少ない領域を次の候補として選ぶ。
+また、交差検証の途中で明らかに悪い候補を打ち切る\textbf{枝刈り}（pruning）も備えており、
+深層学習のように1回の学習が重い場合に効く。
+
+どの方法を使うにせよ、評価の基準が\textbf{検証誤差}（交差検証）であり、
+最終的な性能の見積もりには探索に使っていないテストデータを残す、という本文の原則は変わらない。
+探索を何百回も行うほど「検証誤差が最小だった候補」の値は楽観的に偏るので、
+テストデータを最後に一度だけ使う意味はむしろ大きくなる。
+\end{mlcolumn}
+
+\subsubsection{特徴の標準化と切片の扱い}
+
+罰則 $\|\bm{w}\|^2$ は、すべての係数を同じ重みで足している。
+これが意味をもつのは、\textbf{すべての特徴が同程度のスケール}で測られているときだけである。
+ある特徴 $x_j$ の単位を変えて $10$ 倍の値にすると、同じ予測を与える係数は $w_j/10$ になり、
+罰則への寄与は $1/100$ になる。
+単位の選び方で正則化の効き方が変わるのは不合理なので、
+リッジ回帰を使う前には各特徴を標準化（平均 $0$、分散 $1$ にそろえる。第5.3.4項）しておく。
+第5回では勾配降下法の収束を速めるための標準化であったが、正則化では\textbf{罰則の公平さ}のために必要になる。
+図\ref{fig:poly-ridge}や図\ref{fig:validation}でも、多項式の特徴 $x^k$ を標準化してから罰している。
+
+バイアス項 $w_0$ については、罰則に含めないのが標準である。
+$w_0$ は出力の平均的な水準を表すだけで、これを $0$ に引き寄せる理由はない
+（家賃の平均が $20$ 万円なら、$w_0 \approx 20$ であるべきで、小さいほうが単純というわけではない）。
+実装は簡単で、出力 $\bm{y}$ と各特徴をそれぞれの平均で引いて中心化した上で、定数列のない $\bm{X}$ に対してリッジ回帰を行う。
+中心化したデータでは最適な切片は $0$ になり、元のスケールに戻すときに $w_0 = \bar{y} - \sum_j w_j\bar{x}_j$ を付け直せばよい。
+
+
+\subsection{バイアスとバリアンス}
+
+正則化は当てはまりを悪くするのに、なぜ汎化誤差を減らせるのか。
+この問いに定量的に答えるのが、バイアスとバリアンスの分解である。
+
+\subsubsection{思考実験：データを取り直す}
+
+訓練データ $D$ は、真の関係にノイズが乗って生成されたものである。
+同じ状況でデータを取り直せば、別のノイズが乗った別の $D'$ が得られ、学習結果 $\bm{w}$ も変わる。
+つまり学習したパラメータや予測は、\textbf{データの取り方に応じてばらつく確率的な量}である。
+このばらつきを「データを何度も取り直したときの平均」で測るのが本節の方法である。
+
+以下、入力 $x$ は固定し、出力は
+\begin{equation}
+  y = f(x) + \varepsilon
+  \label{eq:bv-model}
+\end{equation}
+で生成されるとする。$f$ が真の関係、$\varepsilon$ は平均 $0$、分散 $\sigma^2$ のノイズであり、
+データごとに独立に乗る。
+データ $D$ から学習した予測を $\hat{h}(x) = h(x; \bm{w}(D))$ と書き、
+$\mathbb{E}[\cdot]$ で「データを取り直したときの平均」を表す。
+確率変数と期待値の厳密な扱いは第7回で学ぶので、ここでは
+「たくさんのデータセットで学習をくり返し、結果を平均する」という操作だと理解しておけばよい。
+$\mathbb{E}[\varepsilon] = 0$、$\mathbb{E}[\varepsilon^2] = \sigma^2$、
+および独立な量の積の平均は平均の積になる、という3つの事実だけを使う。
+
+
+\begin{mlcolumn}{データの取り直しを手元で再現する：ブートストラップ法}
+本節の思考実験「同じ状況でデータを何度も取り直す」は、現実には一度しかデータが取れないので、そのままでは実行できない。
+これを手元のデータだけで近似的に再現する方法が\textbf{ブートストラップ法}（bootstrap）である。
+手順は次のとおりである。
+\begin{enumerate}
+  \item 手元の $N$ 件のデータから、\textbf{重複を許して} $N$ 件をランダムに選び直し、新しいデータセット $D^{(1)}$ を作る
+    （同じデータが2回選ばれることも、一度も選ばれないこともある）
+  \item $D^{(1)}$ で学習し、パラメータ $\bm{w}^{(1)}$ と予測を得る
+  \item これを $B$ 回（$B = 100 \sim 1000$ 程度）くり返し、$\bm{w}^{(1)}, \ldots, \bm{w}^{(B)}$ を得る
+\end{enumerate}
+得られた $B$ 個のパラメータの\textbf{ばらつき}が、「データを取り直したときのばらつき」すなわちバリアンスの推定値になる。
+各成分の標準偏差を計算すれば係数の信頼区間が得られ、
+家賃の例（図\ref{fig:rent-ridge}）であれば「部屋数の係数は $\lambda = 0$ ではブートストラップ標本ごとに符号すら変わるが、
+$\lambda = 1$ ではほぼ一定である」という事実を、データを取り直さずに確かめられる。
+重複を許して選ぶと、各回でおよそ $63\%$（$1 - 1/e$）のデータだけが使われ、残りの約 $37\%$ は選ばれない。
+選ばれなかったデータを検証に使う\textbf{out-of-bag 誤差}は、交差検証と並ぶ汎化誤差の推定法である。
+
+ブートストラップにはもう一つの使い道がある。
+$B$ 個の予測を\textbf{平均}すると、個々の予測のばらつきが打ち消し合い、バリアンスが減る。
+これを\textbf{バギング}（bagging、bootstrap aggregating）と呼び、
+決定木という不安定な（バリアンスの大きい）モデルにバギングを施したものが\textbf{ランダムフォレスト}である。
+正則化が「一つのモデルのバリアンスを縮める」方法だとすれば、バギングは「多数のモデルを平均してバリアンスを消す」方法であり、
+どちらも式\eqref{eq:bias-variance}のバリアンス項を狙っている点で同じ思想に立っている。
+\end{mlcolumn}
+
+\subsubsection{バイアス--バリアンス分解}
+
+新しいデータ $(x, y)$ に対する二乗誤差 $(y - \hat{h}(x))^2$ の平均を計算する。
+$\bar{h}(x) = \mathbb{E}[\hat{h}(x)]$（予測の平均）とおき、
+\begin{equation*}
+  y - \hat{h}(x) = \underbrace{\varepsilon}_{\text{ノイズ}}
+  + \underbrace{\bigl( f(x) - \bar{h}(x) \bigr)}_{\text{平均のずれ}}
+  + \underbrace{\bigl( \bar{h}(x) - \hat{h}(x) \bigr)}_{\text{平均からのばらつき}}
+\end{equation*}
+と3つに分ける。二乗して平均をとると、3つの項の二乗の平均と、互いの積（交差項）の平均が現れる。
+交差項はすべて消える。
+$\varepsilon$ は新しいデータのノイズであり、訓練データから作った $\hat{h}$ とは独立で平均 $0$ なので、$\varepsilon$ を含む積の平均は $0$ である。
+残る積 $(f - \bar{h})(\bar{h} - \hat{h})$ は、$f - \bar{h}$ がデータによらない定数で、
+$\mathbb{E}[\bar{h} - \hat{h}] = \bar{h} - \bar{h} = 0$ なので平均は $0$ である。したがって
+
+\begin{itembox}[l]{定理：バイアス--バリアンス分解}
+\begin{equation}
+  \mathbb{E}\left[ (y - \hat{h}(x))^2 \right]
+  = \underbrace{\sigma^2}_{\text{ノイズ}}
+  + \underbrace{\bigl( f(x) - \bar{h}(x) \bigr)^2}_{\text{バイアス}^2}
+  + \underbrace{\mathbb{E}\left[ (\hat{h}(x) - \bar{h}(x))^2 \right]}_{\text{バリアンス}}
+  \label{eq:bias-variance}
+\end{equation}
+\end{itembox}
+
+3つの項の意味は次のとおりである。
+\begin{description}
+  \item[ノイズ $\sigma^2$] データ自体に含まれる誤差。どんなモデルでも減らせない下限。
+  \item[バイアス（偏り）] 予測の\textbf{平均}が真の関係からどれだけずれているか。
+    モデルが単純すぎて真の関係を表現できないときに大きい（\textbf{未学習}）。
+  \item[バリアンス（分散）] 予測がデータの取り方によってどれだけ\textbf{ばらつく}か。
+    モデルが複雑すぎてノイズに追随するときに大きい（\textbf{過学習}）。
+\end{description}
+
+図\ref{fig:bias-variance}の左と中央は、$30$ 通りのデータセットで $10$ 次多項式のリッジ回帰を学習した結果である。
+$\lambda$ が小さいと、予測の平均（赤）は真の関係にほぼ重なる（バイアス小）が、個々の予測は大きくばらつく（バリアンス大）。
+$\lambda$ が大きいと、ばらつきは小さい（バリアンス小）が、平均そのものが真の関係からずれる（バイアス大）。
+正則化は、\textbf{バイアスを少し増やす代わりにバリアンスを大きく減らす}操作であり、
+その差し引きで合計が減るときに汎化誤差が改善する。
+第1回の図\ref{fig:errorcurve}で汎化誤差が U 字型になるのは、複雑さを増すとバイアスが減りバリアンスが増える、
+という2つの単調な変化の和だからである。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch6_bias_variance}
+  \caption{左・中：$30$ 通りの訓練データ（細線はそれぞれの予測、赤は平均、破線は真の関係）に対する $10$ 次多項式リッジ回帰。
+  $\lambda$ が小さいとばらつきが大きく（バリアンス大）、大きいと平均がずれる（バイアス大）。
+  右：1変数モデル（第6.4.3項）におけるバイアス$^2$・バリアンス・合計の $\lambda$ 依存性。合計は $\lambda^* = \sigma^2/w^2$ で最小となる。}
+  \label{fig:bias-variance}
+\end{figure}
+
+\subsubsection{1変数モデルで計算する}
+
+分解を実際に計算できる最も簡単な設定で、リッジ回帰の効果を定量的に見よう。
+切片のない1変数モデル $y_i = w x_i + \varepsilon_i$（$i = 1, \ldots, N$）を考える。
+$w$ が真のパラメータ、$\varepsilon_i$ は独立で平均 $0$、分散 $\sigma^2$ とする。
+$d = \sum_i x_i^2$ とおく（$\bm{X}^\top\bm{X}$ にあたる量で、$1 \times 1$ なので固有値そのものである）。
+
+最小二乗解は正規方程式より
+\begin{equation}
+  \hat{w} = \frac{\sum_i x_i y_i}{\sum_i x_i^2}
+  = \frac{\sum_i x_i (w x_i + \varepsilon_i)}{d}
+  = w + \frac{1}{d}\sum_i x_i\varepsilon_i
+  \label{eq:bv-ols}
+\end{equation}
+である。第2項はノイズの線形結合で、平均は $0$、分散は $\frac{1}{d^2}\sum_i x_i^2\sigma^2 = \sigma^2/d$ である
+（独立なノイズの和の分散は分散の和、という第7回で学ぶ性質を使った）。よって
+\begin{equation}
+  \mathbb{E}[\hat{w}] = w \;\;(\text{バイアス } 0), \qquad \mathrm{Var}[\hat{w}] = \frac{\sigma^2}{d}
+\end{equation}
+最小二乗法は「平均的には正しい」が、$d$ が小さい（データが少ない、$x$ の広がりが小さい）とばらつきが大きい。
+
+リッジ回帰の解は式\eqref{eq:ridge-sol}より $\hat{w}_\lambda = \frac{\sum_i x_i y_i}{d + \lambda} = \frac{d}{d + \lambda}\hat{w}$ であり、
+式\eqref{eq:shrink}の縮小率がそのまま現れる。定数倍の平均と分散はそれぞれ定数倍・定数の二乗倍なので
+\begin{equation}
+  \text{バイアス} = \mathbb{E}[\hat{w}_\lambda] - w = -\frac{\lambda}{d + \lambda}\,w, \qquad
+  \mathrm{Var}[\hat{w}_\lambda] = \left( \frac{d}{d + \lambda} \right)^2 \frac{\sigma^2}{d} = \frac{\sigma^2 d}{(d + \lambda)^2}
+  \label{eq:bv-ridge}
+\end{equation}
+となる。$\lambda$ を増やすとバイアスの大きさは $0$ から $|w|$ へ増え、バリアンスは $\sigma^2/d$ から $0$ へ減る。
+パラメータの推定誤差の平均（バイアス$^2$ ＋ バリアンス）は
+\begin{equation}
+  \mathrm{MSE}(\lambda) = \frac{\lambda^2 w^2 + \sigma^2 d}{(d + \lambda)^2}
+  \label{eq:bv-mse}
+\end{equation}
+である。$\lambda$ で微分して $0$ とおくと（演習問題7）、最小を与えるのは
+\begin{equation}
+  \lambda^* = \frac{\sigma^2}{w^2}, \qquad
+  \mathrm{MSE}(\lambda^*) = \frac{\sigma^2}{d + \sigma^2/w^2} < \frac{\sigma^2}{d} = \mathrm{MSE}(0)
+  \label{eq:bv-opt}
+\end{equation}
+である（図\ref{fig:bias-variance}右）。ここから2つの重要な結論が得られる。
+\begin{enumerate}
+  \item \textbf{適切な $\lambda > 0$ をとれば、リッジ回帰は最小二乗法より必ず推定誤差が小さい。}
+    不等式\eqref{eq:bv-opt}は $w$、$\sigma$、$d$ の値によらず成り立つ。
+    バイアスを少し入れることでバリアンスを減らす交換が、つねに得になるのである。
+  \item 最適な $\lambda^*$ はノイズが大きいほど（$\sigma^2$ 大）、真のパラメータが小さいほど（$w^2$ 小）大きい。
+    「信号に比べてノイズが大きいときほど強く正則化せよ」という直感に一致する。
+    ただし $\lambda^*$ は未知の $w$ と $\sigma$ に依存するので、実際には第6.3節の方法で選ぶ。
+\end{enumerate}
+
+\subsubsection{多次元での見方}
+
+多次元の場合も、第6.2.5項の固有ベクトルの向きごとに同じ計算が成り立つ。
+$\bm{v}_i$ 方向の成分について、最小二乗法のバリアンスは $\sigma^2/d_i$、リッジ回帰では $\sigma^2 d_i/(d_i + \lambda)^2$ になる。
+平らな谷の向き（$d_i$ が小さい）では最小二乗法のバリアンス $\sigma^2/d_i$ が巨大になり、
+家賃の例で解が谷に沿って滑ったのは、まさにこの項が大きかったからである。
+リッジ回帰はその向きの成分を縮めて、バリアンスを $\sigma^2 d_i/(d_i + \lambda)^2 \leq \sigma^2/(4\lambda)$ 以下に抑える。
+一方、$d_i$ が大きい向きはほとんど縮まず、バイアスもほとんど生じない。
+\textbf{データが決めている向きには手を付けず、ノイズが決めている向きのばらつきだけを削る}。
+これが、リッジ回帰が汎化誤差を減らす仕組みである。
+
+
+\subsection{制約付き最適化の導入}
+
+\subsubsection{罰則から制約へ}
+
+ここまで正則化を「罰則を足す」形で扱ってきたが、同じことを「$\bm{w}$ の大きさに\textbf{上限を課す}」形で書くこともできる。
+\begin{equation}
+  \min_{\bm{w}} \; \|\bm{y} - \bm{X}\bm{w}\|^2 \qquad \text{subject to} \qquad \|\bm{w}\|^2 \leq r^2
+  \label{eq:ridge-constrained}
+\end{equation}
+「$\|\bm{w}\|$ が $r$ 以下の範囲で、最も当てはまりの良い $\bm{w}$ を探せ」という問題である。
+このように、変数の動ける範囲が条件で制限された最小化問題を制約付き最適化問題と呼ぶ。
+
+\begin{itembox}[l]{定義：制約付き最適化問題}
+関数 $f, g: \mathbb{R}^p \to \mathbb{R}$ に対して、
+\begin{equation}
+  \min_{\bm{w}} \; f(\bm{w}) \qquad \text{subject to} \qquad g(\bm{w}) \leq 0
+  \label{eq:constrained}
+\end{equation}
+の形の問題を\textbf{制約付き最適化問題}（constrained optimization problem）と呼ぶ。
+$f$ を目的関数、$g(\bm{w}) \leq 0$ を制約、これを満たす $\bm{w}$ の集合 $\{\bm{w} : g(\bm{w}) \leq 0\}$ を\textbf{実行可能領域}（feasible region）と呼ぶ。
+\end{itembox}
+
+式\eqref{eq:ridge-constrained}は $g(\bm{w}) = \|\bm{w}\|^2 - r^2$ の場合であり、実行可能領域は原点中心・半径 $r$ の球である。
+第5回では定義域をつねに $\mathbb{R}^p$ 全体として凸関数を扱ったが（第5.4.1項）、
+制約付き問題では実行可能領域が凸集合であることが本質的な役割を果たす。球は凸集合である。
+
+\subsubsection{幾何学：等高線と制約領域の接点}
+
+図\ref{fig:constraint}左に、2次元での様子を描いた。
+楕円は $\|\bm{y} - \bm{X}\bm{w}\|^2$ の等高線で、中心が最小二乗解 $\bm{w}^*$ である。
+緑の円板が実行可能領域 $\|\bm{w}\| \leq r$ である。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch6_constraint}
+  \caption{制約付き最適化としての正則化。楕円は $\|\bm{y} - \bm{X}\bm{w}\|^2$ の等高線、緑の領域が実行可能領域である。
+  左：$L^2$ 制約 $\|\bm{w}\|_2 \leq r$。解 $\bm{w}_r$ は円と等高線が接する点で、一般にどの成分も $0$ にならない。
+  右：$L^1$ 制約 $\|\bm{w}\|_1 \leq r$。実行可能領域はひし形で、等高線は角（座標軸上）で接しやすい。この例では $w_1 = 0$ となる。}
+  \label{fig:constraint}
+\end{figure}
+
+$\bm{w}^*$ が円板の外にあるなら（$\|\bm{w}^*\| > r$、すなわち制約が効いている場合）、
+解は\textbf{円の境界上}にある。
+円板の内部の点は、$\bm{w}^*$ に向かって少し動かせば損失が減り、かつまだ円板の中にいられるので、最小ではないからである。
+境界上のどこかというと、$\bm{w}^*$ を中心に等高線を少しずつ広げていき、\textbf{初めて円に触れる点}である。
+その点で等高線と円は\textbf{接している}。交差していれば、交点の内側にもっと損失の小さい点があるはずだからである。
+
+\subsubsection{接点の条件とラグランジュ乗数}
+
+「接している」を式で書こう。
+曲線 $f(\bm{w}) = c$ の各点で、勾配 $\nabla f$ は曲線に垂直である（第4.3.2項：勾配は等高線と直交する）。
+同様に、円 $g(\bm{w}) = 0$ 上では $\nabla g = 2\bm{w}$ が円に垂直である。
+2つの曲線が接する点では、垂直な向きが共通、すなわち\textbf{2つの勾配が平行}である：
+\begin{equation}
+  \nabla f(\bm{w}) = -\mu\,\nabla g(\bm{w}), \qquad \mu \geq 0
+  \label{eq:lagrange-cond}
+\end{equation}
+符号について補足する。$-\nabla f$ は損失の減る向き、すなわち円の外の $\bm{w}^*$ に向かう向きであり、
+$\nabla g$ は円の外向きである。両者が同じ向きなので $\mu \geq 0$ となる
+（$\mu < 0$ なら、円の内側に進んで損失を減らせる余地があることになり、接点が最小ではない）。
+
+$f = \|\bm{y} - \bm{X}\bm{w}\|^2$、$g = \|\bm{w}\|^2 - r^2$ で式\eqref{eq:lagrange-cond}を書き下すと
+\begin{equation*}
+  2(\bm{X}^\top\bm{X}\bm{w} - \bm{X}^\top\bm{y}) = -2\mu\bm{w}
+  \quad\Longleftrightarrow\quad
+  (\bm{X}^\top\bm{X} + \mu\bm{I})\bm{w} = \bm{X}^\top\bm{y}
+\end{equation*}
+となる。これはリッジ回帰の方程式\eqref{eq:ridge-normal}で $\lambda = \mu$ としたものにほかならない。
+
+\begin{itembox}[l]{罰則形式と制約形式の対応}
+制約付き問題\eqref{eq:ridge-constrained}の解は、ある $\lambda = \mu \geq 0$ に対するリッジ回帰の解 $\bm{w}_\lambda$ に一致する。
+逆に、リッジ回帰の解 $\bm{w}_\lambda$ は $r = \|\bm{w}_\lambda\|$ とした制約付き問題の解である。
+$r$ を小さくすることと $\lambda$ を大きくすることは同じ操作であり、$\mu$ は「制約をどれだけ強く感じているか」を表す。
+\end{itembox}
+
+第6.2.3項の数値例（$\bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}$、$\bm{X}^\top\bm{y} = (5, 6)^\top$）で確かめよう。
+表\ref{tab:ridge-example}より $\lambda = 1$ のリッジ回帰の解は $\bm{w}_1 = (0.8, 0.6)^\top$ であり、
+$\|\bm{w}_1\| = \sqrt{0.64 + 0.36} = 1$ を満たす。
+そこで $r = 1$ とした制約付き問題を考えると、$\bm{w}_1$ は円 $\|\bm{w}\| = 1$ の上にある。
+この点での損失 $f = \|\bm{y} - \bm{X}\bm{w}\|^2$ の勾配は
+\begin{equation*}
+  \nabla f(\bm{w}_1) = 2(\bm{X}^\top\bm{X}\bm{w}_1 - \bm{X}^\top\bm{y})
+  = 2\left\{ \begin{pmatrix} 3 \cdot 0.8 + 3 \cdot 0.6 \\ 3 \cdot 0.8 + 5 \cdot 0.6 \end{pmatrix} - \begin{pmatrix} 5 \\ 6 \end{pmatrix} \right\}
+  = 2\begin{pmatrix} 4.2 - 5 \\ 5.4 - 6 \end{pmatrix}
+  = \begin{pmatrix} -1.6 \\ -1.2 \end{pmatrix}
+  = -2\,\bm{w}_1
+\end{equation*}
+であり、一方 $\nabla g(\bm{w}_1) = 2\bm{w}_1 = (1.6, 1.2)^\top$ である。
+確かに $\nabla f = -\mu\nabla g$ が $\mu = 1$ で成り立ち、リッジ回帰の $\lambda = 1$ がそのままラグランジュ乗数になっている。
+図\ref{fig:ridge-path}左で、$\lambda = 1$ の点において等高線と円 $\|\bm{w}\| = 1$ が接していたのは、この条件の現れである。
+
+式\eqref{eq:lagrange-cond}の $\mu$ を\textbf{ラグランジュ乗数}（Lagrange multiplier）と呼ぶ。
+条件\eqref{eq:lagrange-cond}は、新しい関数
+\begin{equation}
+  \mathcal{L}(\bm{w}, \mu) = f(\bm{w}) + \mu\,g(\bm{w})
+  \label{eq:lagrangian}
+\end{equation}
+（\textbf{ラグランジュ関数}）の $\bm{w}$ についての勾配が $\bm{0}$ であること、と言い換えられる。
+制約付き問題を「罰則付きの制約なし問題」に変換する、というのがラグランジュ乗数法の核心であり、
+正則化の罰則 $\lambda\|\bm{w}\|^2$ はまさにそのようにして生まれた項であると読める。
+$\bm{w}^*$ が最初から円板の内側にある場合（制約が効いていない場合）は $\mu = 0$ で、解は $\bm{w}^*$ そのものである。
+「制約が効いているときだけ $\mu > 0$」というこの規則（相補性条件）を含めた一般論（KKT条件）は、第10回・第11回のサポートベクターマシンで扱う。
+そこでは、マージンを最大化する問題が $\|\bm{w}\|^2$ の最小化として定式化され、本節と同じ図式が再び現れる。
+
+\subsubsection{ノルムの形と解の形：L1正則化}
+
+制約形式で見ると、\textbf{実行可能領域の形が解の形を決める}ことが分かる。
+罰則に $\|\bm{w}\|^2$ ではなく、別のノルムを使ってみよう。
+
+\begin{itembox}[l]{定義：$L^1$ ノルム}
+$\bm{w} = (w_1, \ldots, w_p)^\top \in \mathbb{R}^p$ に対して
+\begin{equation}
+  \|\bm{w}\|_1 = |w_1| + |w_2| + \cdots + |w_p| = \sum_{j=1}^{p} |w_j|
+\end{equation}
+を $L^1$ ノルム（マンハッタン距離、絶対値ノルム）と呼ぶ。
+これに対して第2.2節のユークリッドノルムを $\|\bm{w}\|_2$ と書いて区別することがある。
+\end{itembox}
+
+$L^1$ ノルムも第2.2.2項の3つの性質（非負性、斉次性、三角不等式）を満たす。
+$\|\bm{w}\|_1 \leq r$ の実行可能領域は、2次元では頂点が座標軸上にあるひし形である（図\ref{fig:constraint}右）。
+ひし形には\textbf{角}がある。等高線（楕円）を $\bm{w}^*$ から広げていくと、
+円のときのように滑らかな境界に接するのではなく、\textbf{角で先に触れる}ことが多い。
+角は座標軸上にあるので、そこでは一部の成分が\textbf{ちょうど $0$} になる。
+図の例では解は $w_1 = 0$ であり、特徴1はモデルから完全に落とされる。
+
+\begin{itembox}[l]{定義：L1正則化（ラッソ）}
+\begin{equation}
+  J_\lambda(\bm{w}) = \|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|_1
+  \label{eq:lasso}
+\end{equation}
+の最小化を\textbf{L1正則化}または\textbf{ラッソ}（lasso）と呼ぶ。
+解の多くの成分が $0$ になる性質を\textbf{疎性}（sparsity）といい、$0$ でない成分が少ない解を\textbf{疎な解}と呼ぶ。
+\end{itembox}
+
+疎な解には実用上の大きな価値がある。
+係数が $0$ の特徴は予測に使われないので、ラッソは\textbf{特徴選択}（どの特徴が必要かの判定）を学習と同時に行う。
+特徴が数千あって、本当に効いているのは数十だけ、という状況（遺伝子データや文書データなど）で特に有効である。
+一方、リッジ回帰は図\ref{fig:constraint}左のように解の成分を小さくはするが、ちょうど $0$ にはしない。
+
+ラッソの目的関数は $|w_j|$ が $w_j = 0$ で微分できないので、閉じた式では解けず、
+勾配降下法もそのままでは使えない（座標ごとに解く座標降下法などが使われる）。
+ただし特徴が互いに直交している場合（$\bm{X}^\top\bm{X} = \bm{I}$）には、問題が成分ごとに分かれて手で解ける。
+このとき最小二乗解を $\hat{w}_j$ とすると、$j$ 番目の成分についての目的関数は定数を除いて
+$(\hat{w}_j - w_j)^2 + \lambda|w_j|$ であり、その最小解は
+\begin{equation}
+  w_j = \mathrm{sign}(\hat{w}_j)\,\max\!\left( |\hat{w}_j| - \frac{\lambda}{2},\; 0 \right)
+  \label{eq:soft-threshold}
+\end{equation}
+となる（\textbf{軟しきい値処理}、soft thresholding。演習問題9）。
+同じ設定でリッジ回帰の解は $w_j = \hat{w}_j/(1 + \lambda)$ である。
+図\ref{fig:shrink}右に両者を描いた。
+リッジ回帰は大きい成分も小さい成分も\textbf{同じ比率}で縮めるのに対し、
+ラッソはすべての成分から\textbf{同じ量} $\lambda/2$ を引き、$\lambda/2$ に満たない成分は $0$ にする。
+「小さい成分は切り捨て、大きい成分はあまり縮めない」というラッソの性質は、特徴選択の目的に合っている。
+
+実務では両者を混ぜた $\lambda_1\|\bm{w}\|_1 + \lambda_2\|\bm{w}\|_2^2$（\textbf{弾性ネット}、elastic net）も使われる。
+どの正則化を使うかは、「係数がどんな形をしていると期待するか」という\textbf{事前の想定}の表明である。
+この見方は第9回で、正則化項を事前分布として読み直すときに主役になる。
+
+
+\subsection{正則化の広がり}
+
+本章で学んだ考え方は、線形回帰を越えて機械学習全体に広がっている。
+本章の締めくくりとして、見取り図を描いておく。
+
+\begin{description}
+  \item[重み減衰]
+    式\eqref{eq:weight-decay}のとおり、ニューラルネットワークの学習ではほぼ例外なく使われる。
+    第12回で扱う誤差逆伝播法で求めた勾配に、$2\lambda\bm{W}$ を足すだけである。
+  \item[早期終了]
+    コラムで見たとおり、反復を途中で止めること自体が正則化になる。検証誤差を監視して止めどきを決める。
+  \item[データを増やす]
+    バリアンスは「データが決めきれない自由度」から生じるので、データを増やせば減る（1変数モデルでは $d = \sum x_i^2$ が増え、バリアンス $\sigma^2/d$ が減る）。
+    画像を回転・反転させて訓練データを水増しする\textbf{データ拡張}（data augmentation）は、この原理に基づく。
+  \item[モデル自体の制限]
+    ニューラルネットワークで学習中にニューロンをランダムに無効化する\textbf{ドロップアウト}（dropout）など、
+    モデルの実質的な自由度を下げる工夫も正則化の一種である。
+  \item[ベイズ的な解釈]
+    罰則 $\lambda\|\bm{w}\|^2$ は「$\bm{w}$ は小さいはずだ」という事前の想定を数式にしたものと読める。
+    第9回では、リッジ回帰が「ガウス分布を事前分布とした最大事後確率推定」に一致することを示し、
+    $\lambda$ の意味を確率の言葉で捉え直す。
+  \item[サポートベクターマシン]
+    第10回のマージン最大化は $\|\bm{w}\|^2$ の最小化として定式化され、第6.5節の制約付き最適化とラグランジュ乗数が本格的に活躍する。
+\end{description}
+
+正則化の本質を一言でまとめれば、
+\textbf{「データが決められること以上をモデルに決めさせない」}ことである。
+訓練データへの当てはまりを少し手放し、その見返りに未知のデータへの安定した予測を得る。
+機械学習が「暗記」ではなく「汎化」であるための、最も基本的な仕組みである。
+
+
+\subsection{まとめ}
+
+\begin{itemize}
+  \item 過学習と多重共線性はどちらも\textbf{モデルの自由度の過剰}から生じ、症状として重みが不必要に大きくなる。
+    $\|\bm{w}\|$ は入力の違いが出力に増幅される上限であり、同じ当てはまりなら小さい $\bm{w}$ が安全である
+  \item \textbf{正則化}：経験損失に罰則 $\lambda R(\bm{w})$ を加えて最小化する。
+    $R = \|\bm{w}\|^2$ が\textbf{L2正則化}で、線形回帰に適用したものが\textbf{リッジ回帰}
+  \item リッジ回帰の解は $\bm{w}_\lambda = (\bm{X}^\top\bm{X} + \lambda\bm{I})^{-1}\bm{X}^\top\bm{y}$。
+    $\lambda > 0$ なら $\bm{X}$ のランクによらず正定値・正則で、解はつねに一意。$\lambda \to 0$ で最小ノルム解に収束する
+  \item 固有値で見ると、リッジ回帰は最小二乗解の $\bm{v}_i$ 方向の成分を $d_i/(d_i + \lambda)$ 倍に縮める。
+    データが決めている向き（$d_i$ 大）は残し、ノイズが決めている平らな谷の向き（$d_i$ 小）を潰す。
+    条件数は $(d_1 + \lambda)/(d_{d+1} + \lambda)$ に改善し、有効自由度は $\sum_i d_i/(d_i + \lambda)$ に減る
+  \item 勾配降下法では、L2正則化は各更新で $\bm{w}$ を $(1 - 2\eta\lambda)$ 倍する\textbf{重み減衰}になる。
+    早期終了も $\lambda \approx 1/(2\eta t)$ の正則化と同じ効果をもつ
+  \item $\lambda$ は\textbf{ハイパーパラメータ}であり、訓練誤差では選べない。
+    \textbf{検証データ}または\textbf{交差検証}で検証誤差が最小になるものを選び、最終評価にはテストデータを残す。
+    正則化の前に特徴を標準化し、切片は罰しない
+  \item \textbf{バイアス--バリアンス分解}：二乗誤差の平均 $=$ ノイズ $+$ バイアス$^2$ $+$ バリアンス。
+    正則化はバイアスを少し増やしてバリアンスを大きく減らす。
+    1変数モデルでは $\lambda^* = \sigma^2/w^2$ で、リッジ回帰は最小二乗法より必ず推定誤差が小さい
+  \item \textbf{制約付き最適化}：罰則 $\lambda\|\bm{w}\|^2$ は制約 $\|\bm{w}\| \leq r$ と同値。
+    解は等高線と制約領域の接点にあり、そこで $\nabla f = -\mu\nabla g$（ラグランジュ乗数 $\mu = \lambda$）が成り立つ
+  \item \textbf{L1正則化（ラッソ）}：実行可能領域がひし形になり、角で接するため成分が $0$ になる\textbf{疎な解}を与える。
+    特徴選択に使われる。直交する特徴では軟しきい値処理 $\mathrm{sign}(\hat{w})\max(|\hat{w}| - \lambda/2, 0)$
+\end{itemize}
+
+第1回から本章までで、頻度論的な枠組み（損失最小化とその正則化）が一通り揃った。
+次回（第7回）からは確率とベイズの定理を学び、第9回で本章の正則化を「事前分布」として捉え直す。
+$\lambda\|\bm{w}\|^2$ という項に、もう一つの顔があることが分かるだろう。
+
+
+\subsection{演習問題}
+
+\begin{enumerate}
+
+  \item \textbf{リッジ回帰の解の導出}\quad
+    $J_\lambda(\bm{w}) = \|\bm{y} - \bm{X}\bm{w}\|^2 + \lambda\|\bm{w}\|^2$ について答えよ。
+    \begin{enumerate}
+      \item $J_\lambda$ を展開し、公式\eqref{eq:grad-linear}と\eqref{eq:grad-quad}を用いて $\nabla J_\lambda$ を求めよ。
+      \item $\nabla J_\lambda = \bm{0}$ から式\eqref{eq:ridge-normal}を導け。
+      \item $\lambda > 0$ のとき、任意の $\bm{v} \neq \bm{0}$ に対して $\bm{v}^\top(\bm{X}^\top\bm{X} + \lambda\bm{I})\bm{v} > 0$ となることを示せ。
+        $\bm{X}$ がランク落ちしていて $\bm{X}\bm{v} = \bm{0}$ となる $\bm{v}$ があっても成り立つ理由を述べよ。
+      \item $J_\lambda$ のヘッセ行列を求め、$J_\lambda$ が狭義凸であることを述べよ。
+    \end{enumerate}
+
+  \item \textbf{数値例}\quad
+    $\bm{X} = \begin{pmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{pmatrix}$、$\bm{y} = (1, 2, 2)^\top$ について答えよ。
+    \begin{enumerate}
+      \item $\lambda = 3$ のリッジ回帰の解 $\bm{w}_3$ を求めよ。
+      \item $\bm{w}_3$ に対する残差 $\bm{r} = \bm{y} - \bm{X}\bm{w}_3$ を求め、$\|\bm{r}\|^2$ と $\|\bm{w}_3\|^2$ を計算せよ。
+        表\ref{tab:ridge-example}の $\lambda = 1$ の行と比べ、どちらがどう変わったか述べよ。
+      \item 最小二乗法では $\bm{X}^\top\bm{r} = \bm{0}$（残差と列の直交性）が成り立った。
+        $\bm{w}_3$ の残差について $\bm{X}^\top\bm{r}$ を計算し、$\bm{0}$ にならないこと、および $\bm{X}^\top\bm{r} = \lambda\bm{w}_3$ となることを確かめよ。
+        この等式を式\eqref{eq:ridge-normal}から説明せよ。
+    \end{enumerate}
+
+  \item \textbf{固有値で見る}\quad
+    問2の $\bm{X}^\top\bm{X} = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}$ について答えよ。
+    \begin{enumerate}
+      \item 固有値 $d_1 > d_2$ を特性方程式から求めよ（$4 \pm \sqrt{10}$ の形になる）。
+      \item $\lambda = 1$ と $\lambda = 10$ について、縮小率 $d_i/(d_i + \lambda)$ を2つの固有値それぞれについて求めよ。
+      \item 条件数 $\kappa = d_1/d_2$ と、$\lambda = 1, 10$ のときの $(d_1 + \lambda)/(d_2 + \lambda)$ を求めよ。
+      \item 有効自由度 $\mathrm{df}(\lambda) = \sum_i d_i/(d_i + \lambda)$ を $\lambda = 0, 1, 10$ について求めよ。
+    \end{enumerate}
+
+  \item \textbf{単位と標準化}\quad
+    切片のない1変数のリッジ回帰 $\min_w \sum_i (y_i - w x_i)^2 + \lambda w^2$ を考える。
+    $x_i$ の単位を変えて $x'_i = c\,x_i$（$c > 0$）としたときの解を $w'_\lambda$ とする。
+    \begin{enumerate}
+      \item $w_\lambda$ と $w'_\lambda$ をそれぞれ $\sum_i x_i y_i$、$\sum_i x_i^2$、$c$、$\lambda$ で表せ。
+      \item 予測 $w_\lambda x_i$ と $w'_\lambda x'_i$ は一致するか。一致しないなら、$\lambda$ を変えずに単位だけ変えると正則化の強さがどう変わるか説明せよ。
+      \item 単位を変えた後に同じ予測を得るには $\lambda$ をどう変えればよいか。
+    \end{enumerate}
+
+  \item \textbf{重み減衰}\quad
+    $L_D(\bm{w}) = \frac{1}{N}\|\bm{y} - \bm{X}\bm{w}\|^2$ に罰則 $\lambda\|\bm{w}\|^2$ を加えた目的関数を勾配降下法で最小化する。
+    \begin{enumerate}
+      \item 更新式が $\bm{w}^{(t+1)} = (1 - 2\eta\lambda)\bm{w}^{(t)} - \eta\nabla L_D(\bm{w}^{(t)})$ となることを示せ。
+      \item 問2のデータで $\lambda = 1$、$\eta = 0.1$、$\bm{w}^{(0)} = \bm{0}$ として $\bm{w}^{(1)}, \bm{w}^{(2)}$ を計算せよ。
+      \item この反復の停留点（$\bm{w}^{(t+1)} = \bm{w}^{(t)}$ となる点）が、$\frac{1}{N}$ を含めた定義でのリッジ回帰の解
+        $(\bm{X}^\top\bm{X} + N\lambda\bm{I})^{-1}\bm{X}^\top\bm{y}$ に一致することを示せ。
+      \item 目的関数のヘッセ行列の最大固有値を用いて、この反復が収束する学習率の範囲を書け（第5.3.2項）。
+        罰則を加えると収束の上限はどう変わるか。
+    \end{enumerate}
+
+  \item \textbf{早期終了}\quad
+    $J(\bm{w}) = \|\bm{y} - \bm{X}\bm{w}\|^2$ に対する勾配降下法 $\bm{w}^{(t+1)} = \bm{w}^{(t)} - \eta\nabla J(\bm{w}^{(t)})$ を $\bm{w}^{(0)} = \bm{0}$ から始める。
+    $\bm{X}$ はフルランクとし、$\bm{X}^\top\bm{X} = \bm{Q}\bm{D}\bm{Q}^\top$、最小二乗解を $\bm{w}^*$ とする。
+    \begin{enumerate}
+      \item 誤差 $\bm{e}^{(t)} = \bm{w}^{(t)} - \bm{w}^*$ が $\bm{e}^{(t+1)} = (\bm{I} - 2\eta\bm{X}^\top\bm{X})\bm{e}^{(t)}$ を満たすことを示せ。
+      \item $\bm{v}_i$ 方向の成分 $u_i^{(t)} = \bm{v}_i^\top\bm{w}^{(t)}$ が $u_i^{(t)} = \{1 - (1 - 2\eta d_i)^t\}\,u_i^*$ となることを示せ
+        （$u_i^* = \bm{v}_i^\top\bm{w}^*$）。
+      \item $2\eta d_i t \ll 1$ のとき $1 - (1 - 2\eta d_i)^t \approx 2\eta t\,d_i$ であることを用いて、
+        $t$ 回で止めた解がリッジ回帰の縮小率 $d_i/(d_i + \lambda)$ とどう対応するか述べよ。
+    \end{enumerate}
+
+  \item \textbf{バイアスとバリアンス}\quad
+    第6.4.3項の1変数モデル $y_i = w x_i + \varepsilon_i$ について答えよ。
+    \begin{enumerate}
+      \item 式\eqref{eq:bv-mse}を $\lambda$ で微分し、$\lambda^* = \sigma^2/w^2$ で最小になることを示せ。
+      \item $\mathrm{MSE}(\lambda^*) = \sigma^2/(d + \sigma^2/w^2)$ を導き、これが $\mathrm{MSE}(0) = \sigma^2/d$ より小さいことを確かめよ。
+      \item $d = 10$、$\sigma = 1$、$w = 0.5$ のとき、$\lambda = 0, 1, 4, 10$ についてバイアス$^2$、バリアンス、$\mathrm{MSE}$ を計算せよ。
+      \item 真のパラメータが $w = 0$（その特徴は実は無関係）だったとき、$\lambda^*$ はどうなるか。この結果の意味を説明せよ。
+    \end{enumerate}
+
+  \item \textbf{制約形式との対応}\quad
+    問2のデータについて答えよ。
+    \begin{enumerate}
+      \item $\lambda = 10$ の解 $\bm{w}_{10} \approx (0.306, 0.339)^\top$ について、$\nabla\|\bm{y} - \bm{X}\bm{w}\|^2 = 2(\bm{X}^\top\bm{X}\bm{w} - \bm{X}^\top\bm{y})$ を $\bm{w} = \bm{w}_{10}$ で計算し、
+        $-2\mu\bm{w}_{10}$ の形になることを確かめて $\mu$ を求めよ。
+      \item 制約付き問題 $\min \|\bm{y} - \bm{X}\bm{w}\|^2$ subject to $\|\bm{w}\|^2 \leq r^2$ の解が $\bm{w}_{10}$ となる $r$ を求めよ。
+      \item $r = 2$ としたとき、制約付き問題の解は何か。ラグランジュ乗数 $\mu$ の値とともに答えよ
+        （ヒント：$\|\bm{w}^*\|$ と $r$ を比べる）。
+    \end{enumerate}
+
+  \item \textbf{軟しきい値処理}\quad
+    1変数の関数 $\phi(w) = (\hat{w} - w)^2 + \lambda|w|$（$\lambda > 0$）の最小点を求める。
+    \begin{enumerate}
+      \item $w > 0$ の範囲で $\phi$ を微分し、停留点 $w = \hat{w} - \lambda/2$ を得よ。これが $w > 0$ の範囲に入る条件を述べよ。
+      \item $w < 0$ の範囲で同様に考えよ。
+      \item $|\hat{w}| \leq \lambda/2$ のとき最小点が $w = 0$ であることを、$\phi(w) \geq \phi(0)$ を示すことで確かめよ
+        （ヒント：$(\hat{w} - w)^2 - \hat{w}^2 = w^2 - 2\hat{w}w \geq -2|\hat{w}||w|$）。
+      \item 以上をまとめて式\eqref{eq:soft-threshold}を導け。$\hat{w} = (2, 0.3, -1)^\top$、$\lambda = 1$ のときのラッソの解と、
+        同じ設定でのリッジ回帰の解 $\hat{w}_j/(1 + \lambda)$ を比べよ。
+    \end{enumerate}
+
+  \item \textbf{交差検証}\quad
+    あるデータを5分割して交差検証を行い、各 $\lambda$ について次の検証誤差（平均二乗誤差）が得られた。
+    \begin{center}
+      \begin{tabular}{c|ccccc}
+        \hline
+        $\lambda$ & 第1回 & 第2回 & 第3回 & 第4回 & 第5回 \\
+        \hline\hline
+        $0$ & $0.35$ & $0.12$ & $0.41$ & $0.18$ & $0.29$ \\
+        $0.1$ & $0.20$ & $0.14$ & $0.22$ & $0.16$ & $0.18$ \\
+        $1$ & $0.17$ & $0.18$ & $0.18$ & $0.19$ & $0.16$ \\
+        $10$ & $0.30$ & $0.33$ & $0.29$ & $0.34$ & $0.31$ \\
+        \hline
+      \end{tabular}
+    \end{center}
+    \begin{enumerate}
+      \item 各 $\lambda$ について検証誤差の平均を求め、選ぶべき $\lambda$ を答えよ。
+      \item $\lambda = 0$ の行は平均だけでなくばらつきも大きい。この理由をバイアスとバリアンスの言葉で説明せよ。
+      \item 訓練誤差が最小になる $\lambda$ を選んではいけない理由を述べよ。
+      \item 選んだ $\lambda$ で全データを使って学習し直したモデルの性能を見積もるには、どのデータを使うべきか。
+        交差検証の平均値をそのまま使うことの問題点を述べよ。
     \end{enumerate}
 
 \end{enumerate}
