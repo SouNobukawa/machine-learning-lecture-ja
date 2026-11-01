@@ -105,7 +105,7 @@ Copyright \copyright\ 2026 信川創．無断転載を禁じます．
     \hline
     6 & 正則化と汎化 & リッジ回帰、正則化係数の選び方（交差検証）、バイアス--バリアンス、制約付き最適化の導入、L1正則化 & ノルムと制約の幾何学 \\
     \hline
-    7 & 確率とベイズの定理 & 条件付き確率、ベイズの定理、事前・尤度・事後 & 確率の基本公式の導出 \\
+    7 & 確率とベイズの定理 & 条件付き確率、ベイズの定理、事前・尤度・事後、期待値と分散 & 確率の基本公式の導出 \\
     \hline
     8 & ナイーブベイズと生成モデル & 独立仮定、生成モデル vs 判別モデル、MAP推定 & 対数尤度最大化 \\
     \hline
@@ -451,7 +451,7 @@ $\mathbb{E}_{(\bm{x}, y) \sim P}[\cdot]$ はその分布に関する期待値、
 すなわち $P$ から無限にデータを取り出したときの損失の平均値を意味する。
 \end{itembox}
 
-確率分布と期待値の厳密な扱いは第7回で学ぶが、ここでは
+確率分布と期待値の厳密な扱いは第7回（第7.5節、第7.6節）で学ぶが、ここでは
 「未知のデータ全体にわたる損失の平均」という直感で十分である。
 
 汎化誤差は未知の分布 $P$ に依存するため直接計算できない。
@@ -5183,7 +5183,7 @@ $|B|$ は $32$ や $256$ といった小さな数にとることが多い。
 $B$ を一様ランダムに選べば平均的には一致する（\textbf{不偏}である）：
 $B$ の選び方についての期待値をとると
 $\mathbb{E}\bigl[\frac{1}{|B|}\sum_{i \in B}\nabla\ell_i\bigr] = \frac{1}{N}\sum_{i=1}^{N}\nabla\ell_i = \nabla L_D$ となる
-（第7回で確率を学んだ後に確かめてほしい）。
+（証明は第7.6.2項で与える）。
 図\ref{fig:minibatch}左は、ある1点 $\bm{w}$ でミニバッチを引き直して勾配を計算することを60回くり返したものである。
 ミニバッチの勾配は真の勾配（赤矢印）のまわりに散らばるが、その中心は真の勾配に一致し、
 $|B|$ が大きいほど散らばりは小さい。
@@ -6257,7 +6257,7 @@ $w_0$ は出力の平均的な水準を表すだけで、これを $0$ に引き
 データごとに独立に乗る。
 データ $D$ から学習した予測を $\hat{h}(x) = h(x; \bm{w}(D))$ と書き、
 $\mathbb{E}[\cdot]$ で「データを取り直したときの平均」を表す。
-確率変数と期待値の厳密な扱いは第7回で学ぶので、ここでは
+確率変数と期待値の厳密な扱いは第7回（第7.6節）で学ぶので、ここでは
 「たくさんのデータセットで学習をくり返し、結果を平均する」という操作だと理解しておけばよい。
 $\mathbb{E}[\varepsilon] = 0$、$\mathbb{E}[\varepsilon^2] = \sigma^2$、
 および独立な量の積の平均は平均の積になる、という3つの事実だけを使う。
@@ -6354,7 +6354,7 @@ $d = \sum_i x_i^2$ とおく（$\bm{X}^\top\bm{X}$ にあたる量で、$1 \time
   \label{eq:bv-ols}
 \end{equation}
 である。第2項はノイズの線形結合で、平均は $0$、分散は $\frac{1}{d^2}\sum_i x_i^2\sigma^2 = \sigma^2/d$ である
-（独立なノイズの和の分散は分散の和、という第7回で学ぶ性質を使った）。よって
+（独立なノイズの和の分散は分散の和、という第7.6.4項の性質を使った）。よって
 \begin{equation}
   \mathbb{E}[\hat{w}] = w \;\;(\text{バイアス } 0), \qquad \mathrm{Var}[\hat{w}] = \frac{\sigma^2}{d}
 \end{equation}
@@ -6738,6 +6738,1440 @@ $\lambda\|\bm{w}\|^2$ という項に、もう一つの顔があることが分�
       \item 訓練誤差が最小になる $\lambda$ を選んではいけない理由を述べよ。
       \item 選んだ $\lambda$ で全データを使って学習し直したモデルの性能を見積もるには、どのデータを使うべきか。
         交差検証の平均値をそのまま使うことの問題点を述べよ。
+    \end{enumerate}
+
+\end{enumerate}
+
+
+
+%===========================================
+% Chapter 7: Probability and Bayes' theorem
+%===========================================
+\section{確率とベイズの定理}
+
+第1回から第6回までは、損失を最小にするパラメータを求めることを学習と捉えてきた。
+しかしその途中で、確率の言葉が何度も顔を出していた。
+汎化誤差は「データの分布 $P(\bm{x}, y)$ に関する損失の期待値」として定義された（第1.4.2項）。
+ミニバッチの勾配は「平均すれば」真の勾配に一致した（第5.5.2項）。
+バイアス--バリアンス分解では、学習したパラメータを「データを取り直すたびにばらつく量」として扱った（第6.4節）。
+いずれも、確率の扱いは「直感で十分」として先送りにしてきた。
+
+本章では、その先送りを清算する。
+確率の基本公式を公理から導き、\textbf{条件付き確率}と\textbf{ベイズの定理}を学ぶ。
+ベイズの定理は「データを見る前の考え（事前確率）を、データを見て更新する（事後確率）」ための式であり、
+第8回のナイーブベイズ分類器、第9回の「正則化＝事前分布」という見方の土台になる。
+
+本章の流れは次のとおりである。
+まず、機械学習に確率がなぜ必要なのかを確認する（第7.1節）。
+確率の公理と基本公式（第7.2節）、条件付き確率と独立性（第7.3節）を経て、
+ベイズの定理を導き、事前確率・尤度・事後確率という3つの役者を紹介する（第7.4節）。
+後半では、数値をとる確率的な量（\textbf{確率変数}）と、その平均・ばらつきを表す\textbf{期待値}と\textbf{分散}を学び
+（第7.5節、第7.6節）、これまで先送りにしてきた事実を証明する。
+最後に、パラメータそのものを確率で表す\textbf{ベイズ推定}の考え方を、コインの例で見る（第7.7節）。
+
+
+\subsection{なぜ確率が必要か}
+
+\subsubsection{機械学習に現れる不確かさ}
+
+機械学習には、少なくとも3種類の不確かさが現れる。
+\begin{enumerate}
+  \item \textbf{データのノイズ}：同じ $\bm{x}$ でも $y$ は毎回少しずつ違う。
+    第6回では $y = f(x) + \varepsilon$ と書き、$\varepsilon$ を平均 $0$、分散 $\sigma^2$ のノイズとした（式\eqref{eq:bv-model}）。
+  \item \textbf{データの取り方}：手元の訓練データは、起こりうる多数のデータのうちの一組にすぎない。
+    データが違えば学習結果も違う。ミニバッチの選び方もこの一種である。
+  \item \textbf{パラメータについての知識}：データが少ないうちは、どのパラメータが正しいのか確信が持てない。
+    データが増えるにつれて確信が強まる。
+\end{enumerate}
+1と2は「世界が毎回ばらつく」ことによる不確かさ、3は「私たちが知らない」ことによる不確かさである。
+確率は、この両方を同じ規則で扱える言葉である。
+
+\subsubsection{確率の2つの解釈}
+
+確率には2つの読み方がある。
+\begin{itemize}
+  \item \textbf{頻度としての確率}：サイコロを何度も振ったとき、1の目が出る割合は $1/6$ に近づく。
+    確率とは「同じ試行をくり返したときの長期的な割合」である。
+  \item \textbf{信念の度合いとしての確率}：「明日雨が降る確率は $30\%$」のように、くり返せない一回限りの事柄についても確率を語る。
+    確率とは「その命題をどの程度確からしいと考えているか」の数値である。
+\end{itemize}
+前者を\textbf{頻度論}、後者を\textbf{ベイズ的}な解釈と呼ぶ。
+第1回から第6回の損失最小化は頻度論的な枠組みであり、第7回から第9回ではベイズ的な見方を導入する。
+重要なのは、\textbf{どちらの解釈でも計算規則は同じ}だということである。
+次節の公理と、そこから導かれる公式は、解釈によらずそのまま使える。
+
+
+\subsection{確率の基本}
+
+\subsubsection{標本空間と事象}
+
+\begin{itembox}[l]{定義：標本空間と事象}
+試行の結果として起こりうるもの全体の集合を\textbf{標本空間}（sample space）と呼び、$\Omega$ で表す。
+$\Omega$ の部分集合を\textbf{事象}（event）と呼ぶ。
+\end{itembox}
+
+サイコロを1回振る試行なら $\Omega = \{1, 2, 3, 4, 5, 6\}$ であり、
+「偶数の目が出る」は事象 $A = \{2, 4, 6\}$、「4以上の目が出る」は事象 $B = \{4, 5, 6\}$ である。
+事象は集合なので、集合の演算がそのまま使える（第5.4.1項の集合の記号を思い出そう）。
+\begin{itemize}
+  \item $A \cap B$（\textbf{積事象}）：$A$ と $B$ が両方起こる。例では $\{4, 6\}$
+  \item $A \cup B$（\textbf{和事象}）：$A$ または $B$ が起こる。例では $\{2, 4, 5, 6\}$
+  \item $A^c = \Omega \setminus A$（\textbf{余事象}）：$A$ が起こらない。例では $\{1, 3, 5\}$
+  \item $A \cap B = \emptyset$ のとき、$A$ と $B$ は\textbf{互いに排反}（同時には起こらない）という。
+    例えば $A$ と $C = \{1, 3\}$ は互いに排反である
+\end{itemize}
+これらを図\ref{fig:ch7-events}に示す。
+事象は標本空間の中の「囲み」であり、確率はその囲みに割り当てる「大きさ」だと考えるとよい。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch7_events}
+  \caption{サイコロを1回振る試行の標本空間 $\Omega = \{1, \ldots, 6\}$ と事象。
+  左から、事象 $A$（偶数）と $B$（4以上）、積事象 $A \cap B$、和事象 $A \cup B$、余事象 $A^c$（色を付けた結果がその事象に含まれる）、
+  互いに排反な事象 $A$ と $C = \{1, 3\}$（共通部分がない）。
+  $A$ と $B$ をそれぞれひと続きに囲めるよう、結果を $1, 3, 2, 4, 6, 5$ の順に並べている。}
+  \label{fig:ch7-events}
+\end{figure}
+
+\subsubsection{確率の公理}
+
+確率とは、各事象に $0$ 以上の数を割り当てる規則である。
+どんな割り当てが「確率」と呼ぶにふさわしいかを、次の3つの条件で定める。
+
+\begin{itembox}[l]{定義：確率の公理（コルモゴロフ）}
+事象 $A \subseteq \Omega$ に実数 $P(A)$ を対応させる関数 $P$ が次の3条件を満たすとき、$P$ を\textbf{確率}と呼ぶ。
+\begin{enumerate}
+  \item （非負性）すべての事象 $A$ について $P(A) \geq 0$
+  \item （全体の確率）$P(\Omega) = 1$
+  \item （加法性）互いに排反な事象 $A_1, A_2, \ldots$ について
+    $P(A_1 \cup A_2 \cup \cdots) = P(A_1) + P(A_2) + \cdots$
+\end{enumerate}
+\end{itembox}
+
+公理はたったこれだけである。
+確率についての他のすべての公式は、この3つから導かれる。
+いくつか導いておこう。
+
+\paragraph{余事象の確率}
+$A$ と $A^c$ は互いに排反で、$A \cup A^c = \Omega$ である。公理2と3より $P(A) + P(A^c) = P(\Omega) = 1$、すなわち
+\begin{equation}
+  P(A^c) = 1 - P(A)
+  \label{eq:ch7-complement}
+\end{equation}
+特に $A = \Omega$ とすれば $P(\emptyset) = 0$ である。
+「少なくとも1回は〜」という確率は、余事象「1回も〜ない」から計算すると楽になることが多い。
+
+\paragraph{確率は1以下}
+式\eqref{eq:ch7-complement}と公理1より $P(A) = 1 - P(A^c) \leq 1$ である。
+
+\paragraph{和事象の確率（加法定理）}
+公理3は「排反な事象」についてしか足し算を許していない。
+$A$ と $B$ に共通部分があるときはどうなるか。
+図\ref{fig:ch7-addition}のサイコロの例で考えよう。$A = \{2, 4, 6\}$、$B = \{4, 5, 6\}$ なので
+$P(A) + P(B) = 3/6 + 3/6 = 6/6$ だが、$A \cup B = \{2, 4, 5, 6\}$ の確率は $4/6$ である。
+差の $2/6$ は、共通部分 $A \cap B = \{4, 6\}$ を $P(A)$ と $P(B)$ で\textbf{2回数えた}ぶんにあたる。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\linewidth]{figures/ch7_addition}
+  \caption{加法定理。$P(A) + P(B)$ では $A \cap B = \{4, 6\}$（右の濃い色）が2回数えられているので、1回分を引くと $P(A \cup B)$ になる。}
+  \label{fig:ch7-addition}
+\end{figure}
+
+これを公理から導く。$A \cup B$ を、互いに排反な3つの部分に分ける。
+\begin{equation*}
+  A \cup B = \underbrace{(A \cap B^c)}_{A \text{ だけ}} \cup \underbrace{(A \cap B)}_{\text{両方}} \cup \underbrace{(A^c \cap B)}_{B \text{ だけ}}
+\end{equation*}
+サイコロの例では順に $\{2\}$、$\{4, 6\}$、$\{5\}$ である。3つは互いに排反なので、公理3より
+\begin{equation*}
+  P(A \cup B) = P(A \cap B^c) + P(A \cap B) + P(A^c \cap B)
+\end{equation*}
+である。一方、$A$ 自身も $B$ 自身も、同じ部品で排反に分けられる。
+\begin{equation*}
+  P(A) = P(A \cap B^c) + P(A \cap B), \qquad
+  P(B) = P(A \cap B) + P(A^c \cap B)
+\end{equation*}
+この2式を足すと $P(A) + P(B) = P(A \cap B^c) + 2\,P(A \cap B) + P(A^c \cap B)$ となり、
+$P(A \cup B)$ の式と比べると $P(A \cap B)$ が1つ余分である。したがって
+\begin{equation}
+  P(A \cup B) = P(A) + P(B) - P(A \cap B)
+  \label{eq:ch7-union}
+\end{equation}
+を得る。サイコロの例では $3/6 + 3/6 - 2/6 = 4/6$ であり、直接数えた結果と一致する。
+
+\subsubsection{同時確率と周辺確率}
+
+2つの観点でデータを分類すると、確率を表の形で整理できる。
+例として、ある受信箱の1000通のメールを「迷惑メールか否か」と「本文に『無料』という単語を含むか否か」で数えた結果を表\ref{tab:ch7-spam}に示す。
+各セルの割合を\textbf{同時確率}（joint probability）と呼び、$P(\text{迷惑}, \text{無料あり}) = P(\text{迷惑} \cap \text{無料あり})$ のように書く。
+ここで「迷惑」「無料あり」は、1000通を標本空間 $\Omega$ としたときの事象（迷惑メールの集合、『無料』を含むメールの集合）であり、本来は $A$、$B$ のような記号で表すべきものである。
+本章では読みやすさのため、\textbf{事象を表す言葉をそのまま $P$ の中に書く略記}を用いる。$P(\text{迷惑})$ は「事象『迷惑メール』の確率」の意味である。
+
+\begin{table}[H]
+  \centering
+  \caption{1000通のメールの分類（括弧内は全体に対する割合）。この例は第8回のナイーブベイズ分類器でも使う。}
+  \label{tab:ch7-spam}
+  \begin{tabular}{l|cc|c}
+    \hline
+     & 「無料」あり & 「無料」なし & 計 \\
+    \hline\hline
+    迷惑メール & $120$ $(0.12)$ & $80$ $(0.08)$ & $200$ $(0.20)$ \\
+    通常メール & $40$ $(0.04)$ & $760$ $(0.76)$ & $800$ $(0.80)$ \\
+    \hline
+    計 & $160$ $(0.16)$ & $840$ $(0.84)$ & $1000$ $(1.00)$ \\
+    \hline
+  \end{tabular}
+\end{table}
+
+表の右端と下端の「計」は、一方の観点だけで見た確率であり、\textbf{周辺確率}（marginal probability）と呼ばれる。
+表の余白（margin）に書かれることからこの名がある。
+周辺確率は同時確率を足し合わせて得られる。
+「『無料』あり」と「『無料』なし」は互いに排反で、合わせると全体になるので、公理3より
+\begin{equation}
+  P(\text{迷惑}) = P(\text{迷惑}, \text{無料あり}) + P(\text{迷惑}, \text{無料なし}) = 0.12 + 0.08 = 0.20
+  \label{eq:ch7-sum-rule}
+\end{equation}
+である。この操作を\textbf{周辺化}（marginalization）と呼ぶ。
+「知りたくない方の観点について、すべての場合を足し合わせて消す」操作であり、本章で何度も使う。
+表\ref{tab:ch7-spam}を面積で描いたものが、次節の図\ref{fig:ch7-cond-prob}中央である。
+横幅が「無料」あり／なしの割合、各列の中の縦の割合が迷惑／通常の割合で、
+各セルの面積が同時確率になっている。赤いセルの面積を全部足したものが $P(\text{迷惑}) = 0.20$ である。
+
+
+\subsection{条件付き確率と独立性}
+
+\subsubsection{条件付き確率}
+
+表\ref{tab:ch7-spam}で、「『無料』を含むメールのうち、迷惑メールの割合はいくらか」を考えよう。
+『無料』を含むメールは160通、そのうち迷惑メールは120通なので、割合は $120/160 = 0.75$ である。
+全体での迷惑メールの割合 $0.20$ に比べてずっと高い。
+「『無料』を含む」という情報が、迷惑メールである確からしさを変えたのである。
+
+\begin{itembox}[l]{定義：条件付き確率}
+$P(B) > 0$ のとき、事象 $B$ が起きたという条件のもとでの事象 $A$ の\textbf{条件付き確率}を
+\begin{equation}
+  P(A \mid B) = \frac{P(A \cap B)}{P(B)}
+  \label{eq:ch7-cond}
+\end{equation}
+で定める。「$B$ のもとでの $A$ の確率」と読む。
+\end{itembox}
+
+例では
+\begin{equation*}
+  P(\text{迷惑} \mid \text{無料あり}) = \frac{P(\text{迷惑} \cap \text{無料あり})}{P(\text{無料あり})}
+  = \frac{0.12}{0.16} = \frac{120/1000}{160/1000} = \frac{120}{160} = 0.75
+\end{equation*}
+であり、上の数え方と一致する。分母と分子の $1/1000$ が約分されて、結局「160通のうちの120通」という割合になる。
+
+図\ref{fig:ch7-cond-prob}のように、条件付き確率は\textbf{標本空間を $B$ に縮めて、その中で $A$ が占める割合を測る}ことにあたる。
+右の図では、「無料」ありの列だけに注目し、その列の中で迷惑メールの占める高さの割合を読んでいる。
+分母の $P(B)$ は、縮めた新しい全体の大きさを $1$ にそろえるための正規化である。
+実際、$P(\cdot \mid B)$ は事象の関数として確率の公理をすべて満たす（演習問題1）。
+したがって、前節の公式は条件付き確率についてもそのまま成り立つ。
+例えば $P(A^c \mid B) = 1 - P(A \mid B)$ であり、図の右では「無料」ありの列の残り $40/160 = 0.25$ がそれにあたる。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch7_cond_prob}
+  \caption{条件付き確率。左：$P(A \mid B)$ は $B$ を新しい全体とみなし、その中で $A \cap B$ が占める割合。
+  中央：表\ref{tab:ch7-spam}を面積で描いたもの。横幅が「無料」あり／なしの割合、各列の中の縦の割合が迷惑／通常の割合で、
+  各セルの面積が同時確率。
+  右：「無料」ありの列だけを新しい全体とみると、迷惑メールの割合は $120/160 = 0.75$ になる。}
+  \label{fig:ch7-cond-prob}
+\end{figure}
+
+条件付き確率で特に注意すべきは、\textbf{$P(A \mid B)$ と $P(B \mid A)$ は別物}だということである。
+例では
+\begin{equation*}
+  P(\text{迷惑} \mid \text{無料あり}) = \frac{120}{160} = 0.75, \qquad
+  P(\text{無料あり} \mid \text{迷惑}) = \frac{120}{200} = 0.60
+\end{equation*}
+であり、分母が違う。
+前者は「『無料』を含むメールのうち迷惑メールの割合」、後者は「迷惑メールのうち『無料』を含むものの割合」である。
+この2つを取り違える誤りは日常でも頻繁に起き、第7.4.2項で見るように深刻な判断ミスにつながる。
+
+\subsubsection{乗法定理}
+
+条件付き確率の定義\eqref{eq:ch7-cond}を、積事象の確率 $P(A \cap B)$ について解いてみよう。
+定義は $P(A \mid B) = P(A \cap B)/P(B)$ であったから、両辺に $P(B)$ を掛けて左右を入れ替えると
+\begin{equation*}
+  P(A \cap B) = P(A \mid B)\,P(B)
+\end{equation*}
+を得る。次に、同じ定義を $A$ と $B$ の役割を入れ替えて書くと（$P(A) > 0$ とする）
+\begin{equation*}
+  P(B \mid A) = \frac{P(B \cap A)}{P(A)}
+\end{equation*}
+である。積事象は順序によらない（$B \cap A = A \cap B$、「$B$ と $A$ が両方起こる」と「$A$ と $B$ が両方起こる」は同じ事象）ので、
+両辺に $P(A)$ を掛ければ $P(A \cap B) = P(B \mid A)\,P(A)$ となる。
+2つをまとめると
+\begin{equation}
+  P(A \cap B) = P(A \mid B)\,P(B) = P(B \mid A)\,P(A)
+  \label{eq:ch7-product}
+\end{equation}
+である。これを\textbf{乗法定理}（product rule）と呼ぶ。
+同じ $P(A \cap B)$ を、「$B$ を先に考える」か「$A$ を先に考える」かの2通りに分解しているのである。
+なお $P(B) = 0$ のときは $P(A \mid B)$ が定義されないが、$P(A \cap B) \leq P(B) = 0$ なので左辺も $0$ であり、
+右辺を $0$ と読めば式はそのまま成り立つ。
+
+表\ref{tab:ch7-spam}で確かめておこう。$A$ を「迷惑メール」、$B$ を「『無料』あり」とすると
+\begin{align*}
+  P(A \mid B)\,P(B) &= \frac{120}{160} \times \frac{160}{1000} = \frac{120}{1000} = 0.12, \\
+  P(B \mid A)\,P(A) &= \frac{120}{200} \times \frac{200}{1000} = \frac{120}{1000} = 0.12
+\end{align*}
+であり、どちらも表の同時確率 $P(A \cap B) = 0.12$ に一致する。
+分母と分子で $160$（または $200$）が約分され、結局「両方に当てはまる120通」を全体1000通で割っていることが分かる。
+「$A$ と $B$ が両方起こる確率」を「まず $B$ が起こり、そのうえで $A$ が起こる」と2段階に分けて計算できる、という意味である。
+乗法定理は、3つ以上の事象にもくり返し使える。
+鍵は、\textbf{いくつかの事象の積事象を、まとめて1つの事象とみなす}ことである。
+
+\paragraph{3つの事象の場合}
+$A_1 \cap A_2 \cap A_3$ を、2つの事象 $(A_1 \cap A_2)$ と $A_3$ の積事象と見る。
+式\eqref{eq:ch7-product}の1つ目の形で、$A$ を $A_3$、$B$ を $A_1 \cap A_2$ に置き換えると
+\begin{equation*}
+  P(A_1 \cap A_2 \cap A_3) = P\bigl( A_3 \cap (A_1 \cap A_2) \bigr) = P(A_3 \mid A_1 \cap A_2)\,P(A_1 \cap A_2)
+\end{equation*}
+となる。右辺に残った $P(A_1 \cap A_2)$ に、もう一度乗法定理を使って $P(A_1 \cap A_2) = P(A_2 \mid A_1)\,P(A_1)$ と分解すれば
+\begin{equation*}
+  P(A_1 \cap A_2 \cap A_3) = P(A_3 \mid A_1 \cap A_2)\,P(A_2 \mid A_1)\,P(A_1)
+\end{equation*}
+を得る。掛け算の順序を入れ替えて、起こる順に並べると
+$P(A_1)\,P(A_2 \mid A_1)\,P(A_3 \mid A_1 \cap A_2)$ である。
+「まず $A_1$ が起こり、$A_1$ のもとで $A_2$ が起こり、$A_1$ と $A_2$ のもとで $A_3$ が起こる」と、1つずつ条件を増やしながら積み重ねている。
+
+\paragraph{一般の場合}
+$n$ 個の場合も同じである。最後の事象 $A_n$ と、それ以前の積事象 $A_1 \cap \cdots \cap A_{n-1}$ に分けて乗法定理を使うと
+\begin{equation*}
+  P(A_1 \cap \cdots \cap A_n) = P(A_n \mid A_1 \cap \cdots \cap A_{n-1})\,P(A_1 \cap \cdots \cap A_{n-1})
+\end{equation*}
+となり、事象の個数が1つ減った $P(A_1 \cap \cdots \cap A_{n-1})$ が残る。
+これに同じ操作をくり返すと、事象は1つずつ減っていき、最後に $P(A_1)$ が残る。
+はがした条件付き確率をすべて掛け合わせれば
+\begin{equation}
+  P(A_1 \cap A_2 \cap \cdots \cap A_n)
+  = P(A_1)\,P(A_2 \mid A_1)\,P(A_3 \mid A_1 \cap A_2) \cdots P(A_n \mid A_1 \cap \cdots \cap A_{n-1})
+  \label{eq:ch7-chain}
+\end{equation}
+を得る（\textbf{連鎖律}）。
+$k$ 番目の因子は「1番目から $k - 1$ 番目までがすべて起きたという条件のもとで、$k$ 番目が起こる確率」である。
+厳密には、この「くり返し」は $n$ についての数学的帰納法で示される。
+なお、各条件付き確率が定義されるためには、条件となる積事象 $A_1 \cap \cdots \cap A_{k-1}$ の確率が正である必要がある。
+
+例えば、52枚のトランプから3枚を続けて（戻さずに）引いて、全部ハートである確率を求めよう。
+$A_k$ を「$k$ 枚目がハート」とすると、連鎖律より
+\begin{equation*}
+  P(A_1 \cap A_2 \cap A_3) = \underbrace{\frac{13}{52}}_{P(A_1)} \cdot \underbrace{\frac{12}{51}}_{P(A_2 \mid A_1)} \cdot \underbrace{\frac{11}{50}}_{P(A_3 \mid A_1 \cap A_2)} \approx 0.013
+\end{equation*}
+である。1枚目は52枚中13枚がハート。
+1枚目がハートだったという条件のもとでは、残り51枚中ハートは12枚。
+1枚目と2枚目がともにハートだったという条件のもとでは、残り50枚中ハートは11枚である。
+各因子が「それまでに起きたことを条件とする確率」になっていることが、具体的な数で確かめられる。
+もし引いたカードを毎回戻すなら、各回は前の結果と独立になり（第7.3.4項）、確率は $(13/52)^3 = 1/64$ である。
+この連鎖律は、文章の確率を単語ごとの条件付き確率の積に分解する言語モデル（第13回）の出発点でもある。
+
+\subsubsection{全確率の定理}
+
+周辺化（式\eqref{eq:ch7-sum-rule}）と乗法定理を組み合わせると、次の定理が得られる。
+
+\begin{itembox}[l]{定理：全確率の定理}
+事象 $B_1, \ldots, B_K$ が互いに排反で、$B_1 \cup \cdots \cup B_K = \Omega$ を満たす（\textbf{$\Omega$ の分割}である）とき、任意の事象 $A$ について
+\begin{equation}
+  P(A) = \sum_{k=1}^{K} P(A \mid B_k)\,P(B_k)
+  \label{eq:ch7-total}
+\end{equation}
+が成り立つ。
+\end{itembox}
+
+\paragraph{証明}
+3段階で示す。
+\begin{enumerate}
+  \item \textbf{$A$ を分割する。}
+    $B_1, \ldots, B_K$ は全体 $\Omega$ を隙間なく重なりなく覆っているので、$A$ の各要素はちょうど1つの $B_k$ に属する。
+    したがって $A$ は、「$A$ のうち $B_1$ に入る部分」「$A$ のうち $B_2$ に入る部分」……に分かれる：
+    \begin{equation*}
+      A = (A \cap B_1) \cup (A \cap B_2) \cup \cdots \cup (A \cap B_K)
+    \end{equation*}
+  \item \textbf{公理3で足す。}
+    $B_k$ どうしが排反なので、$A \cap B_k$ どうしも排反である。公理3より
+    \begin{equation*}
+      P(A) = P(A \cap B_1) + P(A \cap B_2) + \cdots + P(A \cap B_K) = \sum_{k=1}^K P(A \cap B_k)
+    \end{equation*}
+  \item \textbf{各項に乗法定理を使う。}
+    式\eqref{eq:ch7-product}より $P(A \cap B_k) = P(A \mid B_k)\,P(B_k)$ なので、これを代入すれば式\eqref{eq:ch7-total}になる。
+\end{enumerate}
+\hfill $\blacksquare$
+
+全確率の定理は「場合分けして、各場合の確率で重み付けして足す」ことを言っている。
+図\ref{fig:ch7-total-prob}左は、迷惑メールの例をこの形で読んだものである。
+$A$ を「迷惑メール」、$B_1$ を「無料」あり、$B_2$ を「無料」なしとすると、
+\begin{equation*}
+  P(A) = \underbrace{P(A \mid B_1)}_{0.75}\,\underbrace{P(B_1)}_{0.16} + \underbrace{P(A \mid B_2)}_{80/840 \approx 0.095}\,\underbrace{P(B_2)}_{0.84}
+  = 0.12 + 0.08 = 0.20
+\end{equation*}
+であり、周辺化\eqref{eq:ch7-sum-rule}と同じ値になる。
+図で言えば、各列の幅 $P(B_k)$ に、その列の中の赤の高さ $P(A \mid B_k)$ を掛けると各列の赤の面積 $P(A \cap B_k)$ になり、
+それを列ごとに足したものが赤の面積全体 $P(A)$ である。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\linewidth]{figures/ch7_total_prob}
+  \caption{全確率の定理とベイズの定理を面積で見る（$A$：迷惑メール、$B_1$：「無料」あり、$B_2$：「無料」なし）。
+  左：列の幅 $P(B_k)$ $\times$ 列内の赤の高さ $P(A \mid B_k)$ $=$ 列ごとの赤の面積。足すと $P(A)$。
+  右：ベイズの定理 $P(B_1 \mid A)$ は、赤の面積全体のうち $B_1$ の列にある部分の割合。}
+  \label{fig:ch7-total-prob}
+\end{figure}
+
+もう一つ例を挙げる。ある部品を3つの工場 $B_1, B_2, B_3$ が $50\%, 30\%, 20\%$ の割合で作り、
+不良品の割合がそれぞれ $1\%, 2\%, 3\%$ なら、無作為に選んだ部品が不良品である確率は
+$0.01 \times 0.5 + 0.02 \times 0.3 + 0.03 \times 0.2 = 0.005 + 0.006 + 0.006 = 0.017$ である。
+
+\subsubsection{独立性}
+
+「『無料』を含む」という情報は、迷惑メールである確率を $0.20$ から $0.75$ に変えた。
+逆に、情報を得ても確率が変わらないとき、2つの事象は無関係だと言える。
+
+\begin{itembox}[l]{定義：独立}
+事象 $A$ と $B$ が
+\begin{equation}
+  P(A \cap B) = P(A)\,P(B)
+  \label{eq:ch7-indep}
+\end{equation}
+を満たすとき、$A$ と $B$ は\textbf{独立}（independent）であるという。
+$P(B) > 0$ なら、これは $P(A \mid B) = P(A)$（$B$ を知っても $A$ の確率が変わらない）と同値である。
+\end{itembox}
+
+サイコロを2回振るとき、「1回目が偶数」と「2回目が6」は独立であり、両方が起こる確率は $\frac{1}{2} \cdot \frac{1}{6} = \frac{1}{12}$ である。
+一方、表\ref{tab:ch7-spam}では $P(\text{迷惑}, \text{無料あり}) = 0.12$ に対して $P(\text{迷惑})P(\text{無料あり}) = 0.2 \times 0.16 = 0.032$ なので、独立ではない。
+独立でないからこそ、「無料」という単語が迷惑メールの手がかりになる。
+
+独立性は「互いに排反」とは全く違う概念であることに注意する。
+排反な事象（$P(A \cap B) = 0$）は、一方が起きれば他方は決して起きないので、むしろ強く依存している。
+
+さらに、第3の事象 $C$ を条件としたときに
+\begin{equation}
+  P(A \cap B \mid C) = P(A \mid C)\,P(B \mid C)
+  \label{eq:ch7-cond-indep}
+\end{equation}
+が成り立つとき、$A$ と $B$ は\textbf{$C$ のもとで条件付き独立}であるという。
+「迷惑メールであることが分かっていれば、『無料』を含むかどうかと『当選』を含むかどうかは無関係」という仮定がその例であり、
+第8回のナイーブベイズ分類器はこの仮定の上に組み立てられる。
+
+
+\subsection{ベイズの定理}
+
+\subsubsection{定理の導出}
+
+乗法定理\eqref{eq:ch7-product}には、同じ $P(A \cap B)$ を表す2通りの書き方があった。
+\begin{equation*}
+  P(A \mid B)\,P(B) = P(B \mid A)\,P(A)
+\end{equation*}
+両辺を $P(B)$ で割れば、条件の向きを入れ替える公式が得られる。
+
+\begin{itembox}[l]{定理：ベイズの定理}
+$P(B) > 0$ のとき
+\begin{equation}
+  P(A \mid B) = \frac{P(B \mid A)\,P(A)}{P(B)}
+  \label{eq:ch7-bayes}
+\end{equation}
+が成り立つ。分母は全確率の定理\eqref{eq:ch7-total}より
+$P(B) = P(B \mid A)P(A) + P(B \mid A^c)P(A^c)$ と書ける。
+\end{itembox}
+
+導出は2行であるが、この式の価値は計算の簡単さではなく、使い方にある。
+多くの場面で、手元にあるのは「原因 $A$ のもとで結果 $B$ が起こる確率」$P(B \mid A)$ である。
+病気の人が検査で陽性になる確率、迷惑メールに『無料』が含まれる確率、あるパラメータのもとでデータが観測される確率。
+一方で知りたいのは逆向きの「結果 $B$ を見たときに原因が $A$ である確率」$P(A \mid B)$ である。
+ベイズの定理は、\textbf{原因から結果への確率を、結果から原因への確率に変換する}式である。
+
+表\ref{tab:ch7-spam}で確かめておこう。
+$P(\text{無料あり} \mid \text{迷惑}) = 0.6$、$P(\text{迷惑}) = 0.2$、$P(\text{無料あり}) = 0.16$ から
+\begin{equation*}
+  P(\text{迷惑} \mid \text{無料あり}) = \frac{0.6 \times 0.2}{0.16} = \frac{0.12}{0.16} = 0.75
+\end{equation*}
+であり、直接数えた値と一致する。
+分子の $0.6 \times 0.2 = 0.12$ は乗法定理で作った同時確率 $P(\text{迷惑} \cap \text{無料あり})$ であり、
+それを $P(\text{無料あり})$ で割っているのだから、これは条件付き確率の定義\eqref{eq:ch7-cond}そのものである。
+逆向きの $P(\text{無料あり} \mid \text{迷惑})$ も同じ要領で、図\ref{fig:ch7-total-prob}右のように
+「赤の面積全体 $0.12 + 0.08$ のうち、『無料』ありの列にある $0.12$ の割合」として $0.60$ が得られる。
+ベイズの定理の分母を全確率の定理で書き下した形 $P(B) = \sum_k P(B \mid A_k)P(A_k)$ は、
+まさにこの「面積を列ごとに足す」計算である。
+
+\subsubsection{数値例：検査の陽性は何を意味するか}
+
+ある病気の検査を考える。
+\begin{itemize}
+  \item 有病率：人口の $1\%$ がこの病気にかかっている。$P(\text{病気}) = 0.01$
+  \item 感度：病気の人が陽性になる確率は $99\%$。$P(\text{陽性} \mid \text{病気}) = 0.99$
+  \item 偽陽性率：病気でない人が誤って陽性になる確率は $5\%$。$P(\text{陽性} \mid \text{健康}) = 0.05$
+\end{itemize}
+ここで「病気」「陽性」は、集団から1人を選んだとき「その人が病気である」「検査結果が陽性である」という事象であり、「健康」は「病気」の余事象である（第7.4.3項で集合として書き下す）。
+ある人が陽性と判定された。この人が本当に病気である確率はいくらか。
+感度 $99\%$ の検査で陽性なのだから、病気である確率も $99\%$ 近い、と考えたくなる。
+ベイズの定理\eqref{eq:ch7-bayes}で $A$ を「病気」、$B$ を「陽性」として計算しよう。
+\begin{equation*}
+  P(\text{病気} \mid \text{陽性}) = \frac{P(\text{陽性} \mid \text{病気})\,P(\text{病気})}{P(\text{陽性})}
+\end{equation*}
+分子は、感度と有病率の積 $0.99 \times 0.01 = 0.0099$ である（「病気で、かつ陽性」の同時確率）。
+分母の $P(\text{陽性})$ は直接は与えられていないので、全確率の定理で「病気」「健康」に場合分けして求める。
+$P(\text{健康}) = 1 - 0.01 = 0.99$ なので
+\begin{equation*}
+  P(\text{陽性}) = \underbrace{P(\text{陽性} \mid \text{病気})\,P(\text{病気})}_{0.99 \times 0.01 = 0.0099}
+  + \underbrace{P(\text{陽性} \mid \text{健康})\,P(\text{健康})}_{0.05 \times 0.99 = 0.0495} = 0.0594
+\end{equation*}
+である。分母の2つの項が「病気で陽性」と「健康なのに陽性」の2通りの陽性に対応していることに注意する。
+したがって、分子と分母を設定の数値で書き下すと
+\begin{equation}
+  \begin{aligned}
+    P(\text{病気} \mid \text{陽性})
+    &= \frac{P(\text{陽性} \mid \text{病気})\,P(\text{病気})}
+            {P(\text{陽性} \mid \text{病気})\,P(\text{病気}) + P(\text{陽性} \mid \text{健康})\,P(\text{健康})} \\
+    &= \frac{0.99 \times 0.01}{0.99 \times 0.01 + 0.05 \times 0.99}
+     = \frac{0.0099}{0.0099 + 0.0495} = \frac{0.0099}{0.0594} \approx 0.167
+  \end{aligned}
+  \label{eq:ch7-test}
+\end{equation}
+である。\textbf{陽性でも、本当に病気である確率は約 $17\%$ にすぎない}。
+分母で「健康なのに陽性」の $0.0495$ が「病気で陽性」の $0.0099$ の5倍もあることが原因である。
+
+図\ref{fig:ch7-test-tree}のように、確率を人数（\textbf{自然頻度}）に直すと理由がはっきりする。
+10000人のうち病気の人は100人で、そのうち99人が陽性になる。
+病気でない9900人のうち $5\%$、つまり495人も陽性になる。
+陽性の594人のうち、本当に病気なのは99人だけである。
+偽陽性率 $5\%$ は小さく見えるが、それが掛かる「病気でない人」がはるかに多いため、偽陽性の人数が真の陽性を上回るのである。
+$P(\text{陽性} \mid \text{病気}) = 0.99$ と $P(\text{病気} \mid \text{陽性}) = 0.167$ の違いは、前節で注意した「条件の向きの取り違え」の典型例である。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\linewidth]{figures/ch7_test_tree}
+  \caption{検査の例を10000人の人数で表したもの（自然頻度）。陽性594人のうち、病気の人は99人にすぎない。}
+  \label{fig:ch7-test-tree}
+\end{figure}
+
+この結果を大きく左右しているのは、検査の性能よりも\textbf{もともとの有病率 $1\%$} である。
+有病率が $10\%$ の集団（例えば症状のある人だけを検査する場合）なら、同じ検査でも
+\begin{equation*}
+  P(\text{病気} \mid \text{陽性}) = \frac{0.99 \times 0.1}{0.99 \times 0.1 + 0.05 \times 0.9} = \frac{0.099}{0.099 + 0.045} \approx 0.69
+\end{equation*}
+になる。
+データ（陽性という結果）の意味は、それを見る前の想定に依存する。
+これがベイズの定理の最も重要な教訓である。
+
+\subsubsection{事前確率・尤度・事後確率}
+
+ベイズの定理の各項には名前がついている。
+原因の候補（仮説）を $H$、観測したデータを $D$ とすると
+\begin{equation}
+  \underbrace{P(H \mid D)}_{\text{事後確率}}
+  = \frac{\overbrace{P(D \mid H)}^{\text{尤度}} \; \overbrace{P(H)}^{\text{事前確率}}}{\underbrace{P(D)}_{\text{周辺尤度（エビデンス）}}}
+  \label{eq:ch7-bayes-terms}
+\end{equation}
+\begin{itemize}
+  \item \textbf{事前確率}（prior）$P(H)$：データを見る前に、仮説 $H$ をどの程度確からしいと考えているか
+  \item \textbf{尤度}（likelihood）$P(D \mid H)$：仮説 $H$ が正しいとしたとき、観測されたデータ $D$ がどの程度起こりやすいか
+  \item \textbf{事後確率}（posterior）$P(H \mid D)$：データ $D$ を見たあとの、仮説 $H$ の確からしさ
+  \item \textbf{周辺尤度}（エビデンス）$P(D)$：仮説について周辺化した、データそのものの起こりやすさ
+\end{itemize}
+
+ここで $H$ と $D$ は、第7.2.1項の $A$ や $B$ と同じく\textbf{標本空間 $\Omega$ の部分集合（事象）}である。
+「仮説」「データ」という呼び名は、ベイズの定理の中でその事象が果たす役割を表しているだけで、集合としての扱いは何も変わらない。
+したがって、ベイズの定理を使うときは、まず「何が $\Omega$ で、$H$ と $D$ はどの部分集合か」を決めなければならない。
+
+検査の例で実際にやってみよう。
+集団から1人を無作為に選ぶ試行を考えると、1人について「病気か健康か」と「陽性か陰性か」の2つの結果が定まるので、標本空間はその組
+\begin{equation*}
+  \Omega = \{\text{病}, \text{健}\} \times \{\text{陽}, \text{陰}\}
+  = \{(\text{病}, \text{陽}),\ (\text{病}, \text{陰}),\ (\text{健}, \text{陽}),\ (\text{健}, \text{陰})\}
+\end{equation*}
+である（4通りの結果）。
+知りたいが直接は見えないもの（病気かどうか）を仮説 $H$、実際に観測できたもの（陽性という結果）をデータ $D$ とすると、
+\begin{align*}
+  H &= \text{「病気」} = \{(\text{病}, \text{陽}),\ (\text{病}, \text{陰})\}, &
+  H^c &= \text{「健康」} = \{(\text{健}, \text{陽}),\ (\text{健}, \text{陰})\}, \\
+  D &= \text{「陽性」} = \{(\text{病}, \text{陽}),\ (\text{健}, \text{陽})\}, &
+  H \cap D &= \text{「病気で陽性」} = \{(\text{病}, \text{陽})\}
+\end{align*}
+である。
+これまで $P(\text{病気})$ と書いてきたのは $P(H)$ の略記であり、$P(\text{陽性} \mid \text{病気})$ は $P(D \mid H)$ の略記である。
+4つの結果それぞれの確率（同時確率）を、表\ref{tab:ch7-spam}と同じ形に並べたものが表\ref{tab:ch7-test-joint}である。
+各セルの値は第7.4.2項の設定から乗法定理で求まる（例えば $P(H \cap D) = P(D \mid H)P(H) = 0.99 \times 0.01 = 0.0099$）。
+
+\begin{table}[tbp]
+  \centering
+  \caption{検査の例の標本空間 $\Omega$ の4つの結果と、その同時確率（括弧内は10000人あたりの人数、図\ref{fig:ch7-test-tree}と同じ）。
+  行が仮説 $H$（病気）と $H^c$（健康）、列がデータ $D$（陽性）と $D^c$（陰性）に対応する。}
+  \label{tab:ch7-test-joint}
+  \begin{tabular}{l|cc|c}
+    \hline
+     & $D$：陽性 & $D^c$：陰性 & 計 \\
+    \hline\hline
+    $H$：病気 & $0.0099$ (99人) & $0.0001$ (1人) & $P(H) = 0.01$ (100人) \\
+    $H^c$：健康 & $0.0495$ (495人) & $0.9405$ (9405人) & $P(H^c) = 0.99$ (9900人) \\
+    \hline
+    計 & $P(D) = 0.0594$ (594人) & $P(D^c) = 0.9406$ (9406人) & $1$ (10000人) \\
+    \hline
+  \end{tabular}
+\end{table}
+
+この表の上で、式\eqref{eq:ch7-bayes-terms}の4つの量は次のように読める。
+\begin{itemize}
+  \item 事前確率 $P(H) = 0.01$ は、行 $H$ の\textbf{周辺確率}（行の合計）。検査結果を見る前の、病気の割合そのもの
+  \item 尤度 $P(D \mid H) = P(H \cap D) / P(H) = 0.0099 / 0.01 = 0.99$ は、\textbf{行 $H$ の中で} $D$ が占める割合。
+    条件付き確率の定義\eqref{eq:ch7-cond}そのものであり、「病気の人だけに世界を縮めて、陽性の割合を測る」
+  \item 周辺尤度 $P(D) = 0.0099 + 0.0495 = 0.0594$ は、列 $D$ の\textbf{周辺確率}（列の合計）。
+    「周辺」という名前は、この周辺化（$H$ と $H^c$ について足す＝全確率の定理）から来ている
+  \item 事後確率 $P(H \mid D) = P(H \cap D) / P(D) = 0.0099 / 0.0594 \approx 0.167$ は、\textbf{列 $D$ の中で} $H$ が占める割合。
+    「陽性の人だけに世界を縮めて、病気の割合を測る」
+\end{itemize}
+尤度と事後確率は、同じ同時確率 $P(H \cap D) = 0.0099$ を、行の合計で割るか列の合計で割るかの違いである。
+どちらに当たるかは\textbf{条件記号 $\mid$ の向き}で見分けられる。
+尤度 $P(D \mid H)$ は「仮説を仮定してデータを見る」向き、事後確率 $P(H \mid D)$ は「データを見て仮説を判断する」向きである。
+以上をまとめたものが表\ref{tab:ch7-bayes-terms}である。
+事前確率と尤度は問題の設定として\textbf{与えられる}量、周辺尤度と事後確率はそれらから\textbf{計算される}量であることにも注意する。
+
+\begin{table}[tbp]
+  \centering
+  \caption{検査の例（第7.4.2項）におけるベイズの定理の各項の対応。$H$ は事象「病気」（仮説）、$D$ は事象「陽性」（データ）で、値は表\ref{tab:ch7-test-joint}から読み取れる。}
+  \label{tab:ch7-bayes-terms}
+  \small
+  \begin{tabular}{l|l|l|c|p{4.6cm}}
+    \hline
+    名称 & 記号 & 検査の例での意味 & 値 & 値の根拠 \\
+    \hline\hline
+    事前確率 & $P(H)$ & 病気である割合（有病率） & $0.01$ & 設定で与えられた。検査を受ける前の確率 \\
+    尤度 & $P(D \mid H)$ & 病気の人が陽性になる割合（感度） & $0.99$ & 設定で与えられた。病気と仮定したときの陽性の出やすさ \\
+    周辺尤度 & $P(D)$ & 陽性になる割合 & $0.0594$ & 全確率の定理で計算：$0.99 \times 0.01 + 0.05 \times 0.99$ \\
+    事後確率 & $P(H \mid D)$ & 陽性の人が病気である割合（答え） & $0.167$ & ベイズの定理で計算：式\eqref{eq:ch7-test} \\
+    \hline
+  \end{tabular}
+\end{table}
+
+表には現れていないが、偽陽性率 $P(D \mid H^c) = 0.05$ も使っている。
+これは「対立仮説 $H^c$（健康）のもとでの尤度」であり、周辺尤度 $P(D)$ を全確率の定理で計算するときに、$P(H^c) = 0.99$ とともに分母の第2項として入っている。
+つまり、ベイズの定理の分母は「すべての仮説についての尤度 $\times$ 事前確率の和」である。
+
+「尤」は「もっともらしい」と読む字であり、尤度は「データから見た仮説のもっともらしさ」を表す。
+ここで、尤度 $P(D \mid H)$ は\textbf{データ $D$ を固定して仮説 $H$ を動かす関数}として読むことに注意する。
+$H$ について足し合わせても $1$ になるとは限らない（例では $0.99 + 0.05 \neq 1$）ので、$H$ についての確率分布ではない。
+
+周辺尤度 $P(D)$ は、仮説 $H$ によらない定数である。
+そのため、複数の仮説の事後確率を比べるだけなら分母は不要で、
+\begin{equation}
+  P(H \mid D) \propto P(D \mid H)\,P(H)
+  \label{eq:ch7-bayes-prop}
+\end{equation}
+と書くことが多い（$\propto$ は「比例する」）。
+\textbf{事後確率は、尤度と事前確率の積に比例する}。
+すべての仮説について右辺を計算し、合計が $1$ になるように割れば事後確率が得られる。
+ベイズの定理を使う計算の大半は、この「掛けて、正規化する」の2段階である。
+
+\subsubsection{逐次的な更新}
+
+陽性と判定された人が、念のため同じ検査をもう一度受け、再び陽性になったとする。
+1回目の陽性を事象 $D_1$（これまでの $D$）、2回目の陽性を事象 $D_2$ とすると、知りたいのは $P(H \mid D_1 \cap D_2)$ である。
+2回の検査結果は、病気の有無を条件として条件付き独立（第7.3.4項）であるとする。
+すなわち、病気かどうかが分かっていれば1回目の結果を知っても2回目の陽性の出やすさは変わらない：
+$P(D_2 \mid H \cap D_1) = P(D_2 \mid H) = 0.99$、$P(D_2 \mid H^c \cap D_1) = P(D_2 \mid H^c) = 0.05$。
+このとき、条件付き確率の定義\eqref{eq:ch7-cond}から
+\begin{equation}
+  P(H \mid D_1 \cap D_2) = \frac{P(H \cap D_1 \cap D_2)}{P(D_1 \cap D_2)}
+  \label{eq:ch7-seq-def}
+\end{equation}
+である。分子と分母をそれぞれ、既に分かっている量で書き直す。
+
+分子は、乗法定理\eqref{eq:ch7-product}を2回使って分解する。
+まず $H \cap D_1$ をひとまとまりの事象と見て $D_2$ を切り出し、次に $H \cap D_1$ を $D_1$ と $H$ に分ける。
+\begin{equation}
+  P(H \cap D_1 \cap D_2)
+  = P(D_2 \mid H \cap D_1)\,P(H \cap D_1)
+  = P(D_2 \mid H \cap D_1)\,P(H \mid D_1)\,P(D_1)
+  \label{eq:ch7-seq-num}
+\end{equation}
+分母は、全確率の定理\eqref{eq:ch7-total}で $H$ と $H^c$ に場合分けし、各項を分子と同じように分解する。
+\begin{equation}
+  \begin{aligned}
+    P(D_1 \cap D_2)
+    &= P(H \cap D_1 \cap D_2) + P(H^c \cap D_1 \cap D_2) \\
+    &= P(D_2 \mid H \cap D_1)\,P(H \mid D_1)\,P(D_1) + P(D_2 \mid H^c \cap D_1)\,P(H^c \mid D_1)\,P(D_1)
+  \end{aligned}
+  \label{eq:ch7-seq-den}
+\end{equation}
+式\eqref{eq:ch7-seq-num}と\eqref{eq:ch7-seq-den}を式\eqref{eq:ch7-seq-def}に代入すると、分子・分母に共通の $P(D_1)$ が約分されて
+\begin{equation}
+  P(H \mid D_1 \cap D_2)
+  = \frac{P(D_2 \mid H \cap D_1)\,P(H \mid D_1)}{P(D_2 \mid H \cap D_1)\,P(H \mid D_1) + P(D_2 \mid H^c \cap D_1)\,P(H^c \mid D_1)}
+  \label{eq:ch7-seq-bayes}
+\end{equation}
+を得る。
+これを式\eqref{eq:ch7-test}の1行目と見比べると、尤度 $P(D \mid H)$ が $P(D_2 \mid H \cap D_1)$ に、事前確率 $P(H)$ が $P(H \mid D_1)$ に置き換わっただけで、形はベイズの定理そのものである。
+さらに条件付き独立の仮定で $P(D_2 \mid H \cap D_1) = 0.99$、$P(D_2 \mid H^c \cap D_1) = 0.05$ となるので、尤度は1回目と同じ値である。
+つまり、\textbf{1回目の検査結果を見たあとの事後確率 $P(H \mid D_1) = 0.167$ を、2回目にとっての事前確率として使えばよい}。
+式\eqref{eq:ch7-test}の計算で、事前確率 $0.01$ を $P(H \mid D_1) = 0.167$ に、$P(H^c) = 0.99$ を $P(H^c \mid D_1) = 1 - 0.167 = 0.833$ に置き換えるだけである。
+\begin{equation*}
+  P(H \mid D_1 \cap D_2) = \frac{0.99 \times 0.167}{\underbrace{0.99 \times 0.167}_{0.165} + \underbrace{0.05 \times 0.833}_{0.042}}
+  = \frac{0.165}{0.207} \approx 0.80
+\end{equation*}
+1回の陽性では $17\%$ だった確率が、2回目の陽性で $80\%$ まで上がる。
+分母を見ると、今度は「病気で陽性」の項 $0.165$ が「健康なのに陽性」の項 $0.042$ を大きく上回っている。
+1回目の陽性で事前確率が $0.01$ から $0.167$ に上がったため、2回目では偽陽性が少数派になったのである。
+このように、\textbf{今日の事後確率が明日の事前確率になる}。
+データが届くたびに確信を少しずつ更新していくという見方は、第5回でデータが逐次的に届く場合に反復計算を使ったこと（第5.1.1項）と通じる。
+
+2回分のデータをまとめて「尤度 $P(D_1 \cap D_2 \mid H) = 0.99^2$、事前確率 $0.01$」として一度に計算しても、同じ $0.80$ が得られる（演習問題3）。
+更新の順序や分け方によらず、最後に得られる事後確率は同じである。
+
+\begin{mlcolumn}{オッズで見るベイズの定理}
+2つの仮説（病気か健康か）を比べるときは、確率の代わりに\textbf{オッズ}（odds）を使うとベイズの定理がさらに単純になる。
+オッズとは2つの確率の比である。例えば確率 $0.2$ はオッズ $0.2 : 0.8 = 1 : 4$、逆にオッズ $1 : 4$ は確率 $1/(1 + 4) = 0.2$ である。
+ベイズの定理を $H$（病気）と $H^c$（健康）のそれぞれについて書くと
+\begin{equation*}
+  P(H \mid D) = \frac{P(D \mid H)\,P(H)}{P(D)}, \qquad
+  P(H^c \mid D) = \frac{P(D \mid H^c)\,P(H^c)}{P(D)}
+\end{equation*}
+である。辺々割ると、共通の分母 $P(D)$ が約分されて消え、
+\begin{equation*}
+  \underbrace{\frac{P(H \mid D)}{P(H^c \mid D)}}_{\text{事後オッズ}}
+  = \underbrace{\frac{P(D \mid H)}{P(D \mid H^c)}}_{\text{尤度比}}
+  \times \underbrace{\frac{P(H)}{P(H^c)}}_{\text{事前オッズ}}
+\end{equation*}
+となる。検査の例では、事前オッズは $1 : 99$、陽性の尤度比は $0.99/0.05 = 19.8$ なので、
+事後オッズは $19.8 : 99 = 1 : 5$、確率に直すと $1/6 \approx 0.167$ である。
+2回目の陽性でさらに $19.8$ 倍され、オッズは $19.8 : 5 \approx 4 : 1$、確率は約 $0.80$ になる。
+\textbf{データは尤度比を掛けるという形で効く}。
+対数をとれば掛け算が足し算になり、「証拠の重み」を足し合わせていく見方になる。
+第8回のナイーブベイズ分類器は、単語ごとの対数尤度比を足し合わせて迷惑メールかどうかを判定する。
+\end{mlcolumn}
+
+
+\subsection{確率変数と確率分布}
+
+ここまでは「事象」の確率を扱ってきた。
+機械学習で扱う量の多くは、サイコロの目、ノイズ $\varepsilon$、学習したパラメータ $\hat{w}$ のように\textbf{数値}である。
+試行の結果に応じて値が決まる数値を\textbf{確率変数}（random variable）と呼び、大文字 $X, Y$ で表す
+（計画行列 $\bm{X}$ は太字であり、確率変数 $X$ とは区別する）。
+確率変数がとる具体的な値は小文字 $x, y$ で表す。
+
+\subsubsection{離散確率変数}
+
+とりうる値が $x_1, x_2, \ldots$ のように数え上げられる確率変数を\textbf{離散確率変数}と呼ぶ。
+
+\begin{itembox}[l]{定義：確率質量関数}
+離散確率変数 $X$ について、各値 $x$ をとる確率
+\begin{equation}
+  p(x) = P(X = x)
+\end{equation}
+を $X$ の\textbf{確率質量関数}（probability mass function）と呼ぶ。$p(x) \geq 0$、$\sum_x p(x) = 1$ を満たす。
+\end{itembox}
+
+確率変数がどの値をどの確率でとるかの全体を、その\textbf{確率分布}（probability distribution）と呼ぶ。
+代表的な離散分布を挙げる。
+\begin{itemize}
+  \item \textbf{ベルヌーイ分布}：$X \in \{0, 1\}$ で、$P(X = 1) = \theta$、$P(X = 0) = 1 - \theta$。
+    まとめて $p(x) = \theta^x (1 - \theta)^{1 - x}$ と書ける。
+    コインの表裏、メールが迷惑か否か、2クラス分類のラベルを表す
+  \item \textbf{カテゴリ分布}：$X \in \{1, \ldots, K\}$ で、$P(X = k) = \theta_k$（$\sum_k \theta_k = 1$）。
+    サイコロの目、$K$ クラス分類のラベル、言語モデルが予測する次の単語を表す
+\end{itemize}
+
+\subsubsection{連続確率変数}
+
+ノイズ $\varepsilon$ や身長のように、実数の区間の値を連続的にとる確率変数を\textbf{連続確率変数}と呼ぶ。
+連続確率変数では、特定の1点 $X = x$ をとる確率は $0$ である
+（身長がちょうど $170.000\cdots$ cm である確率は $0$）。
+そこで、確率を「区間に入る確率」として扱う。
+
+\begin{itembox}[l]{定義：確率密度関数}
+連続確率変数 $X$ について、関数 $p(x) \geq 0$ が任意の区間 $[a, b]$ に対して
+\begin{equation}
+  P(a \leq X \leq b) = \int_a^b p(x)\,dx
+  \label{eq:ch7-pdf}
+\end{equation}
+を満たすとき、$p(x)$ を $X$ の\textbf{確率密度関数}（probability density function）と呼ぶ。$\int_{-\infty}^{\infty} p(x)\,dx = 1$ を満たす。
+\end{itembox}
+
+確率は密度関数のグラフの下の\textbf{面積}である。
+密度 $p(x)$ そのものは確率ではないので、$1$ を超えてもよい。
+例えば区間 $[0, 0.5]$ 上の一様分布（どの点も同じ起こりやすさ）の密度は、
+全体の面積が $1$ になるように $p(x) = 2$ である（幅 $0.5$ $\times$ 高さ $2$ $= 1$、図\ref{fig:ch7-gaussian}左）。
+このとき $P(0.1 \leq X \leq 0.3)$ は幅 $0.2$ $\times$ 高さ $2$ $= 0.4$ であり、確率はきちんと $1$ 以下になる。
+$p(x)\,dx$ が「$x$ の近くの幅 $dx$ の区間に入る確率」であり、密度とは「単位幅あたりの確率」である。
+以下では、離散の場合の和 $\sum_x$ を連続の場合は積分 $\int dx$ に読み替えれば、同じ公式が成り立つ。
+
+\subsubsection{同時分布・周辺分布・条件付き分布}
+
+2つの確率変数 $X, Y$ を同時に考えるときは、\textbf{同時分布} $p(x, y)$ を使う。
+第7.2節と第7.3節の公式は、事象を確率変数の値に置き換えてそのまま成り立つ。
+\begin{align}
+  p(x) &= \sum_y p(x, y) \quad \left(\text{連続なら } \int p(x, y)\,dy\right)
+  && \text{（周辺化）}
+  \label{eq:ch7-marg} \\
+  p(y \mid x) &= \frac{p(x, y)}{p(x)}
+  && \text{（条件付き分布）} \notag \\
+  p(x, y) &= p(y \mid x)\,p(x)
+  && \text{（乗法定理）} \notag \\
+  p(x \mid y) &= \frac{p(y \mid x)\,p(x)}{\sum_{x'} p(y \mid x')\,p(x')}
+  && \text{（ベイズの定理）}
+  \label{eq:ch7-bayes-dist}
+\end{align}
+$X$ と $Y$ が\textbf{独立}であるとは、すべての $x, y$ について $p(x, y) = p(x)\,p(y)$ が成り立つことである。
+
+第1回で汎化誤差を定義したときの「入力と出力の組 $(\bm{x}, y)$ が同時分布 $P(\bm{x}, y)$ に従う」とは、この意味である。
+乗法定理で $p(\bm{x}, y) = p(y \mid \bm{x})\,p(\bm{x})$ と分解すると、
+$p(\bm{x})$ は「どんな入力が現れるか」、$p(y \mid \bm{x})$ は「入力 $\bm{x}$ のもとで出力がどうばらつくか」を表す。
+回帰や分類で学習したいのは、本質的には後者の条件付き分布である。
+第8回では、どちらの分解に注目するかによって、\textbf{生成モデル}と\textbf{判別モデル}という2つの立場が生まれることを見る。
+
+\subsubsection{正規分布}
+
+連続分布の中で最も重要なのが\textbf{正規分布}（ガウス分布）である。
+以下に出てくる確率密度関数は第7.5.2項の定義\eqref{eq:ch7-pdf}の意味であり、$X$ が区間 $[a, b]$ に入る確率は密度の曲線の下の面積 $\int_a^b p(x)\,dx$ で与えられる（密度の値そのものは確率ではない）。
+
+\begin{itembox}[l]{定義：正規分布}
+実数 $\mu$ と $\sigma > 0$ について、確率密度関数（第7.5.2項）
+\begin{equation}
+  \mathcal{N}(x \mid \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\!\left( -\frac{(x - \mu)^2}{2\sigma^2} \right)
+  \label{eq:ch7-gauss}
+\end{equation}
+をもつ分布を、平均 $\mu$、分散 $\sigma^2$ の\textbf{正規分布}と呼び、$\mathcal{N}(\mu, \sigma^2)$ と書く。
+$X$ がこの分布に従うことを $X \sim \mathcal{N}(\mu, \sigma^2)$ と書く。
+\end{itembox}
+
+式\eqref{eq:ch7-gauss}を部品に分けて読もう。
+指数の中の $-(x - \mu)^2/(2\sigma^2)$ は、$x = \mu$ のとき $0$（最大）で、$x$ が $\mu$ から離れるほど負に大きくなる。
+したがって $\exp(\cdot)$ は $x = \mu$ で最大値 $1$ をとり、離れるほど $0$ に近づく。これが釣鐘型の正体である。
+$\sigma$ が大きいほど「離れたときの減り方」が緩やかになり、山は低く幅広になる。
+前の係数 $1/\sqrt{2\pi\sigma^2}$ は $x$ によらない定数で、全体の面積を $1$ にするためのものである（正規化定数）。
+図\ref{fig:ch7-gaussian}中央のように、正規分布は $\mu$ を中心とする左右対称の釣鐘型で、$\sigma$ が幅を決める。
+平均から $\pm\sigma$ の範囲に約 $68\%$、$\pm 2\sigma$ の範囲に約 $95\%$ の確率（面積）が集まる（図右）。
+$\sigma$ が小さいと山が高くなり、密度は $1$ を超える（図中央の赤い曲線、$\sigma = 0.5$ で最大値 $0.80$、$\sigma = 0.1$ なら $4.0$）。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch7_gaussian}
+  \caption{確率密度。左：区間 $[0, 0.5]$ 上の一様分布。密度は $2$ で $1$ を超えるが、確率は面積なので $1$ 以下である。
+  中央：平均 $\mu$ と標準偏差 $\sigma$ を変えた正規分布の密度。
+  右：標準正規分布 $\mathcal{N}(0, 1)$ で、$\pm\sigma$ の範囲に約 $68\%$、$\pm 2\sigma$ の範囲に約 $95\%$ の面積がある。}
+  \label{fig:ch7-gaussian}
+\end{figure}
+
+正規分布が機械学習で特別な理由は2つある。
+第一に、多数の小さな独立な要因が足し合わさった量は、近似的に正規分布に従う（\textbf{中心極限定理}）。
+測定誤差やノイズを正規分布でモデル化するのは、このためである。
+第二に、式\eqref{eq:ch7-gauss}の指数の中身は $(x - \mu)^2$、つまり\textbf{二乗誤差}である。
+密度の対数をとってみよう。$\log$ は積を和に、$\log \exp(u) = u$ に、$\log(1/a) = -\log a$ に変える。
+\begin{align*}
+  \log \mathcal{N}(x \mid \mu, \sigma^2)
+  &= \log \frac{1}{\sqrt{2\pi\sigma^2}} + \log \exp\!\left( -\frac{(x - \mu)^2}{2\sigma^2} \right) \\
+  &= -\frac{1}{2}\log(2\pi\sigma^2) - \frac{(x - \mu)^2}{2\sigma^2}
+\end{align*}
+（$\log \sqrt{a} = \frac{1}{2}\log a$ を使った）。符号を反転すれば
+\begin{equation}
+  -\log \mathcal{N}(x \mid \mu, \sigma^2) = \frac{(x - \mu)^2}{2\sigma^2} + \frac{1}{2}\log(2\pi\sigma^2)
+  \label{eq:ch7-gauss-log}
+\end{equation}
+となる。第2項は $x$ にも $\mu$ にもよらない定数なので、「正規分布の負の対数」は「二乗誤差 $\div 2\sigma^2$ ＋定数」である。
+密度が高い（起こりやすい）ほど負の対数は小さく、それは二乗誤差が小さいことと同じ、という対応になっている。
+この事実が、第7.7.3項で最小二乗法と確率をつなぐ鍵になる。
+
+$p$ 次元のベクトル $\bm{x} \in \mathbb{R}^p$ についての正規分布（\textbf{多変量正規分布}）は、
+平均ベクトル $\bm{\mu} \in \mathbb{R}^p$ と正定値な共分散行列 $\bm{\Sigma} \in \mathbb{R}^{p \times p}$ を用いて
+\begin{equation}
+  \mathcal{N}(\bm{x} \mid \bm{\mu}, \bm{\Sigma})
+  = \frac{1}{(2\pi)^{p/2} \det(\bm{\Sigma})^{1/2}}
+    \exp\!\left( -\frac{1}{2} (\bm{x} - \bm{\mu})^\top \bm{\Sigma}^{-1} (\bm{x} - \bm{\mu}) \right)
+  \label{eq:ch7-mvn}
+\end{equation}
+と定義される（$\bm{\Sigma}$ の意味は第7.6.5項で述べる）。
+指数の中身は2次形式なので、密度の等高線は $\bm{\Sigma}$ の固有ベクトルを軸とする楕円になる（第5.3節のコラムと同じ構造である）。
+特に $\bm{\Sigma} = \sigma^2\bm{I}$ のときは
+$\mathcal{N}(\bm{x} \mid \bm{0}, \sigma^2\bm{I}) \propto \exp\!\left( -\|\bm{x}\|^2/(2\sigma^2) \right)$ となり、
+等高線は原点を中心とする円になる。
+指数の中に $\|\bm{x}\|^2$ が現れていることに注目してほしい。
+第9回では、この形がリッジ回帰の罰則項 $\lambda\|\bm{w}\|^2$ の正体であることを見る。
+
+
+\subsection{期待値と分散}
+
+\subsubsection{期待値}
+
+確率変数の「平均的な値」を表すのが期待値である。
+
+\begin{itembox}[l]{定義：期待値}
+確率変数 $X$ の\textbf{期待値}（expectation）を
+\begin{equation}
+  \mathbb{E}[X] = \sum_x x\,p(x) \quad \left(\text{連続なら } \int x\,p(x)\,dx\right)
+  \label{eq:ch7-expect}
+\end{equation}
+で定める。関数 $g$ について $\mathbb{E}[g(X)] = \sum_x g(x)\,p(x)$ である。
+\end{itembox}
+
+期待値は「とりうる値を、その確率で重み付けして平均したもの」である。
+サイコロの目なら、各値の確率が $1/6$ なので
+\begin{equation*}
+  \mathbb{E}[X] = 1 \cdot \tfrac{1}{6} + 2 \cdot \tfrac{1}{6} + \cdots + 6 \cdot \tfrac{1}{6} = \frac{21}{6} = 3.5
+\end{equation*}
+であり、正規分布 $\mathcal{N}(\mu, \sigma^2)$ の期待値は $\mu$ である。
+期待値 $3.5$ のように、確率変数が実際にはとらない値になることもある。
+図\ref{fig:ch7-expectation}左のように、数直線上の各値 $x$ に重さ $p(x)$ を置いたときの\textbf{重心}が期待値である。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\linewidth]{figures/ch7_expectation}
+  \caption{期待値と分散。左：各値に確率の重さを置いたときの重心が期待値 $\mathbb{E}[X]$。
+  右：期待値が同じ $3.5$ でも、値が端に集まる分布はばらつき（分散）が大きく、中央に集まる分布は小さい。}
+  \label{fig:ch7-expectation}
+\end{figure}
+
+期待値は「何度もくり返したときの平均」とも一致する。
+同じ分布から独立に取り出した $X_1, \ldots, X_n$ の\textbf{標本平均} $\bar{X}_n = \frac{1}{n}\sum_{i=1}^n X_i$ は、
+$n$ を大きくすると $\mathbb{E}[X]$ に近づく（\textbf{大数の法則}、図\ref{fig:ch7-lln}左）。
+第1回の経験損失 $L_D = \frac{1}{N}\sum_i L(y_i, h(\bm{x}_i))$ は、汎化誤差 $\mathbb{E}[L(y, h(\bm{x}))]$ を
+訓練データの標本平均で近似したものだったのである。
+近づく速さは次節で求める。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\linewidth]{figures/ch7_lln}
+  \caption{大数の法則。左：サイコロを振るたびに標本平均 $\bar{X}_n$ を計算した5つの系列。
+  どの系列も期待値 $3.5$ に近づく。右：$\bar{X}_n$ の標準偏差は $\sigma/\sqrt{n}$ に従って縮む（式\eqref{eq:ch7-var-mean}）。}
+  \label{fig:ch7-lln}
+\end{figure}
+
+\subsubsection{期待値の線形性}
+
+期待値の最も重要な性質は、線形性である。
+
+\begin{itembox}[l]{定理：期待値の線形性}
+確率変数 $X, Y$ と定数 $a, b, c$ について
+\begin{equation}
+  \mathbb{E}[aX + bY + c] = a\,\mathbb{E}[X] + b\,\mathbb{E}[Y] + c
+  \label{eq:ch7-linearity}
+\end{equation}
+が成り立つ。\textbf{$X$ と $Y$ が独立でなくても成り立つ}。
+\end{itembox}
+
+\paragraph{証明}
+離散の場合を示す。$aX + bY + c$ は $(X, Y)$ の関数なので、その期待値は同時分布 $p(x, y)$ で重み付けした和である。
+\begin{equation*}
+  \mathbb{E}[aX + bY + c] = \sum_{x, y} (ax + by + c)\,p(x, y)
+\end{equation*}
+括弧を開いて、和を3つに分ける（定数 $a, b, c$ は和の外に出せる）。
+\begin{equation*}
+  = a \sum_{x, y} x\,p(x, y) + b \sum_{x, y} y\,p(x, y) + c \sum_{x, y} p(x, y)
+\end{equation*}
+第1項では、$x$ は $y$ によらないので、先に $y$ について足せる。
+周辺化\eqref{eq:ch7-marg}より $\sum_y p(x, y) = p(x)$ なので
+\begin{equation*}
+  \sum_{x, y} x\,p(x, y) = \sum_x x \Bigl( \sum_y p(x, y) \Bigr) = \sum_x x\,p(x) = \mathbb{E}[X]
+\end{equation*}
+第2項も同様に $\sum_y y\,p(y) = \mathbb{E}[Y]$ になる。
+第3項は、同時確率をすべて足すと $1$ なので $c \cdot 1 = c$ である。
+3つを合わせて $a\,\mathbb{E}[X] + b\,\mathbb{E}[Y] + c$ を得る。
+途中で使ったのは「和の分配」と「周辺化」だけで、独立性 $p(x, y) = p(x)p(y)$ はどこにも使っていない。\hfill $\blacksquare$
+
+\paragraph{応用：ミニバッチの勾配は不偏である}
+第5.5.2項で、ミニバッチの勾配は「平均的には真の勾配に一致する」と述べ、証明を本章に先送りした。
+データ $i$ の損失の勾配を $\bm{g}_i = \nabla\ell_i(\bm{w})$ とし、全データの平均を $\nabla L_D = \frac{1}{N}\sum_{i=1}^N \bm{g}_i$ とする。
+まず、ミニバッチが1件だけ（$|B| = 1$）の場合を考える。
+$N$ 件から1件を一様ランダムに選び、その番号を $I$ とする。$I$ は $\{1, \ldots, N\}$ の値をとる確率変数で、
+$P(I = i) = 1/N$ である。選ばれたデータの勾配 $\bm{g}_I$ は、$I$ の値に応じて $\bm{g}_1, \ldots, \bm{g}_N$ のどれかになる確率変数であり、
+その期待値は定義\eqref{eq:ch7-expect}（$g(I) = \bm{g}_I$ の期待値）より
+\begin{equation*}
+  \mathbb{E}[\bm{g}_I] = \sum_{i=1}^N P(I = i)\,\bm{g}_i = \sum_{i=1}^N \frac{1}{N}\,\bm{g}_i = \nabla L_D
+\end{equation*}
+である（ベクトルの期待値は成分ごとにとる）。1件だけでも、平均すれば真の勾配になる。
+ミニバッチ $B$ が、このような選び方を $|B|$ 回くり返した $I_1, \ldots, I_{|B|}$ からなるとすれば、線形性\eqref{eq:ch7-linearity}より
+\begin{equation}
+  \mathbb{E}\Bigl[ \frac{1}{|B|}\sum_{k=1}^{|B|} \bm{g}_{I_k} \Bigr]
+  = \frac{1}{|B|}\sum_{k=1}^{|B|} \mathbb{E}[\bm{g}_{I_k}]
+  = \frac{1}{|B|} \cdot |B| \cdot \nabla L_D = \nabla L_D
+  \label{eq:ch7-sgd-unbiased}
+\end{equation}
+となる。ミニバッチの勾配の期待値は真の勾配に等しい。
+このように、期待値が推定したい量に一致する推定量を\textbf{不偏}（unbiased）であるという。
+重複を許さずに選ぶ（エポックごとにシャッフルする）場合も、各 $i$ が $B$ に含まれる確率が $|B|/N$ であることから同じ結論が得られる（演習問題7）。
+
+\subsubsection{分散}
+
+期待値が「中心」を表すのに対し、分散は「ばらつき」を表す。
+
+\begin{itembox}[l]{定義：分散と標準偏差}
+$\mu = \mathbb{E}[X]$ とおく。$X$ の\textbf{分散}（variance）を
+\begin{equation}
+  \mathrm{Var}[X] = \mathbb{E}\bigl[ (X - \mu)^2 \bigr]
+  \label{eq:ch7-var}
+\end{equation}
+で定め、その平方根 $\sqrt{\mathrm{Var}[X]}$ を\textbf{標準偏差}（standard deviation）と呼ぶ。
+\end{itembox}
+
+分散は「平均からのずれの二乗の期待値」である。
+二乗しているので単位も二乗になる（長さの分散は面積の単位）。元の単位に戻したものが標準偏差である。
+正規分布 $\mathcal{N}(\mu, \sigma^2)$ の分散は $\sigma^2$、標準偏差は $\sigma$ であり、記号の意味が名前と一致している。
+図\ref{fig:ch7-expectation}右のように、期待値が同じでも分散は違いうる。
+分散を計算するときは、定義の中身 $(X - \mu)^2$ を展開して線形性を使うと楽になる。
+$\mu$ は定数であることに注意して
+\begin{align}
+  \mathrm{Var}[X] &= \mathbb{E}[X^2 - 2\mu X + \mu^2] && \text{（展開）} \notag \\
+  &= \mathbb{E}[X^2] - 2\mu\,\mathbb{E}[X] + \mu^2 && \text{（線形性：定数は外に出せ、定数の期待値は定数）} \notag \\
+  &= \mathbb{E}[X^2] - 2\mu \cdot \mu + \mu^2 = \mathbb{E}[X^2] - \mu^2 && \text{（$\mathbb{E}[X] = \mu$）}
+  \label{eq:ch7-var-alt}
+\end{align}
+「二乗の平均から平均の二乗を引く」と覚える。
+サイコロでは $\mathbb{E}[X^2] = (1 + 4 + 9 + 16 + 25 + 36)/6 = 91/6$ なので
+$\mathrm{Var}[X] = 91/6 - (7/2)^2 = 91/6 - 49/4 = 182/12 - 147/12 = 35/12 \approx 2.92$ である。
+また、定数倍と定数の加算については
+\begin{equation}
+  \mathrm{Var}[aX + c] = a^2\,\mathrm{Var}[X]
+  \label{eq:ch7-var-scale}
+\end{equation}
+が成り立つ。実際、線形性より $\mathbb{E}[aX + c] = a\mu + c$ なので、平均からのずれは
+$(aX + c) - (a\mu + c) = a(X - \mu)$ であり、その二乗の期待値は $a^2\,\mathbb{E}[(X - \mu)^2] = a^2\,\mathrm{Var}[X]$ である。
+$c$ だけずらしても平均からのずれは変わらず、$a$ 倍するとずれが $a$ 倍、その二乗が $a^2$ 倍になる。
+第6.4.3項で「定数倍の分散は定数の二乗倍」として使ったのはこの性質である。
+
+\subsubsection{共分散と独立な和の分散}
+
+2つの確率変数の和の分散を計算しよう。$\mu_X = \mathbb{E}[X]$、$\mu_Y = \mathbb{E}[Y]$ とおく。
+線形性より $\mathbb{E}[X + Y] = \mu_X + \mu_Y$ なので、$X + Y$ の平均からのずれは
+$(X + Y) - (\mu_X + \mu_Y) = (X - \mu_X) + (Y - \mu_Y)$ と、2つのずれの和に書ける。
+$u = X - \mu_X$、$v = Y - \mu_Y$ と略記して、分散の定義に入れる。
+\begin{align}
+  \mathrm{Var}[X + Y]
+  &= \mathbb{E}\bigl[ (u + v)^2 \bigr] = \mathbb{E}\bigl[ u^2 + 2uv + v^2 \bigr] && \text{（展開）} \notag \\
+  &= \mathbb{E}[u^2] + 2\,\mathbb{E}[uv] + \mathbb{E}[v^2] && \text{（線形性）} \notag \\
+  &= \mathrm{Var}[X] + \mathrm{Var}[Y] + 2\,\mathbb{E}\bigl[ (X - \mu_X)(Y - \mu_Y) \bigr]
+  \label{eq:ch7-var-sum-gen}
+\end{align}
+となる。$\mathbb{E}[u^2]$ と $\mathbb{E}[v^2]$ はそれぞれ $X$、$Y$ の分散の定義そのものである。
+残った交差項に現れる量を\textbf{共分散}（covariance）と呼ぶ。
+\begin{equation}
+  \mathrm{Cov}[X, Y] = \mathbb{E}\bigl[ (X - \mu_X)(Y - \mu_Y) \bigr] = \mathbb{E}[XY] - \mu_X\mu_Y
+  \label{eq:ch7-cov}
+\end{equation}
+共分散は、$X$ が平均より大きいときに $Y$ も平均より大きい傾向があれば正、逆の傾向があれば負になる。
+これを両者の標準偏差で割ったものが\textbf{相関係数}であり、第5.3.4項で標準化した特徴の相関 $r$ として登場した。
+
+$X$ と $Y$ が独立なら、$p(x, y) = p(x)p(y)$ より
+\begin{align*}
+  \mathbb{E}[XY] &= \sum_{x, y} xy\,p(x, y) = \sum_{x, y} xy\,p(x)\,p(y) \\
+  &= \sum_x x\,p(x) \Bigl( \sum_y y\,p(y) \Bigr) = \Bigl( \sum_x x\,p(x) \Bigr)\Bigl( \sum_y y\,p(y) \Bigr) = \mathbb{E}[X]\,\mathbb{E}[Y]
+\end{align*}
+となる（\textbf{独立な量の積の期待値は期待値の積}）。
+2つ目の等号で独立性を使い、3つ目は $x\,p(x)$ が $y$ によらないので $y$ の和の外に出せる、という操作である。
+このとき式\eqref{eq:ch7-cov}より $\mathrm{Cov}[X, Y] = \mathbb{E}[X]\mathbb{E}[Y] - \mu_X\mu_Y = 0$ なので、
+式\eqref{eq:ch7-var-sum-gen}の交差項が消えて $\mathrm{Var}[X + Y] = \mathrm{Var}[X] + \mathrm{Var}[Y]$ になる。
+3つ以上の和でも同じで、$(u_1 + \cdots + u_n)^2$ を展開すると各 $u_i^2$ と、相異なる組の積 $2u_iu_j$ が現れ、
+独立なら後者の期待値がすべて $0$ になる。係数 $a_i$ を付けた場合は式\eqref{eq:ch7-var-scale}を併用すればよく、次の定理を得る。
+
+\begin{itembox}[l]{定理：独立な確率変数の和の分散}
+$X_1, \ldots, X_n$ が互いに独立なら、定数 $a_1, \ldots, a_n$ について
+\begin{equation}
+  \mathrm{Var}\Bigl[ \sum_{i=1}^n a_i X_i \Bigr] = \sum_{i=1}^n a_i^2\,\mathrm{Var}[X_i]
+  \label{eq:ch7-var-sum}
+\end{equation}
+が成り立つ。\textbf{独立な量の和の分散は、分散の和}である。
+\end{itembox}
+
+期待値の線形性と違って、こちらは独立性（正確には共分散が $0$ であること）が必要である。
+例えば $Y = X$ なら $\mathrm{Var}[X + Y] = \mathrm{Var}[2X] = 4\,\mathrm{Var}[X]$ であり、$2\,\mathrm{Var}[X]$ にはならない。
+
+この定理から、いくつもの重要な事実がすぐに出てくる。
+
+\paragraph{標本平均のばらつき}
+同じ分布（分散 $\sigma^2$）から独立に取り出した $n$ 個の標本平均 $\bar{X}_n = \frac{1}{n}X_1 + \cdots + \frac{1}{n}X_n$ は、
+式\eqref{eq:ch7-var-sum}で $a_i = 1/n$、$\mathrm{Var}[X_i] = \sigma^2$ とおいた形なので
+\begin{equation}
+  \mathrm{Var}[\bar{X}_n] = \sum_{i=1}^n \left(\frac{1}{n}\right)^2 \sigma^2 = n \cdot \frac{\sigma^2}{n^2} = \frac{\sigma^2}{n}, \qquad
+  \text{標準偏差 } \sqrt{\frac{\sigma^2}{n}} = \frac{\sigma}{\sqrt{n}}
+  \label{eq:ch7-var-mean}
+\end{equation}
+となる。標本平均は $n$ を増やすと期待値のまわりに集中し、その幅は $1/\sqrt{n}$ で縮む（図\ref{fig:ch7-lln}右）。
+これが大数の法則の定量的な中身である。
+精度を10倍にするにはデータが100倍必要になる、という「$\sqrt{n}$ の法則」もここから来る。
+ミニバッチの勾配のばらつきも同様に $1/|B|$ に比例する（演習問題7）。
+バッチサイズを4倍にすると勾配のノイズの標準偏差は半分になるが、計算量は4倍になる。
+
+\paragraph{第6回の1変数モデル}
+第6.4.3項の最小二乗解 $\hat{w} = w + \frac{1}{d}\sum_i x_i\varepsilon_i$（式\eqref{eq:bv-ols}）で、
+ノイズ $\varepsilon_i$ は独立で平均 $0$、分散 $\sigma^2$ であった。
+線形性より $\mathbb{E}[\hat{w}] = w + \frac{1}{d}\sum_i x_i\,\mathbb{E}[\varepsilon_i] = w$、
+式\eqref{eq:ch7-var-sum}で $a_i = x_i/d$ とすれば
+$\mathrm{Var}[\hat{w}] = \sum_i \frac{x_i^2}{d^2}\,\sigma^2 = \frac{\sigma^2}{d}$ である。
+第6回で「第7回で学ぶ性質」として先送りにした計算は、これで完結する。
+
+\subsubsection{共分散行列}
+
+ベクトル $\bm{x} = (X_1, \ldots, X_p)^\top$ の値をとる確率変数（\textbf{確率ベクトル}）について、
+平均ベクトル $\bm{\mu} = \mathbb{E}[\bm{x}]$（成分ごとの期待値）と\textbf{共分散行列}
+\begin{equation}
+  \bm{\Sigma} = \mathrm{Cov}[\bm{x}] = \mathbb{E}\bigl[ (\bm{x} - \bm{\mu})(\bm{x} - \bm{\mu})^\top \bigr] \in \mathbb{R}^{p \times p}
+  \label{eq:ch7-covmat}
+\end{equation}
+を定める。$(j, k)$ 成分は $\mathrm{Cov}[X_j, X_k]$、対角成分は各成分の分散である。
+共分散行列は対称であり、さらに\textbf{半正定値}である。
+実際、任意の定数ベクトル $\bm{a} \in \mathbb{R}^p$ について、内積 $\bm{a}^\top\bm{x}$ は1次元の確率変数であり、
+その平均は線形性より $\bm{a}^\top\bm{\mu}$ である。よって分散は
+\begin{align*}
+  \mathrm{Var}[\bm{a}^\top\bm{x}]
+  &= \mathbb{E}\bigl[ (\bm{a}^\top(\bm{x} - \bm{\mu}))^2 \bigr] \\
+  &= \mathbb{E}\bigl[ \bm{a}^\top(\bm{x} - \bm{\mu})\,(\bm{x} - \bm{\mu})^\top\bm{a} \bigr]
+   && \text{（スカラー $s = \bm{a}^\top\bm{d}$ は $s^2 = s\,s^\top = \bm{a}^\top\bm{d}\,\bm{d}^\top\bm{a}$）} \\
+  &= \bm{a}^\top\,\mathbb{E}\bigl[ (\bm{x} - \bm{\mu})(\bm{x} - \bm{\mu})^\top \bigr]\,\bm{a}
+   && \text{（定数 $\bm{a}$ は期待値の外に出せる）} \\
+  &= \bm{a}^\top\bm{\Sigma}\,\bm{a} \geq 0
+\end{align*}
+となる。最後の不等号は、分散が二乗の期待値なので負にならないことによる。
+これは第4回で学んだ半正定値の定義（任意の $\bm{a}$ で $\bm{a}^\top\bm{\Sigma}\bm{a} \geq 0$）そのものである。
+データ $\bm{x}_1, \ldots, \bm{x}_N$ から計算した標本の共分散行列は、平均を引いた計画行列 $\bm{X}_c$ を使って $\frac{1}{N}\bm{X}_c^\top\bm{X}_c$ と書ける。
+付録 A.3 の白色化で使った $\bm{\Sigma}$ はこれであり、
+その固有ベクトルが「データが最も散らばる向き」を表すのは、$\bm{a}^\top\bm{\Sigma}\bm{a}$ が向き $\bm{a}$ への射影の分散だからである。
+
+
+\subsection{パラメータを確率で表す：ベイズ推定の入口}
+
+最後に、ベイズの定理を機械学習の問題、すなわち\textbf{データからパラメータを推定する}問題に使ってみよう。
+そのために、パラメータの扱い方を一つ変える。
+
+\begin{itembox}[l]{考え方：パラメータ自身を確率変数とみなす}
+第1回から第6回までは、パラメータ $\theta$（あるいは $\bm{w}$）は「未知だが固定された一つの数」であり、
+データから推定値 $\hat{\theta}$ を求めてきた。ランダムなのはデータの側だけであった。
+
+ベイズ推定では、\textbf{パラメータ $\theta$ 自体を確率変数とみなす}。
+これは「$\theta$ の値がくり返しのたびに変わる」という意味ではない。
+コインの偏りは一つに決まっているが、\textbf{私たちはその値を知らない}。
+第7.1.2項の「信念の度合いとしての確率」を使い、この\textbf{知識の不確かさ}（第7.1.1項の3番目の不確かさ）を $\theta$ の確率分布で表すのである。
+したがって $p(\theta)$ は「$\theta$ がどの値である可能性がどれくらい高いと考えているか」を表す密度であり、
+例えば「$\theta$ が $0.6$ と $0.8$ の間にある」と考える確率は $\int_{0.6}^{0.8} p(\theta)\,d\theta$ である。
+\end{itembox}
+
+記法について一言注意しておく。
+第7.5節の約束では、確率変数は大文字、その値は小文字で書き分けるので、パラメータを確率変数とみなすなら $\Theta$ と書き、
+その密度を $p_\Theta(\theta)$、「$\Theta$ が $[a, b]$ に入る確率」を $P(a \leq \Theta \leq b) = \int_a^b p_\Theta(\theta)\,d\theta$ と書くのが筋である。
+しかし慣例では、確率変数と値の両方に同じ小文字 $\theta$ を使い、密度を単に $p(\theta)$ と書く。本書もこの慣例に従う。
+同様に、$p(D \mid \theta)$ は「確率変数 $\theta$ が特定の値をとったという条件のもとでのデータ $D$ の確率」、
+$p(\theta \mid D)$ は「データ $D$ を条件とした確率変数 $\theta$ の条件付き分布」であり、いずれも第7.5.3項の条件付き分布の記法である。
+$\theta$ が式の中で「確率変数」として現れているのか「ある一つの値」として現れているのかは、文脈で読み分けてほしい。
+
+\subsubsection{コインの偏りを推定する}
+
+表の出る確率が $\theta$ のコインがある。$\theta$ は未知で、$0$ から $1$ のどこかにある。
+このコインを $n$ 回投げて、表が $k$ 回出た（データ $D$）。$\theta$ について何が言えるか。
+
+各回の結果はベルヌーイ分布に従い、$\theta$ を条件として互いに独立とする。
+例えば3回投げて「表、表、裏」の順に出る確率は、独立性（式\eqref{eq:ch7-cond-indep}を3回分に広げたもの）より各回の確率の積で
+$\theta \times \theta \times (1 - \theta) = \theta^2(1 - \theta)$ である。
+一般に、特定の順序で表 $k$ 回、裏 $n - k$ 回が出る確率は、$\theta$ を $k$ 個、$(1 - \theta)$ を $n - k$ 個掛けて
+\begin{equation}
+  p(D \mid \theta) = \theta^k (1 - \theta)^{n - k}
+  \label{eq:ch7-coin-lik}
+\end{equation}
+である（図\ref{fig:ch7-coin-likelihood}左）。
+
+式\eqref{eq:ch7-coin-lik}を\textbf{尤度}と呼ぶ理由を、第7.4.3項の定義に戻って確かめよう。
+尤度とは「仮説 $H$ が正しいとしたとき、観測されたデータ $D$ がどの程度起こりやすいか」$P(D \mid H)$ であった。
+コインの問題では、仮説は「表の出る確率は $\theta$ である」という主張であり、$\theta$ の値ごとに一つの仮説がある（$0$ から $1$ まで連続無限個の仮説の族）。
+データ $D$ は実際に観測した表裏の列である。
+式\eqref{eq:ch7-coin-lik}はまさに「$\theta$ を仮定したときに $D$ が起こる確率」$p(D \mid \theta)$ を計算しているので、
+検査の例の $P(D \mid H) = P(\text{陽性} \mid \text{病気})$ と同じ役割、すなわち尤度である。
+違いは、仮説が「病気か健康か」の2つではなく、$\theta$ という連続な値で指定されることだけである。
+
+同じ式 $\theta^k(1 - \theta)^{n - k}$ には2通りの読み方がある（図\ref{fig:ch7-coin-likelihood}中央・右）。
+$\theta$ を固定して $D$ を動かせば、起こりうる結果（3回なら $2^3 = 8$ 通り）の確率分布であり、全部足すと $1$ になる。
+逆に、観測された $D$（つまり $n$ と $k$）を固定して $\theta$ を動かせば、$\theta$ の関数になる。
+これを\textbf{尤度関数}と呼び、$L(\theta) = p(D \mid \theta)$ と書く。
+$\theta = 0.7$ なら「表、表、裏」の尤度は $0.7^2 \times 0.3 = 0.147$、$\theta = 0.5$ なら $0.125$、$\theta = 0.2$ なら $0.032$ で、
+このデータは $\theta = 0.7$ のもとで最も起こりやすい（最大は $\theta = 2/3$）。
+第7.4.3項で注意したように、尤度関数は $\theta$ についての確率分布ではない。
+実際 $\int_0^1 \theta^2(1 - \theta)\,d\theta = 1/12$ であり、面積は $1$ にならない。
+なお、表裏の順序を区別せず「$n$ 回中 $k$ 回が表」という事象をデータと考えると、順序の数 $\binom{n}{k}$ が掛かるが、
+これは $\theta$ によらない定数なので、$\theta$ の関数としての形（したがって以下の議論）は変わらない。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch7_coin_likelihood}
+  \caption{式\eqref{eq:ch7-coin-lik}が尤度である理由。
+  左：3回投げて「表、表、裏」が出る確率は、$\theta$ を条件とした独立性により、枝の確率の積 $\theta^2(1 - \theta)$ である。
+  中央：$\theta = 0.7$ を固定すると、8通りの結果の確率分布になる（合計 $1$）。
+  右：観測された「表、表、裏」を固定して $\theta$ を動かすと、$\theta$ の関数（尤度関数 $L(\theta) = \theta^2(1 - \theta)$）になる。
+  $\theta = 0.2, 0.5, 0.7$ での値を点で示す。面積は $1/12$ で、$\theta$ の確率分布ではない。}
+  \label{fig:ch7-coin-likelihood}
+\end{figure}
+
+ここで、本節冒頭の考え方に従って $\theta$ を確率変数とみなし、
+データを見る前の $\theta$ についての知識を、区間 $[0, 1]$ 上の確率密度 $p(\theta)$（\textbf{事前分布}）で表す。
+$p(\theta)$ は、$\theta$ の各値をどの程度確からしいと考えているかの分布である。
+特に何も知らなければ、どの値も同程度に確からしいとして一様分布 $p(\theta) = 1$ とするのが自然である。
+ベイズの定理\eqref{eq:ch7-bayes-dist}より、データを見たあとの\textbf{事後分布}は
+\begin{equation}
+  p(\theta \mid D) = \frac{p(D \mid \theta)\,p(\theta)}{\int_0^1 p(D \mid \theta')\,p(\theta')\,d\theta'}
+  \propto \theta^k (1 - \theta)^{n - k}\,p(\theta)
+  \label{eq:ch7-coin-post}
+\end{equation}
+である。分母は $\theta$ について積分し終わっているので、$\theta$ によらない定数である。
+したがって事後分布の\textbf{形}は分子だけで決まり、分母は「全体の面積を $1$ にする」ための正規化定数にすぎない。
+一様な事前分布 $p(\theta) = 1$ なら、事後分布は尤度関数 $\theta^k(1 - \theta)^{n - k}$ を面積 $1$ に正規化したものである。
+例えば $n = 3$、$k = 2$ なら $p(\theta \mid D) \propto \theta^2(1 - \theta)$ で、$\theta = 2/3$ で最大になる。
+
+式\eqref{eq:ch7-coin-post}は $n$ 回分をまとめて計算しているが、第7.4.4項と同じく、\textbf{1回投げるごとに更新する}こともできる。
+$i$ 回目の結果を $x_i$（表なら $1$、裏なら $0$）、$i$ 回目までの結果をまとめて $x_{1:i} = (x_1, \ldots, x_i)$ と書く。
+各回は $\theta$ を条件として独立なので、$i$ 回目の尤度は過去の結果によらず $p(x_i \mid \theta, x_{1:i-1}) = p(x_i \mid \theta)$ であり、
+表なら $\theta$、裏なら $1 - \theta$ である。
+ベイズの定理を、$i - 1$ 回目までの事後分布を事前分布として適用すると
+\begin{equation}
+  p(\theta \mid x_{1:i}) \propto p(x_i \mid \theta)\,p(\theta \mid x_{1:i-1})
+  \label{eq:ch7-coin-seq}
+\end{equation}
+となる。\textbf{今回の尤度を掛けて、面積が $1$ になるように正規化する}、の繰り返しである。
+「表、表、裏」の例を一様な事前分布 $p(\theta) = 1$ から始めて追うと
+\begin{align*}
+  \text{1回目（表）：}\quad & p(\theta \mid x_{1:1}) \propto \theta \times 1 = \theta,
+    & \int_0^1 \theta\,d\theta = \tfrac{1}{2} \ \Rightarrow\ 2\theta \\
+  \text{2回目（表）：}\quad & p(\theta \mid x_{1:2}) \propto \theta \times 2\theta \propto \theta^2,
+    & \int_0^1 \theta^2\,d\theta = \tfrac{1}{3} \ \Rightarrow\ 3\theta^2 \\
+  \text{3回目（裏）：}\quad & p(\theta \mid x_{1:3}) \propto (1 - \theta) \times 3\theta^2 \propto \theta^2(1 - \theta),
+    & \int_0^1 \theta^2(1 - \theta)\,d\theta = \tfrac{1}{12} \ \Rightarrow\ 12\theta^2(1 - \theta)
+\end{align*}
+（$\Rightarrow$ の右は、積分値で割って面積を $1$ にした事後分布）
+となる。
+3回目の結果は、式\eqref{eq:ch7-coin-post}で $n = 3$、$k = 2$ として一度に計算した $\theta^2(1 - \theta)$ の正規化と一致する。
+掛け算の順序は結果に影響しないので、1回ずつ更新しても、まとめて更新しても、同じ事後分布に到達する。
+図\ref{fig:ch7-coin-update}は、この更新を最初の6回について描いたものである。
+各パネルで、灰色の破線（前回の事後分布＝今回の事前分布）に赤の点線（今回の尤度 $\theta$ または $1 - \theta$）を掛けて正規化したものが、青の実線（今回の事後分布）である。
+表が出ると分布は右（$\theta$ の大きい方）へ、裏が出ると左へ押され、回を重ねるごとに幅が狭くなっていく。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch7_coin_update}
+  \caption{1回投げるごとの事後分布の更新（式\eqref{eq:ch7-coin-seq}、一様な事前分布から開始、真の値 $\theta = 0.7$ のコイン）。
+  各パネルは、前回の事後分布（灰の破線）に今回の尤度（赤の点線、表なら $\theta$、裏なら $1 - \theta$）を掛けて正規化し、今回の事後分布（青の実線）を得る様子。
+  左上の「累積」は、ここまでの結果をまとめて計算した場合の式で、1回ずつ更新した結果と一致する。縦の一点鎖線は真の値 $0.7$。}
+  \label{fig:ch7-coin-update}
+\end{figure}
+
+図\ref{fig:ch7-coin-posterior}は、この更新を続け、真の値 $\theta = 0.7$ のコインを投げ続けたときの事後分布の変化である。
+左の一様な事前分布から始めると、3回（表2回）では事後分布はまだ広く、$\theta$ についてほとんど何も言えない。
+10回、30回、100回と投げるにつれて、事後分布は真の値 $0.7$ のまわりに鋭く集中していく。
+\textbf{データが増えるほど、パラメータについての不確かさが減る}ことが、分布の幅として目に見える。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\linewidth]{figures/ch7_coin_posterior}
+  \caption{表の出る確率 $\theta$ の事後分布（真の値 $0.7$ のコインを $n$ 回投げた後）。
+  左：一様な事前分布から始めた場合。右：$\theta \approx 0.5$ を強く信じる事前分布 $p(\theta) \propto \theta^{20}(1 - \theta)^{20}$（$0.5$ を中心とする釣鐘型、点線は参考の正規分布 $\mathcal{N}(0.5, 0.076^2)$）から始めた場合。
+  データが少ないうちは事前分布に引っ張られるが、データが増えると真の値に近づく。}
+  \label{fig:ch7-coin-posterior}
+\end{figure}
+
+右は「このコインはほぼ公平なはずだ」と強く信じる事前分布から始めた場合である。
+ここでは事前分布として
+\begin{equation*}
+  p(\theta) \propto \theta^{20}(1 - \theta)^{20}
+\end{equation*}
+を用いた。これは $\theta = 0.5$ を中心とする左右対称の釣鐘型で、平均 $0.5$、標準偏差約 $0.076$ であり、
+正規分布 $\mathcal{N}(0.5, 0.076^2)$ とほとんど同じ形をしている（図右の点線）。
+正規分布そのものを使わないのは、$\theta$ が $[0, 1]$ の外の値をとることはないので、$[0, 1]$ の外に確率を置かない分布が望ましいからである。
+この形は尤度 $\theta^k(1 - \theta)^{n - k}$ と同じ形をしており、
+「このコインを事前に40回投げて表20回・裏20回を見た」のと同じ知識に相当する（\textbf{ベータ分布}と呼ばれる。詳しくは第9回で扱う）。
+事前分布と尤度の形が同じなので、事後分布も $\theta^{20 + k}(1 - \theta)^{20 + n - k}$ という同じ形になり、
+事前分布の「40回分」とデータの「$n$ 回分」が足し合わさる。
+
+データが少ないうちは、事後分布は事前分布の $0.5$ 付近にとどまり、データに引っ張られにくい。
+100回投げても、ピークは真の値 $0.7$ より $0.5$ 寄りの $0.64$ 付近にある。
+事前分布は「データが少ないときに推定を一定の方向に引き寄せる」働きをし、その影響はデータが増えるにつれて薄れる。
+この「引き寄せ」は、第6回の正則化が推定値を $\bm{0}$ の方向に縮めたこととよく似ている。
+
+\subsubsection{事後分布から一つの値を選ぶ}
+
+事後分布はパラメータについての知識をまるごと表すが、予測などに使うために一つの値を選びたいこともある。
+代表的な選び方は3つある。一様な事前分布の場合に計算すると次のようになる（演習問題10）。
+\begin{itemize}
+  \item \textbf{最尤推定}（maximum likelihood estimation, MLE）：尤度 $p(D \mid \theta)$ を最大にする $\theta$。
+    事前分布を使わない。コインの例では $\hat{\theta}_{\mathrm{MLE}} = k/n$（表が出た割合）
+  \item \textbf{最大事後確率推定}（maximum a posteriori, MAP）：事後分布 $p(\theta \mid D)$ を最大にする $\theta$。
+    一様な事前分布では尤度の最大化と同じになり、$k/n$ である
+  \item \textbf{事後平均}：事後分布の期待値 $\mathbb{E}[\theta \mid D] = \int_0^1 \theta\,p(\theta \mid D)\,d\theta$。
+    一様な事前分布では $(k + 1)/(n + 2)$ となる（ラプラスの継起則）
+\end{itemize}
+例えば3回投げて3回とも表なら、最尤推定は $\hat{\theta} = 1$、すなわち「このコインは必ず表が出る」と結論する。
+これはたった3回のデータに対して明らかに言い過ぎであり、第1回で見た過学習と同じ現象である。
+事後平均は $(3 + 1)/(3 + 2) = 0.8$ であり、データの割合 $1$ を $1/2$ の方向へ少し引き戻している。
+事前分布が、少ないデータへの過剰な適合を和らげているのである。
+
+\subsubsection{最小二乗法を確率の言葉で読む（予告）}
+
+本章の道具を使うと、第4回の最小二乗法を確率の言葉で読み直せる。
+線形モデルの出力に正規分布のノイズが乗っている、すなわち
+\begin{equation*}
+  y_i = \bm{w}^\top\tilde{\bm{x}}_i + \varepsilon_i, \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2) \quad (\text{互いに独立})
+\end{equation*}
+と仮定する。$y_i$ は「定数 $\bm{w}^\top\tilde{\bm{x}}_i$ に正規分布のノイズを足したもの」なので、
+平均 $\bm{w}^\top\tilde{\bm{x}}_i$、分散 $\sigma^2$ の正規分布に従う。
+すなわち $p(y_i \mid \bm{w}) = \mathcal{N}(y_i \mid \bm{w}^\top\tilde{\bm{x}}_i, \sigma^2)$ である。
+$N$ 件は独立なので、データ全体の尤度は各件の密度の積になる。
+\begin{equation*}
+  p(D \mid \bm{w}) = \prod_{i=1}^N \mathcal{N}(y_i \mid \bm{w}^\top\tilde{\bm{x}}_i, \sigma^2)
+\end{equation*}
+積のままでは扱いにくいので負の対数をとる。$\log$ は積を和に変えるので、各項に式\eqref{eq:ch7-gauss-log}（$x \to y_i$、$\mu \to \bm{w}^\top\tilde{\bm{x}}_i$）を使って
+\begin{align}
+  -\log p(D \mid \bm{w})
+  &= \sum_{i=1}^N \Bigl[ -\log \mathcal{N}(y_i \mid \bm{w}^\top\tilde{\bm{x}}_i, \sigma^2) \Bigr]
+   = \sum_{i=1}^N \left[ \frac{(y_i - \bm{w}^\top\tilde{\bm{x}}_i)^2}{2\sigma^2} + \frac{1}{2}\log(2\pi\sigma^2) \right] \notag \\
+  &= \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i - \bm{w}^\top\tilde{\bm{x}}_i)^2 + \frac{N}{2}\log(2\pi\sigma^2)
+   = \frac{1}{2\sigma^2}\|\bm{y} - \bm{X}\bm{w}\|^2 + \text{定数}
+  \label{eq:ch7-gauss-lik}
+\end{align}
+となる。最後は、$N$ 個の二乗誤差の和が残差ベクトル $\bm{y} - \bm{X}\bm{w}$ のノルムの二乗であること（第3回）を使った。
+$\bm{w}$ によらない第2項は、最小化には関係ない定数である。
+\textbf{尤度を最大にすることは、二乗誤差を最小にすることと同じである}。
+第4回で「なんとなく」選んだ二乗誤差は、「ノイズが正規分布に従う」という仮定のもとでの最尤推定だったのである。
+第8回では、この最尤推定と最大事後確率推定を分類問題に用いる。
+第9回では、パラメータに正規分布の事前分布 $\bm{w} \sim \mathcal{N}(\bm{0}, \tau^2\bm{I})$ を置くと、
+最大事後確率推定がちょうどリッジ回帰になり、$\lambda = \sigma^2/\tau^2$ という意味をもつことを示す。
+本章の図\ref{fig:ch7-coin-posterior}右で見た「事前分布による引き寄せ」が、正則化の正体である。
+
+
+\subsection{まとめ}
+
+\begin{itemize}
+  \item 機械学習には、データのノイズ、データの取り方、パラメータについての知識という3種類の不確かさがある。
+    確率は頻度としても信念の度合いとしても読めるが、\textbf{計算規則は同じ}である
+  \item 確率は3つの公理（非負性、$P(\Omega) = 1$、排反な事象の加法性）で定義され、
+    余事象 $P(A^c) = 1 - P(A)$、加法定理 $P(A \cup B) = P(A) + P(B) - P(A \cap B)$ などはすべて公理から導かれる
+  \item \textbf{条件付き確率} $P(A \mid B) = P(A \cap B)/P(B)$ は、標本空間を $B$ に縮めて測った確率。
+    $P(A \mid B)$ と $P(B \mid A)$ は別物である
+  \item \textbf{乗法定理} $P(A \cap B) = P(A \mid B)P(B)$、\textbf{全確率の定理} $P(A) = \sum_k P(A \mid B_k)P(B_k)$、
+    \textbf{独立} $P(A \cap B) = P(A)P(B)$。周辺化は「不要な変数について足して消す」操作
+  \item \textbf{ベイズの定理} $P(H \mid D) = P(D \mid H)P(H)/P(D)$：
+    事後確率 $\propto$ 尤度 $\times$ 事前確率。原因から結果への確率を、結果から原因への確率に変換する。
+    検査の例のように、結論は事前確率（有病率）に強く依存する。今日の事後確率が明日の事前確率になる
+  \item 確率変数の分布は、離散なら確率質量関数、連続なら確率密度関数で表す。密度の面積が確率である。
+    \textbf{正規分布} $\mathcal{N}(\mu, \sigma^2)$ の負の対数は二乗誤差＋定数
+  \item \textbf{期待値}は確率で重み付けした平均で、\textbf{線形性}は独立性なしに成り立つ。
+    ミニバッチの勾配は期待値が真の勾配に等しい（不偏）
+  \item \textbf{分散} $\mathrm{Var}[X] = \mathbb{E}[(X - \mu)^2] = \mathbb{E}[X^2] - \mu^2$。
+    独立な量の和の分散は分散の和で、標本平均の分散は $\sigma^2/n$（ばらつきは $1/\sqrt{n}$ で縮む）。
+    共分散行列は対称・半正定値
+  \item パラメータを確率変数とみなすと、ベイズの定理で\textbf{事後分布}が得られ、データが増えるほど集中する。
+    最尤推定・最大事後確率推定・事後平均。ノイズが正規分布なら\textbf{最尤推定＝最小二乗法}
+\end{itemize}
+
+本章で、確率の言葉と、ベイズの定理という「データで知識を更新する」ための式が揃った。
+次回（第8回）は、ベイズの定理を分類問題に適用した\textbf{ナイーブベイズ分類器}を作り、
+最尤推定と最大事後確率推定を本格的に扱う。
+本章の迷惑メールの表（表\ref{tab:ch7-spam}）が、そこでの出発点になる。
+
+
+\subsection{演習問題}
+
+\begin{enumerate}
+
+  \item \textbf{公理から導く}\quad
+    確率の公理だけを用いて次を示せ。
+    \begin{enumerate}
+      \item $A \subseteq B$ ならば $P(A) \leq P(B)$
+      \item 加法定理 $P(A \cup B) = P(A) + P(B) - P(A \cap B)$（本文の証明を、3つの排反な部分への分割を明示して書け）
+      \item $P(A \cup B) \leq P(A) + P(B)$
+      \item $P(B) > 0$ を固定したとき、$Q(A) = P(A \mid B)$ で定めた関数 $Q$ が確率の公理の3条件を満たすこと
+    \end{enumerate}
+
+  \item \textbf{同時確率の表}\quad
+    ある大学の学生200人について、「朝食を食べるか」と「1限の講義に出席したか」を調べた結果が次の表である。
+    \begin{center}
+      \begin{tabular}{l|cc}
+        \hline
+         & 出席した & 欠席した \\
+        \hline\hline
+        朝食を食べる & $90$ & $30$ \\
+        朝食を食べない & $40$ & $40$ \\
+        \hline
+      \end{tabular}
+    \end{center}
+    無作為に1人を選ぶとき、次を求めよ。
+    \begin{enumerate}
+      \item 周辺確率 $P(\text{朝食を食べる})$ と $P(\text{出席した})$
+      \item 条件付き確率 $P(\text{出席した} \mid \text{朝食を食べる})$ と $P(\text{朝食を食べる} \mid \text{出席した})$。両者が異なる理由を述べよ
+      \item 「朝食を食べる」と「出席した」は独立か。式\eqref{eq:ch7-indep}を用いて判定せよ
+      \item (b) の2つの値と (a) の周辺確率が、ベイズの定理を満たしていることを確かめよ
+      \item この表から「朝食を食べると出席するようになる」と結論してよいか。理由とともに述べよ
+    \end{enumerate}
+
+  \item \textbf{検査とベイズの定理}\quad
+    感度 $98\%$、偽陽性率 $2\%$ の検査がある。
+    \begin{enumerate}
+      \item 有病率 $0.1\%$ の集団で陽性と判定された人が、本当に病気である確率を求めよ
+      \item 有病率が $10\%$ の集団ではどうか。(a) と比べ、結果が大きく変わる理由を自然頻度（10000人あたりの人数）を使って説明せよ
+      \item (a) の集団で、陽性の人がもう一度検査を受けて再び陽性だった。2回の結果は病気の有無を条件として独立とする。
+        1回目の事後確率を事前確率として更新する方法と、尤度 $0.98^2$ と $0.02^2$ を使って一度に計算する方法の両方で、病気である確率を求め、一致することを確かめよ
+      \item オッズの形（本文のコラム）で (a) と (c) を計算し直せ
+    \end{enumerate}
+
+  \item \textbf{全確率の定理}\quad
+    ある部品を工場 $B_1, B_2, B_3$ がそれぞれ $50\%, 30\%, 20\%$ の割合で生産しており、
+    各工場の不良率は $1\%, 2\%, 3\%$ である。
+    \begin{enumerate}
+      \item 無作為に選んだ部品が不良品である確率を求めよ
+      \item 選んだ部品が不良品だった。それが工場 $B_3$ で作られた確率を求めよ
+      \item (b) の値は、$B_3$ の生産割合 $20\%$ より大きいか小さいか。その理由を述べよ
+    \end{enumerate}
+
+  \item \textbf{モンティ・ホール問題}\quad
+    3つの扉のうち1つの後ろに賞品がある（どの扉かは等確率）。あなたが扉1を選ぶと、
+    賞品の位置を知っている司会者が、残りの2つのうち賞品のない扉を1つ開ける
+    （扉2と扉3のどちらにも賞品がないときは、等確率でどちらかを開ける）。
+    司会者は扉3を開けた。扉1のままにするか、扉2に変えるか。
+    \begin{enumerate}
+      \item 賞品が扉 $j$ にあるという仮説を $H_j$（$j = 1, 2, 3$）とし、事前確率 $P(H_j)$ を書け
+      \item 「司会者が扉3を開ける」というデータ $D$ について、尤度 $P(D \mid H_1)$、$P(D \mid H_2)$、$P(D \mid H_3)$ を求めよ
+      \item ベイズの定理で事後確率 $P(H_1 \mid D)$、$P(H_2 \mid D)$ を求め、扉を変えるべきかどうか答えよ
+    \end{enumerate}
+
+  \item \textbf{期待値と分散}\quad
+    サイコロを振ったときの目を $X$ とする。
+    \begin{enumerate}
+      \item $\mathbb{E}[X]$、$\mathbb{E}[X^2]$、$\mathrm{Var}[X]$ を求めよ
+      \item 2つのサイコロを独立に振ったときの目の和 $S = X_1 + X_2$ について、$\mathbb{E}[S]$ と $\mathrm{Var}[S]$ を求めよ
+      \item $\mathrm{Var}[2X]$ を求め、(b) の $\mathrm{Var}[S]$ と比べよ。どちらも期待値は $7$ なのに分散が異なる理由を述べよ
+      \item 式\eqref{eq:ch7-var-alt}を、期待値の線形性を用いて導け
+    \end{enumerate}
+
+  \item \textbf{ミニバッチの勾配}\quad
+    第5.5.2項の記号で、$N$ 個の勾配 $\bm{g}_1, \ldots, \bm{g}_N$ の平均を $\bar{\bm{g}} = \nabla L_D$ とする。
+    \begin{enumerate}
+      \item $N$ 件から重複を許さずに $|B|$ 件を選ぶとき（すべての選び方が等確率）、各データ $i$ が $B$ に含まれる確率が $|B|/N$ であることを示せ
+      \item (a) を用いて、ミニバッチの勾配 $\frac{1}{|B|}\sum_{i \in B}\bm{g}_i$ の期待値が $\bar{\bm{g}}$ であることを示せ
+        （ヒント：$\sum_{i \in B}\bm{g}_i = \sum_{i=1}^N \bm{1}[i \in B]\,\bm{g}_i$ と書き、指示関数 $\bm{1}[i \in B]$ の期待値を使う）
+      \item 重複を許して1件ずつ独立に $|B|$ 回選ぶ場合を考える。1次元の場合（$g_i$ がスカラー）に、
+        $\sigma_g^2 = \frac{1}{N}\sum_i (g_i - \bar{g})^2$ とおいて、ミニバッチの勾配の分散が $\sigma_g^2/|B|$ であることを示せ
+      \item バッチサイズを $32$ から $128$ に増やすと、勾配のノイズの標準偏差と1回の更新の計算量はそれぞれ何倍になるか
+    \end{enumerate}
+
+  \item \textbf{第6回の1変数モデル}\quad
+    $y_i = w x_i + \varepsilon_i$（$i = 1, \ldots, N$）、$\varepsilon_i$ は独立で平均 $0$、分散 $\sigma^2$、$x_i$ は定数とする。$d = \sum_i x_i^2$ とおく。
+    \begin{enumerate}
+      \item 最小二乗解 $\hat{w} = \frac{1}{d}\sum_i x_i y_i$ について、$\mathbb{E}[\hat{w}] = w$ を示せ。どの性質を使ったか述べよ
+      \item $\mathrm{Var}[\hat{w}] = \sigma^2/d$ を示せ。どの性質を使ったか、またノイズの独立性がどこで必要かを述べよ
+      \item リッジ回帰の解 $\hat{w}_\lambda = \frac{d}{d + \lambda}\hat{w}$ について、期待値と分散を求めよ（第6.4.3項の式と一致することを確かめよ）
+    \end{enumerate}
+
+  \item \textbf{正規分布}\quad
+    \begin{enumerate}
+      \item $\mathcal{N}(x \mid \mu, \sigma^2)$ の最大値を求めよ。$\sigma = 0.1$ のとき最大値は $1$ を超えることを確かめ、
+        それでも矛盾しない理由を「密度」と「確率」の違いから説明せよ
+      \item 式\eqref{eq:ch7-gauss-log}を導け
+      \item 独立に $\mathcal{N}(\mu, \sigma^2)$ に従う観測 $y_1, \ldots, y_N$ が得られたとき、
+        尤度 $\prod_i \mathcal{N}(y_i \mid \mu, \sigma^2)$ を最大にする $\mu$ が標本平均 $\frac{1}{N}\sum_i y_i$ であることを示せ
+        （ヒント：負の対数をとり、$\mu$ で微分して $0$ とおく）
+    \end{enumerate}
+
+  \item \textbf{コインのベイズ推定}\quad
+    表の出る確率 $\theta$ が $0.2$、$0.5$、$0.8$ のいずれかであるコインがあり、事前確率はそれぞれ $1/3$ とする。
+    このコインを3回投げたら、表、表、裏の順に出た。
+    \begin{enumerate}
+      \item 各 $\theta$ について尤度 $p(D \mid \theta)$ を求めよ
+      \item 事後確率 $p(\theta \mid D)$ を求めよ。どの $\theta$ が最も確からしいか
+      \item 4回目に表が出る確率を、全確率の定理を用いて $\sum_\theta P(\text{表} \mid \theta)\,p(\theta \mid D)$ として求めよ（\textbf{事後予測確率}）
+      \item 最尤推定（3つの候補のうち尤度が最大のもの）で選んだ $\theta$ を使って4回目に表が出る確率を答えるのと比べ、(c) との違いを述べよ
+      \item （発展）$\theta$ が区間 $[0, 1]$ 上で一様な事前分布をもつとき、$n$ 回中 $k$ 回表が出たあとの最尤推定が $k/n$、
+        事後平均が $(k + 1)/(n + 2)$ であることを示せ。
+        ただし $\int_0^1 \theta^a (1 - \theta)^b\,d\theta = \frac{a!\,b!}{(a + b + 1)!}$（$a, b$ は非負整数）を用いてよい
     \end{enumerate}
 
 \end{enumerate}

@@ -1,0 +1,462 @@
+%=====================================================================
+% 機械学習 第7回 演習問題 提出用テンプレート
+%
+% 使い方
+%   1. 下の \学籍番号, \氏名, \提出日 を自分の情報に書き換える
+%      （\提出期限 は書き換えない）
+%   2. 各問題の「解答」枠の中に解答を書く（枠の外の問題文は変更しない）
+%   3. コンパイルして PDF を作成し、PDF を提出する
+%
+% コンパイル方法（ターミナル）
+%   uplatex report_template_07.tex && dvipdfmx report_template_07.dvi
+%
+% Overleaf を使う場合
+%   Menu > Compiler を "LaTeX" にし、プロジェクトに latexmkrc という名前の
+%   ファイルを作って次の3行を書く：
+%     $latex = 'uplatex';
+%     $dvipdf = 'dvipdfmx %O -o %D %S';
+%     $pdf_mode = 3;
+%
+% 提出期限：2026年11月9日（月）
+% ファイル名は  ML07_学籍番号.pdf  として提出すること（例：ML07_2312345.pdf）
+%=====================================================================
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{pdfborder={0 0 0}}
+
+%---- 提出期限（書き換えない）------------------------------------------
+\newcommand{\提出期限}{2026年11月9日（月）}
+%---- 自分の情報を書く -------------------------------------------------
+\newcommand{\学籍番号}{0000000}
+\newcommand{\氏名}{氏名を書く}
+\newcommand{\提出日}{2026年11月9日}
+%----------------------------------------------------------------------
+
+% 解答枠（枠の中に解答を書く）
+\newenvironment{answer}{\begin{itembox}[l]{解答}}{\end{itembox}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE 機械学習　第7回 演習問題}\\[2mm]
+  {\large 提出課題（確率とベイズの定理）}\\[4mm]
+  {\large\textbf{提出期限：\提出期限}}\\[6mm]
+  \begin{tabular}{ll}
+    学籍番号： & \学籍番号 \\
+    氏名：     & \氏名 \\
+    提出日：   & \提出日 \\
+  \end{tabular}
+\end{center}
+
+\vspace{4mm}
+\noindent
+\textbf{注意}
+\begin{itemize}
+  \item 解答は「解答」の枠内に書くこと。枠外の問題文は変更しないこと。
+  \item 計算問題は結果だけでなく途中の式も書くこと。
+    分数はそのまま分数で答えてよい。小数で答える場合は有効数字3桁程度でよい。
+  \item 証明問題では、どの定義・公理・性質を使ったか（確率の公理、条件付き確率の定義、乗法定理、
+    全確率の定理、独立性、期待値の線形性、分散の性質など）を明記すること。
+  \item 「確かめよ」という問いには、両辺を実際に計算して一致することを示すこと。
+  \item 「説明せよ」「理由を述べよ」という問いには、計算結果だけでなく\textbf{日本語の説明}を書くこと。
+  \item 数式の書き方は末尾の「LaTeX の書き方」を参照すること。
+\end{itemize}
+
+\section*{問題}
+
+\begin{enumerate}
+
+%=====================================================================
+  \item \textbf{公理から導く}\quad
+    確率の公理（非負性 $P(A) \geq 0$、全体の確率 $P(\Omega) = 1$、互いに排反な事象の加法性）だけを用いて次を示せ。
+    \begin{enumerate}
+      \item $A \subseteq B$ ならば $P(A) \leq P(B)$
+      \item 加法定理 $P(A \cup B) = P(A) + P(B) - P(A \cap B)$（テキストの証明を、3つの排反な部分への分割を明示して書け）
+      \item $P(A \cup B) \leq P(A) + P(B)$
+      \item $P(B) > 0$ を固定したとき、$Q(A) = P(A \mid B)$ で定めた関数 $Q$ が確率の公理の3条件を満たすこと
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $B = $ \phantom{XXXXXXXXXX}（排反な2つに分割）なので
+          \vspace{10mm}
+        \item $A \cup B = $ \phantom{XXXXXXXXXXXXXXXX}（互いに排反な3つに分割）。
+          \vspace{14mm}
+        \item
+          \vspace{6mm}
+        \item 非負性：\phantom{XXXXXXXXXXXX}
+          \vspace{2mm}
+
+          全体の確率：$Q(\Omega) = $ \phantom{XXXXXXXXXXXX}
+          \vspace{2mm}
+
+          加法性：
+          \vspace{12mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{同時確率の表}\quad
+    ある大学の学生200人について、「朝食を食べるか」と「1限の講義に出席したか」を調べた結果が次の表である。
+    \begin{center}
+      \begin{tabular}{l|cc}
+        \hline
+         & 出席した & 欠席した \\
+        \hline\hline
+        朝食を食べる & $90$ & $30$ \\
+        朝食を食べない & $40$ & $40$ \\
+        \hline
+      \end{tabular}
+    \end{center}
+    無作為に1人を選ぶとき、次を求めよ。
+    \begin{enumerate}
+      \item 周辺確率 $P(\text{朝食を食べる})$ と $P(\text{出席した})$
+      \item 条件付き確率 $P(\text{出席した} \mid \text{朝食を食べる})$ と $P(\text{朝食を食べる} \mid \text{出席した})$。両者が異なる理由を述べよ
+      \item 「朝食を食べる」と「出席した」は独立か。テキスト式(7.8) $P(A \cap B) = P(A)\,P(B)$ を用いて判定せよ
+      \item (b) の2つの値と (a) の周辺確率が、ベイズの定理を満たしていることを確かめよ
+      \item この表から「朝食を食べると出席するようになる」と結論してよいか。理由とともに述べよ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $P(\text{朝食}) = \dfrac{\phantom{XXX}}{200} = $ \phantom{XXXX}、\quad
+          $P(\text{出席}) = \dfrac{\phantom{XXX}}{200} = $ \phantom{XXXX}
+          \vspace{4mm}
+        \item $P(\text{出席} \mid \text{朝食}) = \dfrac{\phantom{XXX}}{\phantom{XXX}} = $ \phantom{XXXX}、\quad
+          $P(\text{朝食} \mid \text{出席}) = \dfrac{\phantom{XXX}}{\phantom{XXX}} = $ \phantom{XXXX}
+          \vspace{2mm}
+
+          異なる理由：
+          \vspace{10mm}
+        \item $P(\text{朝食} \cap \text{出席}) = $ \phantom{XXXX}、$P(\text{朝食})\,P(\text{出席}) = $ \phantom{XXXX}。
+          独立か：\phantom{XXXXXXXX}
+          \vspace{4mm}
+        \item
+          \begin{equation*}
+            \frac{P(\text{出席} \mid \text{朝食})\,P(\text{朝食})}{P(\text{出席})} = \phantom{XXXXXXXXXXXXXXXX}
+          \end{equation*}
+        \item 結論してよい／よくない（　　　）。理由：
+          \vspace{14mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{検査とベイズの定理}\quad
+    感度 $98\%$（$P(\text{陽性} \mid \text{病気}) = 0.98$）、偽陽性率 $2\%$（$P(\text{陽性} \mid \text{健康}) = 0.02$）の検査がある。
+    \begin{enumerate}
+      \item 有病率 $0.1\%$ の集団で陽性と判定された人が、本当に病気である確率を求めよ
+      \item 有病率が $10\%$ の集団ではどうか。(a) と比べ、結果が大きく変わる理由を自然頻度（10000人あたりの人数）を使って説明せよ
+      \item (a) の集団で、陽性の人がもう一度検査を受けて再び陽性だった。2回の結果は病気の有無を条件として独立とする。
+        1回目の事後確率を事前確率として更新する方法と、尤度 $0.98^2$ と $0.02^2$ を使って一度に計算する方法の両方で、病気である確率を求め、一致することを確かめよ
+      \item オッズの形（テキストのコラム「オッズで見るベイズの定理」）で (a) と (c) を計算し直せ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            P(\text{病気} \mid \text{陽性}) = \frac{0.98 \times \phantom{XXXX}}{0.98 \times \phantom{XXXX} + 0.02 \times \phantom{XXXX}}
+            = \frac{\phantom{XXXXXX}}{\phantom{XXXXXX}} \approx \phantom{XXXX}
+          \end{equation*}
+        \item $P(\text{病気} \mid \text{陽性}) = $ \phantom{XXXXXXXXXXXXXXXX} $\approx$ \phantom{XXXX}
+          \vspace{2mm}
+
+          自然頻度（10000人あたり）：(a) では病気 \phantom{XX} 人 $\to$ 陽性 \phantom{XX} 人、健康 \phantom{XXXX} 人 $\to$ 陽性 \phantom{XXX} 人。
+          (b) では \phantom{XXXXXXXXXXXXXXXXXXXXXXXX}
+          \vspace{2mm}
+
+          理由：
+          \vspace{10mm}
+        \item 逐次更新：事前確率 $= $ \phantom{XXXX} として
+          \begin{equation*}
+            P(\text{病気} \mid \text{陽性2回}) = \phantom{XXXXXXXXXXXXXXXXXXXXXXXX} \approx \phantom{XXXX}
+          \end{equation*}
+          一度に計算：
+          \begin{equation*}
+            P(\text{病気} \mid \text{陽性2回}) = \frac{0.98^2 \times \phantom{XXXX}}{0.98^2 \times \phantom{XXXX} + 0.02^2 \times \phantom{XXXX}} \approx \phantom{XXXX}
+          \end{equation*}
+        \item 事前オッズ $= $ \phantom{XXXXXX}、尤度比 $= $ \phantom{XXXX}、
+          (a) の事後オッズ $= $ \phantom{XXXXXX} $\to$ 確率 \phantom{XXXX}、
+          (c) の事後オッズ $= $ \phantom{XXXXXX} $\to$ 確率 \phantom{XXXX}
+          \vspace{4mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{全確率の定理}\quad
+    ある部品を工場 $B_1, B_2, B_3$ がそれぞれ $50\%, 30\%, 20\%$ の割合で生産しており、
+    各工場の不良率は $1\%, 2\%, 3\%$ である。
+    \begin{enumerate}
+      \item 無作為に選んだ部品が不良品である確率を求めよ
+      \item 選んだ部品が不良品だった。それが工場 $B_3$ で作られた確率を求めよ
+      \item (b) の値は、$B_3$ の生産割合 $20\%$ より大きいか小さいか。その理由を述べよ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $P(\text{不良}) = $ \phantom{XXXXXXXXXXXXXXXXXXXXXXXX} $= $ \phantom{XXXX}
+          \vspace{4mm}
+        \item $P(B_3 \mid \text{不良}) = \dfrac{\phantom{XXXXXXXX}}{\phantom{XXXXXXXX}} = $ \phantom{XXXX}
+          \vspace{4mm}
+        \item 大きい／小さい（　　）。理由：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{モンティ・ホール問題}\quad
+    3つの扉のうち1つの後ろに賞品がある（どの扉かは等確率）。あなたが扉1を選ぶと、
+    賞品の位置を知っている司会者が、残りの2つのうち賞品のない扉を1つ開ける
+    （扉2と扉3のどちらにも賞品がないときは、等確率でどちらかを開ける）。
+    司会者は扉3を開けた。扉1のままにするか、扉2に変えるか。
+    \begin{enumerate}
+      \item 賞品が扉 $j$ にあるという仮説を $H_j$（$j = 1, 2, 3$）とし、事前確率 $P(H_j)$ を書け
+      \item 「司会者が扉3を開ける」というデータ $D$ について、尤度 $P(D \mid H_1)$、$P(D \mid H_2)$、$P(D \mid H_3)$ を求めよ
+      \item ベイズの定理で事後確率 $P(H_1 \mid D)$、$P(H_2 \mid D)$ を求め、扉を変えるべきかどうか答えよ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $P(H_1) = $ \phantom{XXX}、$P(H_2) = $ \phantom{XXX}、$P(H_3) = $ \phantom{XXX}
+          \vspace{2mm}
+        \item $P(D \mid H_1) = $ \phantom{XXX}（理由：\phantom{XXXXXXXXXXXXXXXX}）
+          \vspace{2mm}
+
+          $P(D \mid H_2) = $ \phantom{XXX}（理由：\phantom{XXXXXXXXXXXXXXXX}）
+          \vspace{2mm}
+
+          $P(D \mid H_3) = $ \phantom{XXX}（理由：\phantom{XXXXXXXXXXXXXXXX}）
+          \vspace{2mm}
+        \item $P(D) = $ \phantom{XXXXXXXXXXXXXXXX} $= $ \phantom{XXX}
+          \vspace{2mm}
+
+          $P(H_1 \mid D) = $ \phantom{XXXXXXXX}、$P(H_2 \mid D) = $ \phantom{XXXXXXXX}。結論：
+          \vspace{8mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{期待値と分散}\quad
+    サイコロを振ったときの目を $X$ とする。
+    \begin{enumerate}
+      \item $\mathbb{E}[X]$、$\mathbb{E}[X^2]$、$\mathrm{Var}[X]$ を求めよ
+      \item 2つのサイコロを独立に振ったときの目の和 $S = X_1 + X_2$ について、$\mathbb{E}[S]$ と $\mathrm{Var}[S]$ を求めよ
+      \item $\mathrm{Var}[2X]$ を求め、(b) の $\mathrm{Var}[S]$ と比べよ。どちらも期待値は $7$ なのに分散が異なる理由を述べよ
+      \item テキスト式(7.29) $\mathrm{Var}[X] = \mathbb{E}[X^2] - \mu^2$（$\mu = \mathbb{E}[X]$）を、期待値の線形性を用いて導け
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\mathbb{E}[X] = $ \phantom{XXXXXXXXXXXX} $= $ \phantom{XXXX}、
+          $\mathbb{E}[X^2] = $ \phantom{XXXXXXXXXXXX} $= $ \phantom{XXXX}、
+          $\mathrm{Var}[X] = $ \phantom{XXXXXXXX} $= $ \phantom{XXXX}
+          \vspace{4mm}
+        \item $\mathbb{E}[S] = $ \phantom{XXXX}（使った性質：\phantom{XXXXXXXX}）、
+          $\mathrm{Var}[S] = $ \phantom{XXXX}（使った性質：\phantom{XXXXXXXX}）
+          \vspace{4mm}
+        \item $\mathrm{Var}[2X] = $ \phantom{XXXXXX}。理由：
+          \vspace{10mm}
+        \item
+          \begin{align*}
+            \mathrm{Var}[X] = \mathbb{E}[(X - \mu)^2]
+              &= \phantom{XXXXXXXXXXXXXXXX} && \text{（　　　　　）} \\
+              &= \phantom{XXXXXXXXXXXXXXXX} && \text{（　　　　　）} \\
+              &= \phantom{XXXXXXXXXXXXXXXX} && \text{（　　　　　）}
+          \end{align*}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{ミニバッチの勾配}\quad
+    テキスト第5.5.2項の記号で、$N$ 個の勾配 $\bm{g}_1, \ldots, \bm{g}_N$ の平均を $\bar{\bm{g}} = \nabla L_D$ とする。
+    \begin{enumerate}
+      \item $N$ 件から重複を許さずに $|B|$ 件を選ぶとき（すべての選び方が等確率）、各データ $i$ が $B$ に含まれる確率が $|B|/N$ であることを示せ
+      \item (a) を用いて、ミニバッチの勾配 $\frac{1}{|B|}\sum_{i \in B}\bm{g}_i$ の期待値が $\bar{\bm{g}}$ であることを示せ
+        （ヒント：$\sum_{i \in B}\bm{g}_i = \sum_{i=1}^N \bm{1}[i \in B]\,\bm{g}_i$ と書き、指示関数 $\bm{1}[i \in B]$ の期待値を使う）
+      \item 重複を許して1件ずつ独立に $|B|$ 回選ぶ場合を考える。1次元の場合（$g_i$ がスカラー）に、
+        $\sigma_g^2 = \frac{1}{N}\sum_i (g_i - \bar{g})^2$ とおいて、ミニバッチの勾配の分散が $\sigma_g^2/|B|$ であることを示せ
+      \item バッチサイズを $32$ から $128$ に増やすと、勾配のノイズの標準偏差と1回の更新の計算量はそれぞれ何倍になるか
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 選び方の総数 $= $ \phantom{XXXXXX}、$i$ を含む選び方の数 $= $ \phantom{XXXXXX} なので
+          \vspace{8mm}
+        \item $\mathbb{E}\big[\bm{1}[i \in B]\big] = $ \phantom{XXXX} より
+          \begin{align*}
+            \mathbb{E}\Big[\frac{1}{|B|}\sum_{i \in B}\bm{g}_i\Big]
+              &= \phantom{XXXXXXXXXXXXXXXXXXXX} && \text{（　　　　　）} \\
+              &= \phantom{XXXXXXXXXXXXXXXXXXXX} && \text{（　　　　　）}
+          \end{align*}
+        \item
+          \vspace{14mm}
+        \item 標準偏差：\phantom{XXXX} 倍、計算量：\phantom{XXXX} 倍
+          \vspace{2mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{第6回の1変数モデル}\quad
+    $y_i = w x_i + \varepsilon_i$（$i = 1, \ldots, N$）、$\varepsilon_i$ は独立で平均 $0$、分散 $\sigma^2$、$x_i$ は定数とする。$d = \sum_i x_i^2$ とおく。
+    \begin{enumerate}
+      \item 最小二乗解 $\hat{w} = \frac{1}{d}\sum_i x_i y_i$ について、$\mathbb{E}[\hat{w}] = w$ を示せ。どの性質を使ったか述べよ
+      \item $\mathrm{Var}[\hat{w}] = \sigma^2/d$ を示せ。どの性質を使ったか、またノイズの独立性がどこで必要かを述べよ
+      \item リッジ回帰の解 $\hat{w}_\lambda = \frac{d}{d + \lambda}\hat{w}$ について、期待値と分散を求めよ（テキスト第6.4.3項の式と一致することを確かめよ）
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\hat{w} = w + $ \phantom{XXXXXXXXXX} と書けるので
+          \vspace{10mm}
+        \item
+          \vspace{14mm}
+        \item $\mathbb{E}[\hat{w}_\lambda] = $ \phantom{XXXXXXXX}、$\mathrm{Var}[\hat{w}_\lambda] = $ \phantom{XXXXXXXX}
+          \vspace{4mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{正規分布}\quad
+    \begin{enumerate}
+      \item $\mathcal{N}(x \mid \mu, \sigma^2)$ の最大値を求めよ。$\sigma = 0.1$ のとき最大値は $1$ を超えることを確かめ、
+        それでも矛盾しない理由を「密度」と「確率」の違いから説明せよ
+      \item テキスト式(7.23) $-\log \mathcal{N}(x \mid \mu, \sigma^2) = \dfrac{(x - \mu)^2}{2\sigma^2} + \dfrac{1}{2}\log(2\pi\sigma^2)$ を導け
+      \item 独立に $\mathcal{N}(\mu, \sigma^2)$ に従う観測 $y_1, \ldots, y_N$ が得られたとき、
+        尤度 $\prod_i \mathcal{N}(y_i \mid \mu, \sigma^2)$ を最大にする $\mu$ が標本平均 $\frac{1}{N}\sum_i y_i$ であることを示せ
+        （ヒント：負の対数をとり、$\mu$ で微分して $0$ とおく）
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 最大値は $x = $ \phantom{XX} で \phantom{XXXXXXXX}。$\sigma = 0.1$ のとき $\approx$ \phantom{XXXX}。矛盾しない理由：
+          \vspace{10mm}
+        \item
+          \vspace{14mm}
+        \item $-\log \prod_i \mathcal{N}(y_i \mid \mu, \sigma^2) = $ \phantom{XXXXXXXXXXXXXXXXXXXX}
+          \vspace{2mm}
+
+          $\mu$ で微分して $0$ とおくと
+          \vspace{12mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{コインのベイズ推定}\quad
+    表の出る確率 $\theta$ が $0.2$、$0.5$、$0.8$ のいずれかであるコインがあり、事前確率はそれぞれ $1/3$ とする。
+    このコインを3回投げたら、表、表、裏の順に出た。
+    \begin{enumerate}
+      \item 各 $\theta$ について尤度 $p(D \mid \theta)$ を求めよ
+      \item 事後確率 $p(\theta \mid D)$ を求めよ。どの $\theta$ が最も確からしいか
+      \item 4回目に表が出る確率を、全確率の定理を用いて $\sum_\theta P(\text{表} \mid \theta)\,p(\theta \mid D)$ として求めよ（\textbf{事後予測確率}）
+      \item 最尤推定（3つの候補のうち尤度が最大のもの）で選んだ $\theta$ を使って4回目に表が出る確率を答えるのと比べ、(c) との違いを述べよ
+      \item （発展）$\theta$ が区間 $[0, 1]$ 上で一様な事前分布をもつとき、$n$ 回中 $k$ 回表が出たあとの最尤推定が $k/n$、
+        事後平均が $(k + 1)/(n + 2)$ であることを示せ。
+        ただし $\int_0^1 \theta^a (1 - \theta)^b\,d\theta = \dfrac{a!\,b!}{(a + b + 1)!}$（$a, b$ は非負整数）を用いてよい
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{center}
+            \begin{tabular}{c|c|c|c}
+              $\theta$ & $0.2$ & $0.5$ & $0.8$ \\ \hline
+              $p(D \mid \theta) = \theta^2(1 - \theta)$ & \phantom{XXXXXX} & \phantom{XXXXXX} & \phantom{XXXXXX} \\
+              $p(\theta \mid D)$ & \phantom{XXXXXX} & \phantom{XXXXXX} & \phantom{XXXXXX}
+            \end{tabular}
+          \end{center}
+        \item 分母 $\sum_\theta p(D \mid \theta)\,p(\theta) = $ \phantom{XXXXXXXX}。最も確からしい $\theta = $ \phantom{XXX}
+          \vspace{4mm}
+        \item $P(\text{表} \mid D) = $ \phantom{XXXXXXXXXXXXXXXXXXXXXXXX} $\approx$ \phantom{XXXX}
+          \vspace{4mm}
+        \item 最尤推定の $\theta = $ \phantom{XXX} を使うと \phantom{XXXX}。違い：
+          \vspace{10mm}
+        \item 最尤推定：$\log p(D \mid \theta) = $ \phantom{XXXXXXXXXXXXXXXX} を $\theta$ で微分して
+          \vspace{10mm}
+
+          事後平均：$\mathbb{E}[\theta \mid D] = \dfrac{\int_0^1 \phantom{XXXXXXXXXX}\,d\theta}{\int_0^1 \phantom{XXXXXXXXXX}\,d\theta} = $ \phantom{XXXXXXXXXXXX}
+          \vspace{8mm}
+      \end{enumerate}
+    \end{answer}
+
+\end{enumerate}
+
+\newpage
+\section*{LaTeX の書き方（参考）}
+
+第7回の課題で使う数式の書き方をまとめる。
+数式は \verb|$ ... $| で囲む（行の中に書く場合）か、
+\verb|\begin{equation*} ... \end{equation*}| で囲む（1行独立させる場合）。
+
+\begin{center}
+\small
+\begin{tabular}{l|l}
+\hline
+表示 & 書き方 \\
+\hline\hline
+$P(A \cap B)$, $P(A \cup B)$, $A^c$ & \verb|P(A \cap B)|, \verb|P(A \cup B)|, \verb|A^c| \\
+$A \subseteq B$, $A \cap B = \emptyset$, $\Omega$ & \verb|A \subseteq B|, \verb|A \cap B = \emptyset|, \verb|\Omega| \\
+$P(A \mid B)$（条件付き確率） & \verb|P(A \mid B)| \\
+$P(\text{出席} \mid \text{朝食})$（言葉を入れる） & \verb|P(\text{出席} \mid \text{朝食})| \\
+$P(D \mid H_1)$, $P(H_1 \mid D)$, $H^c$ & \verb|P(D \mid H_1)|, \verb|P(H_1 \mid D)|, \verb|H^c| \\
+$\dfrac{P(B \mid A)\,P(A)}{P(B)}$（ベイズの定理） & \verb|\frac{P(B \mid A)\,P(A)}{P(B)}| \\
+$\sum_{k} P(B \mid A_k)\,P(A_k)$ & \verb|\sum_{k} P(B \mid A_k)\,P(A_k)| \\
+$\mathbb{E}[X]$, $\mathrm{Var}[X]$, $\mathrm{Cov}[X, Y]$ & \verb|\mathbb{E}[X]|, \verb|\mathrm{Var}[X]|, \verb|\mathrm{Cov}[X, Y]| \\
+$\mathcal{N}(x \mid \mu, \sigma^2)$, $X \sim \mathcal{N}(\mu, \sigma^2)$ & \verb|\mathcal{N}(x \mid \mu, \sigma^2)|, \verb|X \sim \mathcal{N}(...)| \\
+$\exp\!\left(-\dfrac{(x - \mu)^2}{2\sigma^2}\right)$ & \verb|\exp\!\left(-\frac{(x - \mu)^2}{2\sigma^2}\right)| \\
+$\log$, $\prod_{i=1}^N$, $\int_0^1 \theta\,d\theta$ & \verb|\log|, \verb|\prod_{i=1}^N|, \verb|\int_0^1 \theta\,d\theta| \\
+$p(\theta \mid D) \propto p(D \mid \theta)\,p(\theta)$ & \verb|p(\theta \mid D) \propto p(D \mid \theta)\,p(\theta)| \\
+$\theta^k(1 - \theta)^{n - k}$, $\hat{\theta}$ & \verb|\theta^k(1 - \theta)^{n - k}|, \verb|\hat{\theta}| \\
+$\binom{N}{|B|}$, $\bm{1}[i \in B]$, $\bar{\bm{g}}$ & \verb+\binom{N}{|B|}+, \verb|\bm{1}[i \in B]|, \verb|\bar{\bm{g}}| \\
+$\varepsilon_i$, $\sigma^2$, $\mu$, $\lambda$ & \verb|\varepsilon_i|, \verb|\sigma^2|, \verb|\mu|, \verb|\lambda| \\
+$\frac{35}{12}$, $\tfrac{2}{3}$（分数）, $\approx$, $\leq$, $\neq$ & \verb|\frac{35}{12}|, \verb|\tfrac{2}{3}|, \verb|\approx|, \verb|\leq|, \verb|\neq| \\
+$1 : 999$, $\Longrightarrow$ & \verb|1 : 999|, \verb|\Longrightarrow| \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{証明で「どの公理・性質を使ったか」を右側に書く例}（\verb|&&\text{...}| を使う）：
+\begin{verbatim}
+\begin{align*}
+  P(B) &= P(A) + P(B \setminus A) && \text{（排反な分割と加法性）} \\
+       &\geq P(A)                 && \text{（非負性）}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  P(B) &= P(A) + P(B \setminus A) && \text{（排反な分割と加法性）} \\
+       &\geq P(A)                 && \text{（非負性）}
+\end{align*}
+
+\noindent
+\textbf{分母を全確率の定理で書く例}（\verb|\underbrace| で値を添える）：
+\begin{verbatim}
+\begin{equation*}
+  P(\text{陽性}) = \underbrace{0.98 \times 0.001}_{0.00098}
+                 + \underbrace{0.02 \times 0.999}_{0.01998} = 0.02096
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  P(\text{陽性}) = \underbrace{0.98 \times 0.001}_{0.00098}
+                 + \underbrace{0.02 \times 0.999}_{0.01998} = 0.02096
+\end{equation*}
+
+\noindent
+\textbf{表の書き方}（\verb|tabular| 環境。\verb|&| で列を区切り、\verb|\\| で行を変える）：
+\begin{verbatim}
+\begin{center}
+  \begin{tabular}{c|c|c|c}
+    $\theta$ & $0.2$ & $0.5$ & $0.8$ \\ \hline
+    $p(D \mid \theta)$ & $0.032$ & $0.125$ & $0.128$
+  \end{tabular}
+\end{center}
+\end{verbatim}
+表示結果：
+\begin{center}
+  \begin{tabular}{c|c|c|c}
+    $\theta$ & $0.2$ & $0.5$ & $0.8$ \\ \hline
+    $p(D \mid \theta)$ & $0.032$ & $0.125$ & $0.128$
+  \end{tabular}
+\end{center}
+
+\noindent
+\textbf{注意}：テンプレート中の \verb|\phantom{XXXX}| は答えを書く空白である。
+解答を書くときはこの部分を自分の答えで置き換えること。
+
+\end{document}

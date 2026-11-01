@@ -2138,6 +2138,461 @@ def fig_constraint():
     save(fig, "ch6_constraint")
 
 
+# ---------------------------------------------------------------- chapter 7
+def fig_events():
+    """Die sample space Omega = {1..6}: events A (even), B (>= 4) and set operations.
+
+    The outcomes are laid out in one row as 1 3 2 4 6 5 so that A = {2,4,6} and
+    B = {4,5,6} are both contiguous and overlap exactly in {4,6}."""
+    from matplotlib.patches import FancyBboxPatch, Rectangle
+    A, B, C = {2, 4, 6}, {4, 5, 6}, {1, 3}
+    panels = [
+        ("標本空間と事象", None, "$A$：偶数　$B$：4以上"),
+        ("積事象 $A \\cap B$", A & B, "$\\{4, 6\\}$：両方起こる"),
+        ("和事象 $A \\cup B$", A | B, "$\\{2, 4, 5, 6\\}$：少なくとも一方"),
+        ("余事象 $A^c$", set(range(1, 7)) - A, "$\\{1, 3, 5\\}$：$A$ が起こらない"),
+        ("排反な事象", None, "$A \\cap C = \\emptyset$：同時に起こらない"),
+    ]
+    order = [1, 3, 2, 4, 6, 5]
+    step, x0, y = 0.53, 0.29, 1.0
+    pos = {v: (x0 + i * step, y) for i, v in enumerate(order)}
+    W, H, half = 3.2, 2.0, 0.21
+    HL = "#F6C8C0"
+
+    def enclose(ax, members, padx, pady, color, ls="-", fill="none", lw=1.6):
+        """Box around a contiguous run of cells; padx stays below half the cell gap."""
+        xs = [pos[v][0] for v in members]
+        ax.add_patch(FancyBboxPatch((min(xs) - half - padx, y - half - pady),
+                                    max(xs) - min(xs) + 2 * (half + padx), 2 * (half + pady),
+                                    boxstyle="round,pad=0.0,rounding_size=0.12",
+                                    facecolor=fill, edgecolor=color, lw=lw, ls=ls, zorder=2))
+
+    fig, axes = plt.subplots(1, 5, figsize=(10.4, 2.3))
+    for k, (ax, (title, hl, cap)) in enumerate(zip(axes, panels)):
+        ax.add_patch(Rectangle((0, 0), W, H, facecolor="#F7F8FA", edgecolor=GRAY, lw=1.0))
+        ax.text(0.06, H + 0.08, r"$\Omega$", fontsize=10, color=GRAY)
+        if k == 0:
+            enclose(ax, A, 0.045, 0.07, NAVY)
+            enclose(ax, B, 0.03, 0.2, RED, ls="--")
+            ax.text(pos[2][0] - 0.05, y - 0.62, "$A$", fontsize=10, color=NAVY)
+            ax.text(pos[5][0] - 0.05, y + 0.45, "$B$", fontsize=10, color=RED)
+        if k == 4:
+            enclose(ax, A, 0.045, 0.07, NAVY, fill="#D6E4F0", lw=1.4)
+            enclose(ax, C, 0.045, 0.07, GREEN, fill="#E3F0E3", lw=1.4)
+            ax.text(pos[2][0] + 0.2, y - 0.62, "$A$", fontsize=10, color=NAVY)
+            ax.text(pos[1][0] + 0.2, y - 0.62, "$C$", fontsize=10, color=GREEN)
+        for v, (x, yy) in pos.items():
+            fc = HL if (hl is not None and v in hl) else "white"
+            ax.add_patch(FancyBboxPatch((x - half, yy - half), 2 * half, 2 * half,
+                                        boxstyle="round,pad=0.0,rounding_size=0.06",
+                                        facecolor=fc, edgecolor=INK_T, lw=0.9, zorder=3))
+            ax.text(x, yy, str(v), ha="center", va="center", fontsize=10.5, zorder=4)
+        ax.set_title(title, fontsize=9.5)
+        ax.text(W / 2, -0.15, cap, ha="center", va="top", fontsize=8.2)
+        ax.set_xlim(-0.1, W + 0.1); ax.set_ylim(-0.6, H + 0.35); ax.set_aspect("equal"); ax.axis("off")
+    save(fig, "ch7_events")
+
+
+def fig_addition():
+    """Addition theorem on the die: A = {2,4,6}, B = {4,5,6}.  P(A)+P(B) counts {4,6} twice."""
+    from matplotlib.patches import FancyBboxPatch, Rectangle
+    A, B = {2, 4, 6}, {4, 5, 6}
+    order = [1, 3, 2, 4, 6, 5]
+    step, x0, y, half = 0.53, 0.29, 1.0, 0.21
+    pos = {v: (x0 + i * step, y) for i, v in enumerate(order)}
+    W, H = 3.2, 2.0
+    panels = [("$P(A) = 3/6$", A, NAVY, "#D6E4F0"),
+              ("$P(B) = 3/6$", B, RED, "#F6C8C0"),
+              ("$P(A \\cup B) = 4/6$", A | B, "#6A3D8F", "#E3D5EE")]
+    fig, axes = plt.subplots(1, 3, figsize=(8.4, 2.35))
+    for k, (ax, (title, hl, ec, fc)) in enumerate(zip(axes, panels)):
+        ax.add_patch(Rectangle((0, 0), W, H, facecolor="#F7F8FA", edgecolor=GRAY, lw=1.0))
+        ax.text(0.06, H + 0.08, r"$\Omega$", fontsize=10, color=GRAY)
+        for v, (x, yy) in pos.items():
+            inside = v in hl
+            both = k == 2 and v in (A & B)
+            face = ("#C9A6D9" if both else fc) if inside else "white"
+            ax.add_patch(FancyBboxPatch((x - half, yy - half), 2 * half, 2 * half,
+                                        boxstyle="round,pad=0.0,rounding_size=0.06",
+                                        facecolor=face, edgecolor=INK_T, lw=0.9, zorder=3))
+            ax.text(x, yy, str(v), ha="center", va="center", fontsize=10.5, zorder=4)
+        if k == 2:
+            ax.text(pos[4][0] + step / 2, y - 0.5, r"$A \cap B$ は $P(A) + P(B)$ で" "\n" r"2回数えられている", ha="center",
+                    va="top", fontsize=7.8, color="#6A3D8F")
+        ax.set_title(title, fontsize=10)
+        ax.set_xlim(-0.1, W + 0.1); ax.set_ylim(-0.75, H + 0.35); ax.set_aspect("equal"); ax.axis("off")
+    fig.text(0.5, 0.02, r"$P(A \cup B) = P(A) + P(B) - P(A \cap B) = 3/6 + 3/6 - 2/6 = 4/6$", ha="center", fontsize=10)
+    save(fig, "ch7_addition")
+
+
+def _mosaic(ax, cols, rows, counts, col_colors, hl_col=None, hl_cell=None, dim_others=False, fs=8.5):
+    """Mosaic plot: column widths proportional to column totals, cell heights to
+    conditional proportions within the column.  counts[r][c]."""
+    from matplotlib.patches import Rectangle
+    tot = sum(sum(r) for r in counts)
+    x = 0.0
+    for c, cname in enumerate(cols):
+        ctot = sum(counts[r][c] for r in range(len(rows)))
+        w = ctot / tot
+        y = 0.0
+        for r, rname in enumerate(rows):
+            h = counts[r][c] / ctot
+            on = (hl_cell == (r, c))
+            dim = dim_others and hl_col is not None and c != hl_col
+            fc = col_colors[r] if not dim else "#EBEDEF"
+            alpha = 1.0 if (on or not dim_others) else (0.35 if not dim else 1.0)
+            ax.add_patch(Rectangle((x, y), w, h, facecolor=fc, edgecolor="white", lw=1.5, alpha=alpha))
+            if not dim:
+                ax.text(x + w / 2, y + h / 2, f"{counts[r][c]}", ha="center", va="center", fontsize=fs,
+                        color=INK_T, fontweight="bold" if on else "normal")
+            y += h
+        ax.text(x + w / 2, 1.03, cname, ha="center", va="bottom", fontsize=fs)
+        ax.text(x + w / 2, -0.04, f"{ctot}", ha="center", va="top", fontsize=fs - 0.5, color=GRAY)
+        x += w
+    for r, rname in enumerate(rows):
+        pass
+    ax.set_xlim(-0.02, 1.02); ax.set_ylim(-0.16, 1.14); ax.axis("off")
+
+
+def fig_cond_prob():
+    """P(A|B): abstract Venn (left) and the e-mail table as a mosaic (right)."""
+    from matplotlib.patches import Rectangle, Ellipse
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 3.1), gridspec_kw=dict(width_ratios=[1.25, 1, 1]))
+    # ---- left: Venn, "shrink Omega to B"
+    ax = axes[0]
+    ax.add_patch(Rectangle((0, 0), 10, 6, facecolor="#FFFFFF", edgecolor=GRAY, lw=1.0, ls="--"))
+    b = Ellipse((6.3, 3.0), 5.4, 4.2, facecolor="#FBE3DF", edgecolor=RED, lw=1.6, alpha=0.9)
+    a = Ellipse((3.9, 3.0), 5.2, 3.8, facecolor="#E8EEF4", edgecolor="#9FB4C8", lw=1.0, alpha=0.5)
+    ax.add_patch(b); ax.add_patch(a)
+    inter = Ellipse((3.9, 3.0), 5.2, 3.8, facecolor="#8FB3D3", edgecolor=NAVY, lw=1.3)
+    inter.set_clip_path(b); ax.add_patch(inter)
+    ax.text(0.3, 5.45, r"$\Omega$", fontsize=12, color=GRAY)
+    ax.text(1.5, 4.6, r"$A$", fontsize=12, color="#9FB4C8")
+    ax.text(8.4, 4.8, r"$B$", fontsize=12, color=RED)
+    ax.text(5.05, 2.9, r"$A \cap B$", ha="center", fontsize=10, color="white", fontweight="bold")
+    ax.text(5.0, -0.55, r"$P(A \mid B) = \dfrac{P(A \cap B)}{P(B)}$" "\n" r"$B$ を新しい全体とみて、その中の $A$ の割合",
+            ha="center", va="top", fontsize=9, color=RED)
+    ax.set_xlim(-0.2, 10.2); ax.set_ylim(-2.3, 6.3); ax.set_aspect("equal"); ax.axis("off")
+    # ---- middle: whole table as a mosaic
+    cols = ["「無料」あり", "「無料」なし"]; rows = ["迷惑", "通常"]
+    counts = [[120, 80], [40, 760]]
+    colors = ["#F6C8C0", "#D6E4F0"]
+    ax = axes[1]
+    _mosaic(ax, cols, rows, counts, colors)
+    ax.text(0.5, -0.13, r"1000通全体：$P($迷惑$) = 200/1000 = 0.20$", ha="center", va="top", fontsize=8.5)
+    ax.set_title("面積 ＝ 同時確率", fontsize=9.5)
+    # ---- right: zoom into the "free" column
+    ax = axes[2]
+    _mosaic(ax, cols, rows, counts, colors, hl_col=0, hl_cell=(0, 0), dim_others=True)
+    ax.add_patch(Rectangle((0, 0), 0.16, 1.0, facecolor="none", edgecolor=RED, lw=2.0))
+    ax.annotate("", xy=(0.17, 0.5), xytext=(0.42, 0.5), arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.4))
+    ax.text(0.44, 0.5, "「無料」ありの 160 通だけを\n新しい全体として見る", va="center", fontsize=8.5, color=RED)
+    ax.text(0.5, -0.13, r"$P($迷惑 $\mid$ 無料あり$) = 120/160 = 0.75$", ha="center", va="top", fontsize=8.5, color=RED)
+    ax.set_title("条件 ＝ 1列に絞って割合を見る", fontsize=9.5)
+    save(fig, "ch7_cond_prob")
+
+
+def fig_total_prob():
+    """Total probability and Bayes on the e-mail mosaic: P(迷惑) is the red area summed over columns."""
+    from matplotlib.patches import Rectangle
+    cols = ["「無料」あり", "「無料」なし"]; rows = ["迷惑", "通常"]
+    counts = [[120, 80], [40, 760]]
+    colors = ["#F6C8C0", "#D6E4F0"]
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.1))
+    ax = axes[0]
+    _mosaic(ax, cols, rows, counts, colors)
+    # column widths and red heights
+    ax.annotate("", xy=(0.0, 1.10), xytext=(0.16, 1.10), arrowprops=dict(arrowstyle="<->", color=GRAY, lw=1))
+    ax.text(0.08, 1.115, r"$P(B_1) = 0.16$", ha="center", va="bottom", fontsize=7.5, color=GRAY)
+    ax.annotate("", xy=(0.16, 1.10), xytext=(1.0, 1.10), arrowprops=dict(arrowstyle="<->", color=GRAY, lw=1))
+    ax.text(0.58, 1.115, r"$P(B_2) = 0.84$", ha="center", va="bottom", fontsize=7.5, color=GRAY)
+    ax.text(-0.03, 0.375, r"$P(A \mid B_1)$" "\n" r"$= 0.75$", ha="right", va="center", fontsize=7.5, color=RED)
+    ax.text(1.03, 0.048, r"$P(A \mid B_2)$" "\n" r"$\approx 0.095$", ha="left", va="center", fontsize=7.5, color=RED)
+    ax.set_xlim(-0.3, 1.3)
+    ax.set_title(r"全確率：赤の面積を列ごとに足す", fontsize=9.5)
+    ax.text(0.5, -0.13, r"$P(A) = 0.75 \times 0.16 + 0.095 \times 0.84 = 0.12 + 0.08 = 0.20$",
+            ha="center", va="top", fontsize=8.2)
+    ax = axes[1]
+    _mosaic(ax, cols, rows, counts, colors)
+    ax.add_patch(Rectangle((0, 0), 0.16, 0.75, facecolor="none", edgecolor=RED, lw=2.2))
+    ax.add_patch(Rectangle((0.16, 0), 0.84, 80 / 840, facecolor="none", edgecolor=RED, lw=2.2, ls="--"))
+    ax.text(0.58, 0.80, "赤の面積全体（迷惑 200 通）のうち\n実線の枠（「無料」あり 120 通）の割合", ha="center",
+            va="center", fontsize=8.2, color=RED,
+            bbox=dict(fc="white", ec="none", alpha=0.85, pad=2))
+    ax.set_title(r"ベイズ：$P(B_1 \mid A)$ は赤の中での $B_1$ の割合", fontsize=9.5)
+    ax.text(0.5, -0.13, r"$P(B_1 \mid A) = \dfrac{0.12}{0.12 + 0.08} = \dfrac{120}{200} = 0.60$",
+            ha="center", va="top", fontsize=8.2)
+    save(fig, "ch7_total_prob")
+
+
+def fig_expectation():
+    """Expectation as the balance point of the pmf; variance as spread."""
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 2.9))
+    ax = axes[0]
+    xs = np.arange(1, 7)
+    ax.bar(xs, [1 / 6] * 6, width=0.6, color="#8FB3D3", edgecolor=NAVY)
+    ax.plot([3.5], [-0.012], marker="^", color=RED, ms=11, clip_on=False)
+    ax.text(3.5, -0.03, r"$\mathbb{E}[X] = 3.5$（重心）", ha="center", va="top", fontsize=9, color=RED)
+    ax.plot([0.6, 6.4], [0, 0], color=INK_T, lw=1.2)
+    for x in xs:
+        ax.text(x, 1 / 6 + 0.008, r"$\frac{1}{6}$", ha="center", fontsize=8)
+    ax.set_xlim(0.4, 6.6); ax.set_ylim(-0.085, 0.24); ax.set_xticks(xs); ax.set_yticks([])
+    ax.set_title(r"サイコロ：$p(x) = 1/6$ を重さとみた重心が期待値", fontsize=9.5)
+    ax.spines[["left", "top", "right", "bottom"]].set_visible(False); ax.grid(False)
+    ax.tick_params(axis="x", length=0, pad=8)
+    ax = axes[1]
+    xs = np.arange(1, 7)
+    p1 = np.array([1, 1, 1, 1, 1, 1]) / 6
+    p2 = np.array([0.5, 0, 0, 0, 0, 0.5])
+    p3 = np.array([0, 0.1, 0.4, 0.4, 0.1, 0])
+    for off, p, c, lab in ((-0.25, p2, RED, r"端に集中：Var $= 6.25$"), (0, p1, "#8FB3D3", r"一様：Var $\approx 2.92$"),
+                           (0.25, p3, GREEN, r"中央に集中：Var $= 0.65$")):
+        ax.bar(xs + off, p, width=0.24, color=c, label=lab, edgecolor="none")
+    ax.axvline(3.5, color=INK_T, lw=1, ls="--")
+    ax.text(3.42, 0.53, r"期待値はどれも $3.5$", fontsize=8.5, ha="right")
+    ax.set_xlim(0.4, 6.6); ax.set_ylim(0, 0.56); ax.set_xticks(xs)
+    ax.set_title(r"同じ期待値でもばらつきが違う：分散", fontsize=9.5)
+    ax.legend(fontsize=7.5, loc="upper right", bbox_to_anchor=(1.0, 0.92)); ax.grid(alpha=0.25)
+    save(fig, "ch7_expectation")
+
+
+def fig_test_tree():
+    """The screening test as natural frequencies (10000 people)."""
+    fig, ax = plt.subplots(figsize=(8.8, 3.6))
+    def box(x, y, text, fc="#FFFFFF", ec=GRAY, color=INK_T, fs=9.5, bold=False):
+        ax.text(x, y, text, ha="center", va="center", fontsize=fs, color=color,
+                fontweight="bold" if bold else "normal",
+                bbox=dict(boxstyle="round,pad=0.45", fc=fc, ec=ec, lw=1.1))
+    def edge(p, q, label, color=GRAY):
+        ax.annotate("", xy=q, xytext=p, arrowprops=dict(arrowstyle="-|>", color=color, lw=1.2,
+                                                        shrinkA=30, shrinkB=34))
+        ax.text((p[0] + q[0]) / 2, (p[1] + q[1]) / 2 + 0.13, label, ha="center", fontsize=8.5, color=color)
+    box(0.0, 0.0, "10000 人", bold=True)
+    box(2.3, 1.1, "病気あり\n100 人", ec=RED)
+    box(2.3, -1.1, "病気なし\n9900 人", ec=NAVY)
+    edge((0.0, 0.0), (2.3, 1.1), "有病率 1%", RED)
+    edge((0.0, 0.0), (2.3, -1.1), "99%", NAVY)
+    box(4.9, 1.6, "陽性 99 人", fc="#F9DDD8", ec=RED, bold=True)
+    box(4.9, 0.6, "陰性 1 人", ec=RED)
+    box(4.9, -0.6, "陽性 495 人", fc="#F9DDD8", ec=NAVY, bold=True)
+    box(4.9, -1.6, "陰性 9405 人", ec=NAVY)
+    edge((2.3, 1.1), (4.9, 1.6), "感度 99%", RED)
+    edge((2.3, 1.1), (4.9, 0.6), "1%", RED)
+    edge((2.3, -1.1), (4.9, -0.6), "偽陽性率 5%", NAVY)
+    edge((2.3, -1.1), (4.9, -1.6), "95%", NAVY)
+    ax.text(7.9, 0.15, "陽性 594 人のうち\n病気ありは 99 人", ha="center", va="center", fontsize=10)
+    ax.text(7.9, -0.75, r"$P($病気$\,\mid\,$陽性$) = 99/594 \approx 16.7\%$",
+            ha="center", va="center", fontsize=11, color=RED)
+    ax.annotate("", xy=(6.75, 0.2), xytext=(5.95, 1.45), arrowprops=dict(arrowstyle="-|>", color=GRAY, lw=0.9, ls=":"))
+    ax.annotate("", xy=(6.75, -0.1), xytext=(6.0, -0.5), arrowprops=dict(arrowstyle="-|>", color=GRAY, lw=0.9, ls=":"))
+    ax.set_xlim(-0.9, 9.6); ax.set_ylim(-2.1, 2.1); ax.axis("off")
+    save(fig, "ch7_test_tree")
+
+
+def fig_gaussian():
+    """Density vs probability (uniform), normal densities, and the 68-95 rule."""
+    fig, axes = plt.subplots(1, 3, figsize=(10.4, 2.9))
+    x = np.linspace(-5, 5, 600)
+    pdf = lambda x, m, s: np.exp(-(x - m) ** 2 / (2 * s * s)) / np.sqrt(2 * np.pi * s * s)
+    # ---- density is not probability
+    ax = axes[0]
+    ax.plot([-0.3, 0, 0, 0.5, 0.5, 0.8], [0, 0, 2, 2, 0, 0], color=NAVY, lw=1.8)
+    xx = np.linspace(0.1, 0.3, 50)
+    ax.fill_between(xx, 2, color="#8FB3D3")
+    ax.text(0.2, 1.0, r"面積 $= 2 \times 0.2$" "\n" r"$= 0.4$", ha="center", va="center", fontsize=8.5)
+    ax.text(0.52, 2.0, r"密度 $p(x) = 2$" "\n" r"（$1$ を超える）", va="center", fontsize=8.5, color=NAVY)
+    ax.set_xlim(-0.3, 1.0); ax.set_ylim(0, 2.6); ax.set_xlabel(r"$x$"); ax.set_xticks([0, 0.1, 0.3, 0.5])
+    ax.set_title(r"確率 $P(0.1 \leq X \leq 0.3)$ ＝ 密度の下の面積", fontsize=9.3); ax.grid(alpha=0.25)
+    # ---- normal densities
+    ax = axes[1]
+    for (m, s_, c) in ((0, 1, NAVY), (0, 0.5, RED), (2, 1.5, GREEN)):
+        ax.plot(x, pdf(x, m, s_), color=c, lw=1.8, label=r"$\mu = %g,\ \sigma = %g$" % (m, s_))
+    ax.set_title(r"正規分布 $\mathcal{N}(\mu, \sigma^2)$ の密度", fontsize=9.5)
+    ax.legend(fontsize=8); ax.set_xlabel(r"$x$"); ax.set_ylim(0, 0.85); ax.grid(alpha=0.25)
+    # ---- 68-95
+    ax = axes[2]
+    ax.plot(x, pdf(x, 0, 1), color=NAVY, lw=1.8)
+    for k, c in ((2, "#C9D9EA"), (1, "#8FB3D3")):
+        xx = x[(x >= -k) & (x <= k)]
+        ax.fill_between(xx, pdf(xx, 0, 1), color=c)
+    ax.annotate("", xy=(-1, 0.06), xytext=(1, 0.06), arrowprops=dict(arrowstyle="<->", color=INK_T, lw=1))
+    ax.text(0, 0.085, r"$\mu \pm \sigma$：約 68%", ha="center", fontsize=8.5)
+    ax.annotate("", xy=(-2, 0.015), xytext=(2, 0.015), arrowprops=dict(arrowstyle="<->", color=GRAY, lw=1))
+    ax.text(2.15, 0.09, r"$\mu \pm 2\sigma$" "\n約 95%", fontsize=8.5, color=GRAY)
+    ax.set_title(r"$\mathcal{N}(0, 1)$：面積が確率", fontsize=9.5)
+    ax.set_xlabel(r"$x$"); ax.set_xlim(-4, 4); ax.set_ylim(0, 0.45); ax.grid(alpha=0.25)
+    save(fig, "ch7_gaussian")
+
+
+def fig_lln():
+    """Running mean of die rolls (law of large numbers) and the 1/sqrt(n) spread."""
+    rng = np.random.default_rng(0)
+    fig, axes = plt.subplots(1, 2, figsize=(8.8, 3.0))
+    n = 1000
+    ax = axes[0]
+    for k in range(5):
+        r = rng.integers(1, 7, n)
+        ax.plot(np.arange(1, n + 1), np.cumsum(r) / np.arange(1, n + 1), lw=1.0, alpha=0.85)
+    ax.axhline(3.5, color=INK_T, lw=1.0, ls="--")
+    ax.text(n * 0.98, 1.25, r"破線：$\mathbb{E}[X] = 3.5$", ha="right", fontsize=9)
+    ax.set_xscale("log"); ax.set_ylim(1, 6); ax.set_xlabel("サイコロを振った回数 $n$")
+    ax.set_ylabel(r"標本平均 $\bar{X}_n$"); ax.set_title("標本平均は期待値に近づく（5系列）", fontsize=9.5)
+    ax.grid(alpha=0.25)
+    ax = axes[1]
+    ns = np.array([1, 2, 4, 8, 16, 32, 64, 128, 256])
+    sd = [np.std(rng.integers(1, 7, (4000, k)).mean(axis=1)) for k in ns]
+    ax.plot(ns, sd, "o", color=RED, label="シミュレーション（4000 回）")
+    nn = np.logspace(0, np.log10(256), 100)
+    ax.plot(nn, np.sqrt(35 / 12) / np.sqrt(nn), color=NAVY, lw=1.4, label=r"$\sigma/\sqrt{n}$（$\sigma^2 = 35/12$）")
+    ax.set_xscale("log"); ax.set_yscale("log"); ax.set_xlabel("平均をとる回数 $n$")
+    ax.set_ylabel(r"$\bar{X}_n$ の標準偏差"); ax.set_title(r"ばらつきは $1/\sqrt{n}$ で縮む", fontsize=9.5)
+    ax.legend(fontsize=8); ax.grid(alpha=0.25, which="both")
+    save(fig, "ch7_lln")
+
+
+def fig_coin_posterior():
+    """Posterior of a coin's bias theta after n tosses (true theta = 0.7), two priors."""
+    rng = np.random.default_rng(3)
+    tosses = (rng.random(100) < 0.7).astype(int)
+    th = np.linspace(0, 1, 501)
+    priors = (("一様な事前分布", np.ones_like(th)),
+              (r"「ほぼ公平」と信じる事前分布 $p(\theta) \propto \theta^{20}(1-\theta)^{20}$", th ** 20 * (1 - th) ** 20))
+    fig, axes = plt.subplots(1, 2, figsize=(8.8, 3.1), sharey=False)
+    cols = ("#B0B7BF", "#7F9CB8", "#4F7FA8", "#1F3A5F", RED)
+    for ax, (name, prior) in zip(axes, priors):
+        for c, n in zip(cols, (0, 3, 10, 30, 100)):
+            k = tosses[:n].sum()
+            post = prior * th ** k * (1 - th) ** (n - k)
+            post /= np.trapezoid(post, th) if hasattr(np, "trapezoid") else np.trapz(post, th)
+            ax.plot(th, post, color=c, lw=1.6, label=f"$n = {n}$（表 {k} 回）")
+        if ax is axes[1]:                      # the Beta(21, 21) prior is almost N(0.5, 0.076^2)
+            sd = np.sqrt(21 * 21 / (42 ** 2 * 43))
+            ax.plot(th, np.exp(-(th - 0.5) ** 2 / (2 * sd ** 2)) / np.sqrt(2 * np.pi * sd ** 2),
+                    color=GRAY, lw=1.0, ls=":", label=r"参考：$\mathcal{N}(0.5,\ 0.076^2)$")
+        ax.axvline(0.7, color=INK_T, lw=0.9, ls="--")
+        ax.text(0.71, ax.get_ylim()[1] * 0.92, r"真の $\theta = 0.7$", fontsize=8)
+        ax.set_title(name, fontsize=9.5); ax.set_xlabel(r"表の出る確率 $\theta$")
+        ax.legend(fontsize=7.5, loc="upper left"); ax.grid(alpha=0.25)
+    axes[0].set_ylabel(r"事後分布 $p(\theta \mid D)$")
+    save(fig, "ch7_coin_posterior")
+
+
+def fig_coin_likelihood():
+    """Why theta^k (1-theta)^(n-k) is the likelihood: (left) the probability of one
+    sequence is a product along a tree path; (middle) theta fixed -> a distribution
+    over the 8 sequences (sums to 1); (right) data fixed -> a function of theta (the
+    likelihood function; it does not integrate to 1)."""
+    fig, axes = plt.subplots(1, 3, figsize=(9.8, 3.3), gridspec_kw=dict(width_ratios=[1.0, 1.1, 1]))
+    # ---- left: tree for three tosses, path 表,表,裏 highlighted
+    ax = axes[0]
+    def node(x, y, text, hl=False, fs=8.5):
+        ax.text(x, y, text, ha="center", va="center", fontsize=fs, color=RED if hl else INK_T,
+                fontweight="bold" if hl else "normal",
+                bbox=dict(boxstyle="round,pad=0.3", fc="#F9DDD8" if hl else "#FFFFFF",
+                          ec=RED if hl else GRAY, lw=1.1 if hl else 0.8))
+    def edge(p, q, label, hl=False, above=True, dx=0.0):
+        c = RED if hl else GRAY
+        ax.annotate("", xy=q, xytext=p, arrowprops=dict(arrowstyle="-", color=c, lw=1.6 if hl else 0.8,
+                                                        shrinkA=12, shrinkB=12))
+        ax.text((p[0] + q[0]) / 2 + dx, (p[1] + q[1]) / 2 + (0.18 if above else -0.32), label,
+                ha="center", fontsize=8.5, color=c)
+    node(0, 0, "開始")
+    node(1.6, 1.0, "表", hl=True); node(1.6, -1.0, "裏")
+    edge((0, 0), (1.6, 1.0), r"$\theta$", hl=True)
+    edge((0, 0), (1.6, -1.0), r"$1-\theta$", above=False, dx=-0.15)
+    node(3.2, 1.6, "表", hl=True); node(3.2, 0.4, "裏")
+    edge((1.6, 1.0), (3.2, 1.6), r"$\theta$", hl=True)
+    edge((1.6, 1.0), (3.2, 0.4), r"$1-\theta$", above=False, dx=-0.1)
+    node(3.2, -0.4, "表", fs=8); node(3.2, -1.6, "裏", fs=8)
+    edge((1.6, -1.0), (3.2, -0.4), ""); edge((1.6, -1.0), (3.2, -1.6), "")
+    node(4.8, 1.9, "表"); node(4.8, 1.2, "裏", hl=True)
+    edge((3.2, 1.6), (4.8, 1.9), r"$\theta$", dx=-0.3); edge((3.2, 1.6), (4.8, 1.2), r"$1-\theta$", hl=True, above=False, dx=-0.35)
+    for y0, ys in ((0.4, (0.6, -0.1)), (-0.4, (-0.7, -1.3)), (-1.6, (-1.9, -2.5))):
+        for y in ys:
+            edge((3.2, y0), (4.8, y), "")
+            ax.plot(4.8, y, marker="o", ms=3, color=GRAY)
+    ax.text(5.5, 1.55, r"$\theta \times \theta \times (1-\theta)$" "\n" r"$= \theta^2(1-\theta)$",
+            ha="left", va="center", fontsize=10, color=RED)
+    ax.text(3.3, 2.55, r"「表, 表, 裏」の確率は枝の確率の積" "\n" r"（$\theta$ を条件とした独立性）",
+            ha="center", fontsize=9)
+    ax.set_xlim(-0.5, 7.6); ax.set_ylim(-2.8, 3.1); ax.axis("off")
+    # ---- middle: theta = 0.7 fixed, distribution over the 8 sequences
+    ax = axes[1]
+    seqs = [("表表表", 3), ("表表裏", 2), ("表裏表", 2), ("裏表表", 2), ("表裏裏", 1), ("裏表裏", 1), ("裏裏表", 1), ("裏裏裏", 0)]
+    t = 0.7
+    probs = [t ** k * (1 - t) ** (3 - k) for _, k in seqs]
+    cols = [RED if nm == "表表裏" else "#8FB3D3" for nm, _ in seqs]
+    ax.bar(range(8), probs, color=cols, edgecolor=NAVY, lw=0.6, width=0.7)
+    for i, pr in enumerate(probs):
+        ax.text(i, pr + 0.008, f"{pr:.3f}", ha="center", fontsize=6.0, color=RED if i == 1 else INK_T)
+    ax.set_xticks(range(8)); ax.set_xticklabels([nm for nm, _ in seqs], fontsize=7.5, rotation=45)
+    ax.set_ylim(0, 0.44); ax.set_ylabel(r"$p(D \mid \theta = 0.7)$")
+    ax.set_title(r"$\theta = 0.7$ を固定：結果 $D$ の確率分布（合計 $1$）", fontsize=9)
+    ax.grid(alpha=0.25, axis="y")
+    # ---- right: data fixed, likelihood as a function of theta
+    ax = axes[2]
+    th = np.linspace(0, 1, 401)
+    L = th ** 2 * (1 - th)
+    ax.plot(th, L, color=NAVY, lw=1.8, label=r"$L(\theta) = \theta^2(1-\theta)$")
+    ax.fill_between(th, L, color="#8FB3D3", alpha=0.35)
+    for tt, lab, dy in ((0.2, "0.032", 0.012), (0.5, "0.125", 0.012), (0.7, "0.147", 0.012)):
+        v = tt ** 2 * (1 - tt)
+        ax.plot(tt, v, "o", color=RED, ms=5)
+        ax.text(tt, v + dy, lab, ha="center", fontsize=8, color=RED)
+    ax.axvline(2 / 3, color=GRAY, lw=0.9, ls="--")
+    ax.text(0.655, 0.006, r"最大：$\theta = 2/3$", fontsize=8, color=INK_T, ha="right")
+    ax.text(0.02, 0.118, r"面積 $\int_0^1 L\,d\theta = 1/12$" "\n" r"（$\theta$ の確率分布ではない）", fontsize=7.5, va="top")
+    ax.set_xlim(0, 1); ax.set_ylim(0, 0.2); ax.set_xlabel(r"表の出る確率 $\theta$")
+    ax.set_ylabel(r"$p(D \mid \theta)$"); ax.set_title(r"データ「表, 表, 裏」を固定：$\theta$ の関数（尤度関数）", fontsize=9)
+    ax.legend(fontsize=8, loc="upper left"); ax.grid(alpha=0.25)
+    save(fig, "ch7_coin_likelihood")
+
+
+def fig_coin_update():
+    """Toss-by-toss Bayesian update of the coin's bias: for each of the first six
+    tosses (same random sequence as fig_coin_posterior), the prior for that step
+    (= previous posterior), the likelihood factor theta or 1-theta, and the new
+    normalised posterior."""
+    rng = np.random.default_rng(3)
+    tosses = (rng.random(100) < 0.7).astype(int)[:6]
+    th = np.linspace(0, 1, 501)
+    integ = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
+    fig, axes = plt.subplots(2, 3, figsize=(9.8, 5.0), sharex=True, sharey=True)
+    prior = np.ones_like(th)
+    k = 0
+    for i, (ax, x) in enumerate(zip(axes.ravel(), tosses), start=1):
+        lik = th if x == 1 else 1 - th
+        post = prior * lik
+        post = post / integ(post, th)
+        k += x
+        ax.plot(th, prior, color=GRAY, lw=1.4, ls="--", label="この回の事前分布（前回の事後分布）")
+        ax.plot(th, lik, color=RED, lw=1.2, ls=":", label=r"尤度 $p(x_i \mid \theta)$（$\theta$ または $1-\theta$）")
+        ax.plot(th, post, color=NAVY, lw=2.0, label="事後分布（積を正規化）")
+        ax.fill_between(th, post, color="#8FB3D3", alpha=0.3)
+        ax.axvline(0.7, color=INK_T, lw=0.8, ls="-.", alpha=0.6)
+        face = "表" if x == 1 else "裏"
+        factor = r"\theta" if x == 1 else r"(1-\theta)"
+        prev = r"p(\theta)" if i == 1 else r"p(\theta \mid x_{1:%d})" % (i - 1)
+        ax.set_title(f"{i}回目：{face}　" + r"$p(\theta \mid x_{1:%d}) \propto %s \times %s$" % (i, factor, prev),
+                     fontsize=8.5)
+        ax.text(0.03, 2.95, r"累積：表 %d 回 / %d 回　$\propto \theta^{%d}(1-\theta)^{%d}$" % (k, i, k, i - k),
+                fontsize=8, va="top")
+        ax.grid(alpha=0.25)
+        prior = post
+    for ax in axes[1]:
+        ax.set_xlabel(r"表の出る確率 $\theta$")
+    for ax in axes[:, 0]:
+        ax.set_ylabel("密度")
+    axes[0, 0].set_xlim(0, 1); axes[0, 0].set_ylim(0, 3.2)
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=3, fontsize=8, frameon=False, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    fig.savefig(OUT / "ch7_coin_update.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "ch7_coin_update.png", bbox_inches="tight", dpi=220)
+    plt.close(fig)
+    print("  figures/ch7_coin_update.pdf + .png")
+
+
 if __name__ == "__main__":
     print("generating figures...")
     fig_fit(); fig_error_curve()
@@ -2149,3 +2604,4 @@ if __name__ == "__main__":
     fig_gradient_concept(); fig_definiteness(); fig_ls_gradient(); fig_pseudoinverse()
     fig_gd_1d(); fig_gd_path(); fig_gd_ls_update(); fig_scaling(); fig_correlation(); fig_eigen_recap(); fig_optimizers(); fig_minibatch(); fig_epoch(); fig_convex_set(); fig_convex()
     fig_poly_ridge(); fig_ridge_path(); fig_rent_ridge(); fig_shrink(); fig_validation(); fig_kfold(); fig_bias_variance(); fig_constraint()
+    fig_events(); fig_addition(); fig_cond_prob(); fig_total_prob(); fig_test_tree(); fig_gaussian(); fig_expectation(); fig_lln(); fig_coin_likelihood(); fig_coin_update(); fig_coin_posterior()
