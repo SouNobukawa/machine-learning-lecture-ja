@@ -1,0 +1,515 @@
+%=====================================================================
+% 機械学習 第8回 演習問題 提出用テンプレート
+%
+% 使い方
+%   1. 下の \学籍番号, \氏名, \提出日 を自分の情報に書き換える
+%      （\提出期限 は書き換えない）
+%   2. 各問題の「解答」枠の中に解答を書く（枠の外の問題文は変更しない）
+%   3. コンパイルして PDF を作成し、PDF を提出する
+%
+% コンパイル方法（ターミナル）
+%   uplatex report_template_08.tex && dvipdfmx report_template_08.dvi
+%
+% Overleaf を使う場合
+%   Menu > Compiler を "LaTeX" にし、プロジェクトに latexmkrc という名前の
+%   ファイルを作って次の3行を書く：
+%     $latex = 'uplatex';
+%     $dvipdf = 'dvipdfmx %O -o %D %S';
+%     $pdf_mode = 3;
+%
+% 提出期限：2026年11月16日（月）
+% ファイル名は  ML08_学籍番号.pdf  として提出すること（例：ML08_2312345.pdf）
+%=====================================================================
+\documentclass[a4paper,dvipdfmx]{jsarticle}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{pdfborder={0 0 0}}
+
+%---- 提出期限（書き換えない）------------------------------------------
+\newcommand{\提出期限}{2026年11月16日（月）}
+%---- 自分の情報を書く -------------------------------------------------
+\newcommand{\学籍番号}{0000000}
+\newcommand{\氏名}{氏名を書く}
+\newcommand{\提出日}{2026年11月16日}
+%----------------------------------------------------------------------
+
+% 解答枠（枠の中に解答を書く）
+\newenvironment{answer}{\begin{itembox}[l]{解答}}{\end{itembox}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE 機械学習　第8回 演習問題}\\[2mm]
+  {\large 提出課題（ナイーブベイズと生成モデル）}\\[4mm]
+  {\large\textbf{提出期限：\提出期限}}\\[6mm]
+  \begin{tabular}{ll}
+    学籍番号： & \学籍番号 \\
+    氏名：     & \氏名 \\
+    提出日：   & \提出日 \\
+  \end{tabular}
+\end{center}
+
+\vspace{4mm}
+\noindent
+\textbf{注意}
+\begin{itemize}
+  \item 解答は「解答」の枠内に書くこと。枠外の問題文は変更しないこと。
+  \item 計算問題は結果だけでなく途中の式も書くこと。
+    分数はそのまま分数で答えてよい。小数で答える場合は有効数字3桁程度でよい。対数は自然対数（$\log = \ln$）である。
+  \item 「導出せよ」「示せ」という問いでは、どの定義・性質（条件付き独立の仮定、ベイズの定理、対数の性質、微分して $0$ とおく、ラグランジュ乗数法など）を使ったかを明記すること。
+  \item 「確かめよ」という問いには、両辺を実際に計算して一致することを示すこと。
+  \item 「説明せよ」「理由を述べよ」という問いには、計算結果だけでなく\textbf{日本語の説明}を書くこと。
+  \item 本文の表8.1（5単語のパラメータと重み）と表7.1（「無料」の表）の値は、問題文中に再掲してある。
+  \item 数式の書き方は末尾の「LaTeX の書き方」を参照すること。
+\end{itemize}
+
+\vspace{2mm}
+\noindent
+\textbf{表8.1（再掲）}：迷惑メール判定に使う5単語のパラメータと重み。$\theta_{j1}$ は迷惑メールが単語 $j$ を含む確率、$\theta_{j0}$ は通常メールが含む確率。
+$w_j = \log\frac{\theta_{j1}}{\theta_{j0}} - \log\frac{1 - \theta_{j1}}{1 - \theta_{j0}}$、事前確率 $\pi = P(\text{迷惑}) = 0.20$。
+\begin{center}
+  \begin{tabular}{c|cc|cc|c}
+    \hline
+    単語 $j$ & $\theta_{j1}$（迷惑） & $\theta_{j0}$（通常） & $\log\frac{\theta_{j1}}{\theta_{j0}}$（あり） & $\log\frac{1 - \theta_{j1}}{1 - \theta_{j0}}$（なし） & 重み $w_j$ \\
+    \hline\hline
+    無料 & $0.60$ & $0.05$ & $+2.485$ & $-0.865$ & $+3.350$ \\
+    当選 & $0.40$ & $0.02$ & $+2.996$ & $-0.491$ & $+3.486$ \\
+    会議 & $0.05$ & $0.50$ & $-2.303$ & $+0.642$ & $-2.944$ \\
+    資料 & $0.10$ & $0.40$ & $-1.386$ & $+0.405$ & $-1.792$ \\
+    本日 & $0.30$ & $0.30$ & $0$ & $0$ & $0$ \\
+    \hline
+  \end{tabular}
+\end{center}
+切片は $b = \log\frac{\pi}{1 - \pi} + \sum_{j=1}^5 \log\frac{1 - \theta_{j1}}{1 - \theta_{j0}} = -1.386 + (-0.865 - 0.491 + 0.642 + 0.405 + 0) = -1.695$ である。
+
+\section*{問題}
+
+\begin{enumerate}
+
+%=====================================================================
+  \item \textbf{ベイズ決定則と損失}\quad
+    第7回の検査の例で、陽性のときの事後確率は $P(\text{病気} \mid \text{陽性}) = 0.167$ であった。
+    \begin{enumerate}
+      \item 「病気」と判定したときと「健康」と判定したときの0-1損失の期待値（テキスト式(8.5)：$\mathbb{E}[L(y, \hat{y}) \mid \bm{x}] = 1 - P(\hat{y} \mid \bm{x})$）をそれぞれ求め、ベイズ決定則の判定を答えよ
+      \item 病気を見逃す（病気なのに「健康」と判定する）損失を $c$、健康な人を「病気」と判定する損失を $1$、正しい判定の損失を $0$ とする。
+        病気の事後確率を $q$ として、「病気」と判定するときの期待損失と「健康」と判定するときの期待損失を $q$ と $c$ で表せ
+      \item (b) より、「病気」と判定すべき条件が $q > 1/(1 + c)$ であることを示せ。$c = 10$ のとき、陽性の人をどう判定すべきか
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item 「病気」と判定：$\mathbb{E}[L \mid \text{陽性}] = 1 - \phantom{XXXX} = $ \phantom{XXXX}、\quad
+          「健康」と判定：$\mathbb{E}[L \mid \text{陽性}] = $ \phantom{XXXXXXXX}
+          \vspace{2mm}
+
+          ベイズ決定則の判定：\phantom{XXXXXX}
+          \vspace{4mm}
+        \item 「病気」と判定：$\mathbb{E}[L] = \phantom{XXXX} \times 0 + \phantom{XXXX} \times 1 = $ \phantom{XXXXXX}、\quad
+          「健康」と判定：$\mathbb{E}[L] = $ \phantom{XXXXXXXXXXXX}
+          \vspace{4mm}
+        \item 「病気」と判定すべき $\iff$ \phantom{XXXXXXXX} $<$ \phantom{XXXXXXXX} $\iff$
+          \vspace{10mm}
+
+          $c = 10$ のとき閾値は $1/(1 + 10) = $ \phantom{XXXX} で、$q = 0.167$ は閾値より \phantom{XXXX} ので \phantom{XXXX} と判定する
+          \vspace{2mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{条件付き独立の仮定を検証する}\quad
+    表7.1の1000通（迷惑メール200通、通常メール800通）について、「無料」と「当選」の両方の有無を数えた結果が次の表である。
+    \begin{center}
+      \begin{tabular}{l|cc|cc}
+        \hline
+         & \multicolumn{2}{c|}{迷惑メール（200通）} & \multicolumn{2}{c}{通常メール（800通）} \\
+         & 「当選」あり & 「当選」なし & 「当選」あり & 「当選」なし \\
+        \hline
+        「無料」あり & $70$ & $50$ & $4$ & $36$ \\
+        「無料」なし & $10$ & $70$ & $12$ & $748$ \\
+        \hline
+      \end{tabular}
+    \end{center}
+    \begin{enumerate}
+      \item $P(\text{無料あり} \mid \text{迷惑})$、$P(\text{当選あり} \mid \text{迷惑})$、$P(\text{無料あり} \mid \text{通常})$、$P(\text{当選あり} \mid \text{通常})$ を求めよ
+      \item 迷惑メールのもとで「無料」と「当選」が条件付き独立なら、$P(\text{無料あり}, \text{当選あり} \mid \text{迷惑})$ はいくらになるはずか。
+        表から読み取った実際の値と比較せよ。通常メールについても同様に比較せよ
+      \item 「無料」と「当選」の両方を含むメールが迷惑メールである事後確率を、(i) 表の値をそのまま使って（仮定なし）、(ii) ナイーブベイズの仮定を使って、それぞれ求めよ。
+        判定は一致するか。確率の値はどちらが大きいか、理由とともに述べよ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $P(\text{無料あり} \mid \text{迷惑}) = \dfrac{\phantom{XXX}}{200} = $ \phantom{XXXX}、\quad
+          $P(\text{当選あり} \mid \text{迷惑}) = \dfrac{\phantom{XXX}}{200} = $ \phantom{XXXX}
+          \vspace{2mm}
+
+          $P(\text{無料あり} \mid \text{通常}) = \dfrac{\phantom{XXX}}{800} = $ \phantom{XXXX}、\quad
+          $P(\text{当選あり} \mid \text{通常}) = \dfrac{\phantom{XXX}}{800} = $ \phantom{XXXX}
+          \vspace{4mm}
+        \item 迷惑：独立なら \phantom{XXXX} $\times$ \phantom{XXXX} $= $ \phantom{XXXX}、実際は $\dfrac{\phantom{XXX}}{200} = $ \phantom{XXXX}
+          \vspace{2mm}
+
+          通常：独立なら \phantom{XXXX} $\times$ \phantom{XXXX} $= $ \phantom{XXXX}、実際は $\dfrac{\phantom{XXX}}{800} = $ \phantom{XXXX}
+          \vspace{2mm}
+
+          比較：
+          \vspace{8mm}
+        \item (i) 仮定なし：
+          \begin{equation*}
+            P(\text{迷惑} \mid \text{両方あり}) = \frac{\phantom{XXXXXXXX}}{\phantom{XXXXXXXX} + \phantom{XXXXXXXX}} = \phantom{XXXXXX}
+          \end{equation*}
+          (ii) ナイーブベイズ：
+          \begin{equation*}
+            P(\text{迷惑} \mid \text{両方あり}) = \frac{0.2 \times \phantom{XXXX}}{0.2 \times \phantom{XXXX} + 0.8 \times \phantom{XXXX}} = \phantom{XXXXXX}
+          \end{equation*}
+          判定は一致する／しない（　　）。大きいのは (i)／(ii)（　　）。理由：
+          \vspace{14mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{ナイーブベイズの手計算}\quad
+    表8.1のパラメータと事前確率 $P(\text{迷惑}) = 0.2$ を用いる。
+    「当選」と「会議」を含み、他の3単語を含まないメールCについて、
+    \begin{enumerate}
+      \item $p(\bm{x} \mid \text{迷惑})$ と $p(\bm{x} \mid \text{通常})$ をテキスト式(8.13)
+        $p(\bm{x} \mid y) = \prod_{j=1}^d \theta_{jy}^{x_j}(1 - \theta_{jy})^{1 - x_j}$ で求めよ
+      \item 事後確率 $P(\text{迷惑} \mid \bm{x})$ を求め、判定を答えよ
+      \item 対数オッズ $a(\bm{x})$ をテキスト式(8.15)
+        $a(\bm{x}) = \log\frac{\pi}{1 - \pi} + \sum_{j=1}^d \Bigl[ x_j \log\frac{\theta_{j1}}{\theta_{j0}} + (1 - x_j)\log\frac{1 - \theta_{j1}}{1 - \theta_{j0}} \Bigr]$
+        で求め、$\sigma(a) = 1/(1 + e^{-a})$ が (b) と一致することを確かめよ
+    \end{enumerate}
+    \begin{answer}
+      $\bm{x} = ($\phantom{X}$, $\phantom{X}$, $\phantom{X}$, $\phantom{X}$, $\phantom{X}$)^\top$（順に 無料、当選、会議、資料、本日）
+      \begin{enumerate}
+        \item
+          \begin{align*}
+            p(\bm{x} \mid \text{迷惑}) &= \phantom{XXXX} \times \phantom{XXXX} \times \phantom{XXXX} \times \phantom{XXXX} \times \phantom{XXXX} = \phantom{XXXXXX} \\
+            p(\bm{x} \mid \text{通常}) &= \phantom{XXXX} \times \phantom{XXXX} \times \phantom{XXXX} \times \phantom{XXXX} \times \phantom{XXXX} = \phantom{XXXXXX}
+          \end{align*}
+        \item
+          \begin{equation*}
+            P(\text{迷惑} \mid \bm{x}) = \frac{0.2 \times \phantom{XXXXXX}}{0.2 \times \phantom{XXXXXX} + 0.8 \times \phantom{XXXXXX}} = \phantom{XXXXXX}
+          \end{equation*}
+          判定：\phantom{XXXXXX}
+          \vspace{2mm}
+        \item
+          \begin{align*}
+            a(\bm{x}) &= \underbrace{\phantom{XXXXXX}}_{\text{事前}} + \underbrace{\phantom{XXXXXX}}_{\text{無料なし}} + \underbrace{\phantom{XXXXXX}}_{\text{当選あり}} \\
+            &\quad + \underbrace{\phantom{XXXXXX}}_{\text{会議あり}} + \underbrace{\phantom{XXXXXX}}_{\text{資料なし}} + \underbrace{\phantom{XXXXXX}}_{\text{本日なし}} = \phantom{XXXXXX}
+          \end{align*}
+          $\sigma(a) = \dfrac{1}{1 + e^{\phantom{XXXX}}} = $ \phantom{XXXXXX}（(b) と一致する／しない）
+          \vspace{2mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{線形分類器としてのナイーブベイズ}\quad
+    \begin{enumerate}
+      \item テキスト式(8.16) $a(\bm{x}) = \bm{w}^\top\bm{x} + b$、
+        $w_j = \log\frac{\theta_{j1}}{\theta_{j0}} - \log\frac{1 - \theta_{j1}}{1 - \theta_{j0}}$、
+        $b = \log\frac{\pi}{1 - \pi} + \sum_j \log\frac{1 - \theta_{j1}}{1 - \theta_{j0}}$
+        の導出を、$d = 2$ の場合に自分の手で書き下せ（式(8.15)から出発し、$x_j$ を含む項と含まない項に分ける）
+      \item 表8.1の $w_j$ と $b = -1.695$ を用い、メールA $\bm{x} = (1, 1, 0, 0, 1)^\top$、メールB $\bm{x} = (1, 0, 1, 1, 0)^\top$、メールC（問3）の $\bm{w}^\top\bm{x} + b$ を計算して、
+        本文の対数オッズ（A：$5.14$、B：$-3.08$）および問3の対数オッズと一致することを確かめよ
+      \item 「本日」の重みが $0$ である理由を説明せよ。また、$\theta_{j1} = \theta_{j0}$ でなくても $w_j = 0$ になることはあるか
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $d = 2$ のとき式(8.15)は
+          \begin{align*}
+            a(\bm{x}) &= \log\frac{\pi}{1 - \pi} + \phantom{XXXXXXXXXXXXXXXXXXXXXXXXXX} \\
+            &\quad \text{（「なし」の項 } (1 - x_j) v_j \text{ を展開し、} x_j \text{ の項と定数項に分ける）} \\
+            &= \phantom{XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX} \\
+            &= w_1 x_1 + w_2 x_2 + b \\
+            w_j &= \phantom{XXXXXXXXXXXXXXXX} \\
+            b &= \phantom{XXXXXXXXXXXXXXXX}
+          \end{align*}
+        \item メールA：$\bm{w}^\top\bm{x} + b = \phantom{XXXXXXXXXXXXXXXXXXXX} = $ \phantom{XXXXXX}
+          \vspace{2mm}
+
+          メールB：$\bm{w}^\top\bm{x} + b = \phantom{XXXXXXXXXXXXXXXXXXXX} = $ \phantom{XXXXXX}
+          \vspace{2mm}
+
+          メールC：$\bm{w}^\top\bm{x} + b = \phantom{XXXXXXXXXXXXXXXXXXXX} = $ \phantom{XXXXXX}
+          \vspace{4mm}
+        \item 「本日」の重みが $0$ である理由：
+          \vspace{8mm}
+
+          $\theta_{j1} \neq \theta_{j0}$ で $w_j = 0$ になることは ある／ない（　　）。
+          \vspace{2mm}
+
+          理由：$w_j = 0 \iff$ \phantom{XXXXXXXXXXXXXXXX}
+          \vspace{8mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{ベルヌーイ分布の最尤推定}\quad
+    $n$ 回の独立な観測で $1$ が $k$ 回出たときの対数尤度はテキスト式(8.22) $\ell(\theta) = k\log\theta + (n - k)\log(1 - \theta)$ である。
+    \begin{enumerate}
+      \item 式(8.22)の2階微分が負であることを示し、$\hat{\theta} = k/n$ が最大点であることを確かめよ
+      \item コインを $12$ 回投げて表が $9$ 回出た。最尤推定 $\hat{\theta}$ と、そのときの対数尤度 $\ell(\hat{\theta})$ を求めよ。
+        また $\theta = 0.5$ のときの対数尤度と比べ、尤度比 $p(D \mid \hat{\theta}) / p(D \mid 0.5)$ を求めよ
+      \item 最尤推定量 $\hat{\theta} = k/n$ の期待値が $\theta$ に等しい（不偏である）ことを、$k$ が二項分布に従い $\mathbb{E}[k] = n\theta$ であることから示せ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\dfrac{d\ell}{d\theta} = $ \phantom{XXXXXXXXXXXX}、\quad
+          $\dfrac{d^2\ell}{d\theta^2} = $ \phantom{XXXXXXXXXXXXXXXX} $< 0$ （理由：\phantom{XXXXXXXXXXXXXXXX}）
+          \vspace{2mm}
+
+          したがって
+          \vspace{8mm}
+        \item $\hat{\theta} = \dfrac{\phantom{XX}}{\phantom{XX}} = $ \phantom{XXXX}、\quad
+          $\ell(\hat{\theta}) = 9\log\phantom{XXXX} + 3\log\phantom{XXXX} = $ \phantom{XXXXXX}
+          \vspace{2mm}
+
+          $\ell(0.5) = $ \phantom{XXXXXXXXXX} $= $ \phantom{XXXXXX}、\quad
+          尤度比 $= e^{\ell(\hat{\theta}) - \ell(0.5)} = e^{\phantom{XXXX}} \approx$ \phantom{XXXX}
+          \vspace{4mm}
+        \item $\mathbb{E}[\hat{\theta}] = \mathbb{E}\Bigl[\dfrac{k}{n}\Bigr] = $ \phantom{XXXXXXXXXXXXXXXX}（使った性質：\phantom{XXXXXXXXXXXX}）
+          \vspace{6mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{カテゴリ分布の最尤推定}\quad
+    3クラス分類の訓練データで、各クラスの数が $N_1 = 50$、$N_2 = 30$、$N_3 = 20$ であった。
+    \begin{enumerate}
+      \item ラグランジュ関数（テキスト式(8.26)：$\mathcal{L}(\bm{\pi}, \mu) = -\sum_k N_k \log\pi_k + \mu(\sum_k \pi_k - 1)$）をこの具体例で書き、$\hat{\pi}_k$ を導出せよ（本文の一般論を、この具体例でなぞること）
+      \item 制約がなければ対数尤度（式(8.25)：$\ell(\bm{\pi}) = \sum_k N_k \log\pi_k$）は最大値をもたないことを説明せよ
+      \item ラプラス平滑化 $(N_k + 1)/(N + K)$ による推定値を求め、最尤推定と比較せよ。$N_3 = 0$ だったらどうなるか
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item
+          \begin{equation*}
+            \mathcal{L}(\pi_1, \pi_2, \pi_3, \mu) = -\phantom{XX}\log\pi_1 - \phantom{XX}\log\pi_2 - \phantom{XX}\log\pi_3 + \mu(\phantom{XXXXXXXXXXXX})
+          \end{equation*}
+          $\pi_k$ で偏微分して $0$：$\dfrac{\partial\mathcal{L}}{\partial\pi_1} = $ \phantom{XXXXXXXX} $= 0 \Rightarrow \pi_1 = $ \phantom{XXXX}、同様に $\pi_2 = $ \phantom{XXXX}、$\pi_3 = $ \phantom{XXXX}
+          \vspace{2mm}
+
+          制約に代入：\phantom{XXXXXXXXXXXXXXXX} $= 1 \Rightarrow \mu = $ \phantom{XXX}
+          \vspace{2mm}
+
+          $\hat{\pi}_1 = $ \phantom{XXXX}、$\hat{\pi}_2 = $ \phantom{XXXX}、$\hat{\pi}_3 = $ \phantom{XXXX}
+          \vspace{4mm}
+        \item
+          \vspace{12mm}
+        \item ラプラス平滑化：$\hat{\pi}_1 = \dfrac{\phantom{XX}}{\phantom{XXX}} \approx$ \phantom{XXXX}、$\hat{\pi}_2 = \dfrac{\phantom{XX}}{\phantom{XXX}} \approx$ \phantom{XXXX}、$\hat{\pi}_3 = \dfrac{\phantom{XX}}{\phantom{XXX}} \approx$ \phantom{XXXX}
+          \vspace{2mm}
+
+          最尤推定との比較：
+          \vspace{8mm}
+
+          $N_3 = 0$ のとき、最尤推定は \phantom{XXXXXXXXXXXXXXXX}、ラプラス平滑化は \phantom{XXXXXXXXXXXXXXXX}
+          \vspace{6mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{ゼロ頻度問題}\quad
+    迷惑メール $200$ 通、通常メール $800$ 通の訓練データで、ある単語が迷惑メールには $0$ 通、通常メールには $8$ 通に現れた。
+    \begin{enumerate}
+      \item 最尤推定による $\hat{\theta}_{j1}$、$\hat{\theta}_{j0}$ と、重み $w_j$（式(8.16)）を求めよ。この単語を含むメールはどう判定されるか
+      \item ラプラス平滑化（テキスト式(8.28)：$\hat{\theta}_{jy} = (N_{jy} + 1)/(N_y + 2)$）による $\hat{\theta}_{j1}$、$\hat{\theta}_{j0}$ と $w_j$ を求めよ
+      \item (b) の重みのもとで、この単語に加えて「無料」「当選」（表8.1）を含み他は含まないメールの対数オッズを求め、判定を答えよ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\hat{\theta}_{j1} = \dfrac{\phantom{XX}}{200} = $ \phantom{XXXX}、$\hat{\theta}_{j0} = \dfrac{\phantom{XX}}{800} = $ \phantom{XXXX}、
+          $w_j = \log\dfrac{\phantom{XXXX}}{\phantom{XXXX}} - \log\dfrac{\phantom{XXXX}}{\phantom{XXXX}} = $ \phantom{XXXXXX}
+          \vspace{2mm}
+
+          判定：
+          \vspace{8mm}
+        \item $\hat{\theta}_{j1} = \dfrac{\phantom{XX}}{\phantom{XXX}} \approx$ \phantom{XXXXXX}、$\hat{\theta}_{j0} = \dfrac{\phantom{XX}}{\phantom{XXX}} \approx$ \phantom{XXXXXX}、
+          $w_j = \phantom{XXXXXXXXXXXXXXXXXXXX} \approx$ \phantom{XXXXXX}
+          \vspace{4mm}
+        \item
+          \begin{align*}
+            a(\bm{x}) &= \underbrace{\phantom{XXXXXX}}_{\text{事前}} + \underbrace{\phantom{XXXXXX}}_{\text{無料あり}} + \underbrace{\phantom{XXXXXX}}_{\text{当選あり}} + \underbrace{\phantom{XXXXXX}}_{\text{この単語あり}} \\
+            &\quad + \underbrace{\phantom{XXXXXX}}_{\text{会議なし}} + \underbrace{\phantom{XXXXXX}}_{\text{資料なし}} + \underbrace{\phantom{XXXXXX}}_{\text{本日なし}} = \phantom{XXXXXX}
+          \end{align*}
+          判定：\phantom{XXXXXX}（$P(\text{迷惑} \mid \bm{x}) = \sigma(a) \approx$ \phantom{XXXX}）
+          \vspace{2mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{MAP推定と事後平均（発展）}\quad
+    本章末のコラムの事前分布 $\mathrm{Beta}(\alpha, \beta)$（テキスト式(8.36)：$p(\theta) \propto \theta^{\alpha - 1}(1 - \theta)^{\beta - 1}$）と、$n$ 回中 $k$ 回が $1$ のデータを考える。
+    \begin{enumerate}
+      \item 対数事後確率 $(k + \alpha - 1)\log\theta + (n - k + \beta - 1)\log(1 - \theta)$ を微分して、MAP推定（式(8.37)：$\hat{\theta}_{\mathrm{MAP}} = \frac{k + \alpha - 1}{n + \alpha + \beta - 2}$）を導出せよ
+      \item $n \to \infty$（$k/n \to$ 一定）のとき、MAP推定が最尤推定 $k/n$ に近づくことを示せ
+      \item 事後平均が $(k + \alpha)/(n + \alpha + \beta)$ であることを示せ。
+        ただし $\int_0^1 \theta^a(1 - \theta)^b\,d\theta = \frac{a!\,b!}{(a + b + 1)!}$（$a, b$ は非負整数）を用いてよく、$\alpha, \beta$ は正の整数としてよい
+      \item $n = 3$、$k = 0$、$\alpha = \beta = 2$ のとき、最尤推定、MAP推定、事後平均の3つの値を求めよ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\theta$ で微分して $0$：
+          \begin{align*}
+            \frac{\phantom{XXXXXX}}{\theta} - \frac{\phantom{XXXXXX}}{1 - \theta} &= 0 \\
+            \Longrightarrow\quad \phantom{XXXXXXXXXXXXXXXX} &\quad\Longrightarrow\quad \hat{\theta}_{\mathrm{MAP}} = \phantom{XXXXXXXX}
+          \end{align*}
+        \item 分子・分母を $n$ で割ると
+          \begin{equation*}
+            \hat{\theta}_{\mathrm{MAP}} = \frac{\phantom{XXXXXXXXXXXX}}{\phantom{XXXXXXXXXXXX}} \;\longrightarrow\; \phantom{XXXX} \quad (n \to \infty)
+          \end{equation*}
+        \item 事後分布は $p(\theta \mid D) = \theta^{\phantom{XXXX}}(1 - \theta)^{\phantom{XXXX}} / Z$、$Z = \int_0^1 \phantom{XXXXXXXXXXXXXXXX}\,d\theta = \phantom{XXXXXXXXXXXXXX}$
+          \vspace{2mm}
+
+          \begin{align*}
+            \mathbb{E}[\theta \mid D] &= \frac{1}{Z}\int_0^1 \phantom{XXXXXXXXXXXXXX}\,d\theta = \phantom{XXXXXXXXXXXXXX} \\
+            &= \phantom{XXXXXXXXXXXXXXXXXX} = \frac{k + \alpha}{n + \alpha + \beta}
+          \end{align*}
+        \item 最尤推定 $= $ \phantom{XXXX}、MAP推定 $= \dfrac{\phantom{XXXX}}{\phantom{XXXX}} = $ \phantom{XXXX}、事後平均 $= \dfrac{\phantom{XXXX}}{\phantom{XXXX}} \approx$ \phantom{XXXX}
+          \vspace{2mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{ガウスナイーブベイズ}\quad
+    1次元の特徴 $x$ について、クラス $0$ の訓練データが $\{-1, 0, 1\}$、クラス $1$ の訓練データが $\{1, 2, 3\}$ であった。
+    \begin{enumerate}
+      \item 各クラスの平均 $\hat{\mu}_0, \hat{\mu}_1$ と分散 $\hat{\sigma}_0^2, \hat{\sigma}_1^2$ を最尤推定せよ（標本平均と標本分散）
+      \item 分散を共通の $\sigma^2 = 2/3$、事前確率を $P(y = 1) = \pi$ とする。対数オッズ $a(x)$ をテキスト式(8.44)
+        $a(x) = wx + b$、$w = \frac{\mu_1 - \mu_0}{\sigma^2}$、$b = \log\frac{\pi}{1 - \pi} + \frac{\mu_0^2 - \mu_1^2}{2\sigma^2}$ で書き、
+        $\pi = 0.5$ のときの決定境界（$a(x) = 0$ となる $x$）を求めよ
+      \item $\pi = 0.2$ のとき決定境界はどちらへどれだけ動くか。理由を述べよ
+      \item 分散がクラスごとに異なる $\sigma_0^2 = 2/3$、$\sigma_1^2 = 6$ のとき、$a(x) = 0$ が $x$ の2次方程式になることをテキスト式(8.43)
+        $a(x) = \log\frac{\pi}{1 - \pi} - \frac{(x - \mu_1)^2}{2\sigma_1^2} + \frac{(x - \mu_0)^2}{2\sigma_0^2} + \frac{1}{2}\log\frac{\sigma_0^2}{\sigma_1^2}$
+        から確かめよ（解を求める必要はない）
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\hat{\mu}_0 = $ \phantom{XXXX}、$\hat{\sigma}_0^2 = \dfrac{1}{3}\bigl(\phantom{XXXXXXXXXXXX}\bigr) = $ \phantom{XXXX}、\quad
+          $\hat{\mu}_1 = $ \phantom{XXXX}、$\hat{\sigma}_1^2 = $ \phantom{XXXX}
+          \vspace{4mm}
+        \item $w = \dfrac{\phantom{XXXX}}{\phantom{XXXX}} = $ \phantom{XX}、$b = \log\dfrac{\pi}{1 - \pi} + \dfrac{\phantom{XXXX}}{\phantom{XXXX}} = $ \phantom{XXXXXXXXXX}、\quad
+          $a(x) = $ \phantom{XXXXXXXXXXXX}
+          \vspace{2mm}
+
+          $\pi = 0.5$ のとき $a(x) = 0 \iff x = $ \phantom{XXXX}
+          \vspace{4mm}
+        \item $\pi = 0.2$ のとき $b = $ \phantom{XXXXXXXX}、境界は $x = $ \phantom{XXXX}。クラス \phantom{X} の側へ \phantom{XXXX} だけ動く。理由：
+          \vspace{10mm}
+        \item
+          \begin{align*}
+            a(x) &= \log\frac{\pi}{1 - \pi} - \frac{(x - \phantom{X})^2}{\phantom{XX}} + \frac{(x - \phantom{X})^2}{\phantom{XX}} + \frac{1}{2}\log\phantom{XXXX} \\
+            &= \phantom{XXXXXXXXXXXXXXXXXXXXXXXXXXXX}
+          \end{align*}
+          $x^2$ の係数は \phantom{XXXX} $\neq 0$ なので2次方程式である
+          \vspace{2mm}
+      \end{enumerate}
+    \end{answer}
+
+%=====================================================================
+  \item \textbf{シグモイド関数とロジスティック回帰}\quad
+    $\sigma(a) = 1/(1 + e^{-a})$ とする。
+    \begin{enumerate}
+      \item $\sigma(-a) = 1 - \sigma(a)$ を示せ
+      \item $\sigma'(a) = \sigma(a)(1 - \sigma(a))$ を示せ
+      \item 1件分の交差エントロピー損失 $E_i(a) = -[y_i \log\sigma(a) + (1 - y_i)\log(1 - \sigma(a))]$ について、$dE_i/da = \sigma(a) - y_i$ を示せ
+      \item $d^2E_i/da^2 = \sigma(a)(1 - \sigma(a)) > 0$ を示し、$E_i$ が $a$ の凸関数であること、したがって $E(\bm{w}) = \sum_i E_i(\bm{w}^\top\tilde{\bm{x}}_i)$ が $\bm{w}$ の凸関数であることを説明せよ
+        （ヒント：凸関数と線形関数の合成は凸、凸関数の和は凸）
+      \item （発展）表8.1の5単語のナイーブベイズと、同じ5単語を入力とするロジスティック回帰は、どちらも $\sigma(\bm{w}^\top\bm{x} + b)$ の形をもつ。
+        両者の $\bm{w}$ の決め方の違いを、訓練データが「迷惑メール200通・通常メール800通」であるとして具体的に説明せよ
+    \end{enumerate}
+    \begin{answer}
+      \begin{enumerate}
+        \item $\sigma(-a) = \dfrac{1}{1 + e^{a}} = $ \phantom{XXXXXXXXXXXX}（分母分子に \phantom{XXXX} を掛ける）、\quad
+          $1 - \sigma(a) = $ \phantom{XXXXXXXXXXXX}
+          \vspace{6mm}
+        \item $\sigma'(a) = \dfrac{d}{da}(1 + e^{-a})^{-1} = $ \phantom{XXXXXXXXXXXXXXXX}
+          \vspace{10mm}
+        \item $\dfrac{d}{da}\log\sigma(a) = $ \phantom{XXXXXXXX}、$\dfrac{d}{da}\log(1 - \sigma(a)) = $ \phantom{XXXXXXXX} より
+          \vspace{10mm}
+        \item $\dfrac{d^2E_i}{da^2} = \dfrac{d}{da}\bigl(\sigma(a) - y_i\bigr) = $ \phantom{XXXXXXXXXX} $> 0$（理由：\phantom{XXXXXXXXXXXX}）
+          \vspace{2mm}
+
+          $E(\bm{w})$ が凸である理由：
+          \vspace{12mm}
+        \item ナイーブベイズの $w_j$ の決め方：
+          \vspace{10mm}
+
+          ロジスティック回帰の $\bm{w}$ の決め方：
+          \vspace{10mm}
+      \end{enumerate}
+    \end{answer}
+
+\end{enumerate}
+
+\newpage
+\section*{LaTeX の書き方（参考）}
+
+第8回の課題で使う数式の書き方をまとめる。
+数式は \verb|$ ... $| で囲む（行の中に書く場合）か、
+\verb|\begin{equation*} ... \end{equation*}| で囲む（1行独立させる場合）。
+
+\begin{center}
+\scriptsize
+\begin{tabular}{l|l}
+\hline
+表示 & 書き方 \\
+\hline\hline
+$P(y \mid \bm{x})$, $p(\bm{x} \mid y)$ & \verb|P(y \mid \bm{x})|, \verb|p(\bm{x} \mid y)| \\
+$P(\text{迷惑} \mid \text{無料あり})$（言葉を入れる） & \verb|P(\text{迷惑} \mid \text{無料あり})| \\
+$\bm{x} = (1, 1, 0, 0, 1)^\top$, $\bm{w}^\top\bm{x} + b$ & \verb|\bm{x} = (1, 1, 0, 0, 1)^\top|, \verb|\bm{w}^\top\bm{x} + b| \\
+$\theta_{j1}$, $\hat{\theta}_{j0}$, $\hat{\theta}_{\mathrm{MAP}}$ & \verb|\theta_{j1}|, \verb|\hat{\theta}_{j0}|, \verb|\hat{\theta}_{\mathrm{MAP}}| \\
+$\prod_{j=1}^d \theta_{jy}^{x_j}(1 - \theta_{jy})^{1 - x_j}$ & \verb|\prod_{j=1}^d \theta_{jy}^{x_j}(1 - \theta_{jy})^{1 - x_j}| \\
+$\log\dfrac{\theta_{j1}}{\theta_{j0}}$, $\log\dfrac{\pi}{1 - \pi}$ & \verb|\log\frac{\theta_{j1}}{\theta_{j0}}|, \verb|\log\frac{\pi}{1 - \pi}| \\
+$\sigma(a) = \dfrac{1}{1 + e^{-a}}$, $\sigma'(a)$ & \verb|\sigma(a) = \frac{1}{1 + e^{-a}}|, \verb|\sigma'(a)| \\
+$\ell(\theta)$, $\dfrac{d\ell}{d\theta}$, $\dfrac{d^2\ell}{d\theta^2}$ & \verb|\ell(\theta)|, \verb|\frac{d\ell}{d\theta}|, \verb|\frac{d^2\ell}{d\theta^2}| \\
+$\mathcal{L}(\bm{\pi}, \mu)$, $\dfrac{\partial\mathcal{L}}{\partial\pi_k}$ & \verb|\mathcal{L}(\bm{\pi}, \mu)|, \verb|\frac{\partial\mathcal{L}}{\partial\pi_k}| \\
+$\mathbb{E}[L \mid \bm{x}]$, $\mathbb{E}[k] = n\theta$ & \verb|\mathbb{E}[L \mid \bm{x}]|, \verb|\mathbb{E}[k] = n\theta| \\
+$\mathrm{Beta}(\alpha, \beta)$, $\theta^{\alpha - 1}(1 - \theta)^{\beta - 1}$ & \verb|\mathrm{Beta}(\alpha, \beta)|, \verb|\theta^{\alpha - 1}(1 - \theta)^{\beta - 1}| \\
+$\int_0^1 \theta^a(1 - \theta)^b\,d\theta$, $\dfrac{a!\,b!}{(a + b + 1)!}$ & \verb|\int_0^1 \theta^a(1 - \theta)^b\,d\theta|, \verb|\frac{a!\,b!}{(a + b + 1)!}| \\
+$\mathcal{N}(x \mid \mu, \sigma^2)$, $\hat{\mu}_0$, $\hat{\sigma}_1^2$ & \verb|\mathcal{N}(x \mid \mu, \sigma^2)|, \verb|\hat{\mu}_0|, \verb|\hat{\sigma}_1^2| \\
+$\tilde{\bm{x}}_i$, $E_i(\bm{w}^\top\tilde{\bm{x}}_i)$ & \verb|\tilde{\bm{x}}_i|, \verb|E_i(\bm{w}^\top\tilde{\bm{x}}_i)| \\
+$\iff$, $\Longrightarrow$, $\to$, $\approx$, $\neq$, $\propto$ & \verb|\iff|, \verb|\Longrightarrow|, \verb|\to|, \verb|\approx|, \verb|\neq|, \verb|\propto| \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{対数オッズを項ごとに書く例}（\verb|\underbrace| で項の意味を添える）：
+\begin{verbatim}
+\begin{equation*}
+  a(\bm{x}) = \underbrace{-1.386}_{\text{事前}} + \underbrace{2.485}_{\text{無料あり}}
+            + \underbrace{0.642}_{\text{会議なし}} = 1.741
+\end{equation*}
+\end{verbatim}
+表示結果：
+\begin{equation*}
+  a(\bm{x}) = \underbrace{-1.386}_{\text{事前}} + \underbrace{2.485}_{\text{無料あり}}
+            + \underbrace{0.642}_{\text{会議なし}} = 1.741
+\end{equation*}
+
+\noindent
+\textbf{導出で「何をしたか」を右側に書く例}（\verb|&&\text{...}| を使う）：
+\begin{verbatim}
+\begin{align*}
+  \frac{d\ell}{d\theta} &= \frac{k}{\theta} - \frac{n - k}{1 - \theta} = 0
+    && \text{（微分して $0$ とおく）} \\
+  k(1 - \theta) &= (n - k)\theta && \text{（分母を払う）} \\
+  \hat{\theta} &= \frac{k}{n} && \text{（$\theta$ について解く）}
+\end{align*}
+\end{verbatim}
+表示結果：
+\begin{align*}
+  \frac{d\ell}{d\theta} &= \frac{k}{\theta} - \frac{n - k}{1 - \theta} = 0
+    && \text{（微分して $0$ とおく）} \\
+  k(1 - \theta) &= (n - k)\theta && \text{（分母を払う）} \\
+  \hat{\theta} &= \frac{k}{n} && \text{（$\theta$ について解く）}
+\end{align*}
+
+\noindent
+\textbf{注意}：テンプレート中の \verb|\phantom{XXXX}| は答えを書く空白である。
+解答を書くときはこの部分を自分の答えで置き換えること。
+
+\end{document}

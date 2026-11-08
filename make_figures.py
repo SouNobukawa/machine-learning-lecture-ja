@@ -2593,6 +2593,345 @@ def fig_coin_update():
     print("  figures/ch7_coin_update.pdf + .png")
 
 
+# ---------------------------------------------------------------- chapter 8
+def _sigmoid(a):
+    return 1.0 / (1.0 + np.exp(-a))
+
+
+def _diag_gauss_logpdf(X, mu, var):
+    """Log density of a diagonal-covariance Gaussian, summed over dimensions."""
+    return np.sum(-0.5 * (X - mu) ** 2 / var - 0.5 * np.log(2 * np.pi * var), axis=-1)
+
+
+def fig_gen_disc():
+    """Generative (class-conditional densities) vs discriminative (boundary only) view of the same data."""
+    rng = np.random.default_rng(8)
+    n = 60
+    mu0, var0 = np.array([-1.0, -0.6]), np.array([1.0, 0.5])
+    mu1, var1 = np.array([1.3, 0.9]), np.array([0.5, 1.0])
+    X0 = mu0 + rng.normal(size=(n, 2)) * np.sqrt(var0)
+    X1 = mu1 + rng.normal(size=(n, 2)) * np.sqrt(var1)
+    X = np.vstack([X0, X1]); y = np.r_[np.zeros(n), np.ones(n)]
+    gx, gy = np.meshgrid(np.linspace(-4, 4, 200), np.linspace(-3.5, 3.5, 200))
+    G = np.stack([gx, gy], axis=-1)
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.5))
+    # left: generative, fitted class-conditional Gaussians (naive Bayes: diagonal covariance)
+    ax = axes[0]
+    for Xc, c, name in ((X0, BLUE, "$y = 0$"), (X1, RED, "$y = 1$")):
+        m, v = Xc.mean(0), Xc.var(0)
+        dens = np.exp(_diag_gauss_logpdf(G, m, v))
+        ax.contour(gx, gy, dens, levels=5, colors=c, linewidths=0.9, alpha=0.8)
+        ax.scatter(Xc[:, 0], Xc[:, 1], s=12, color=c, label=f"{name} のデータ", zorder=4)
+    lp = _diag_gauss_logpdf(G, X1.mean(0), X1.var(0)) - _diag_gauss_logpdf(G, X0.mean(0), X0.var(0))
+    ax.contour(gx, gy, lp, levels=[0.0], colors=INK_T, linewidths=1.6, linestyles="--")
+    ax.set_title("生成モデル：各クラスの分布 $p(\\boldsymbol{x} \\mid y)$ と $P(y)$ を学ぶ", fontsize=9.5)
+    ax.text(-3.8, 3.0, "等高線：学習した $p(\\boldsymbol{x} \\mid y)$\n破線：ベイズの定理で得た境界", fontsize=8, va="top")
+    # right: discriminative, logistic regression fitted by gradient descent
+    Xt = np.c_[np.ones(2 * n), X]
+    w = np.zeros(3)
+    for _ in range(3000):
+        w -= 0.05 * Xt.T @ (_sigmoid(Xt @ w) - y) / (2 * n)
+    P = _sigmoid(w[0] + w[1] * gx + w[2] * gy)
+    ax = axes[1]
+    ax.contourf(gx, gy, P, levels=np.linspace(0, 1, 11), cmap="RdBu_r", alpha=0.35)
+    ax.contour(gx, gy, P, levels=[0.5], colors=INK_T, linewidths=1.6)
+    ax.scatter(X0[:, 0], X0[:, 1], s=12, color=BLUE, zorder=4)
+    ax.scatter(X1[:, 0], X1[:, 1], s=12, color=RED, zorder=4)
+    ax.set_title("判別モデル：$P(y \\mid \\boldsymbol{x})$（境界）を直接学ぶ", fontsize=9.5)
+    ax.text(-3.8, 3.0, "濃淡：学習した $P(y = 1 \\mid \\boldsymbol{x})$\n実線：$P(y = 1 \\mid \\boldsymbol{x}) = 0.5$", fontsize=8, va="top")
+    for ax in axes:
+        ax.set_xlim(-4, 4); ax.set_ylim(-3.5, 3.5); ax.set_xlabel("$x_1$"); ax.set_ylabel("$x_2$"); ax.grid(alpha=0.25)
+    axes[0].legend(fontsize=8, loc="lower right")
+    save(fig, "ch8_gen_disc")
+
+
+def fig_likelihood():
+    """What p(x | y) means: fix the class, look at how often x appears; read it as a function of y at the observed x."""
+    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.2), gridspec_kw={"width_ratios": [1.15, 1.15, 1.0]})
+    # (a) discrete: inside each class, the share of mails containing the word
+    ax = axes[0]; ax.set_axis_off(); ax.set_xlim(-0.4, 10.4); ax.set_ylim(-2.6, 10.6)
+    for x0, name, n, k, c in ((0.6, "迷惑メール", 200, 120, RED), (5.4, "通常メール", 800, 40, BLUE)):
+        wdt = 3.8; frac = k / n
+        ax.add_patch(plt.Rectangle((x0, 0), wdt, 8, fc="white", ec=c, lw=1.6))
+        ax.add_patch(plt.Rectangle((x0, 8 * (1 - frac)), wdt, 8 * frac, fc=c, alpha=0.45, ec="none"))
+        ax.text(x0 + wdt / 2, 8.6, f"{name}\n（{n}通）", ha="center", va="bottom", fontsize=8.5, color=c)
+        if frac > 0.15:
+            ax.text(x0 + wdt / 2, 8 * (1 - frac) + 8 * frac / 2, f"「無料」あり\n{k}通", ha="center", va="center", fontsize=8)
+        else:
+            ax.text(x0 + wdt / 2, 8 * (1 - frac) - 0.3, f"「無料」あり\n{k}通", ha="center", va="top", fontsize=8)
+        ax.text(x0 + wdt / 2, -0.5, f"$p($無料あり$\\mid$ {name[:2]}$)$\n$= {k}/{n} = {frac:.2f}$", ha="center", va="top", fontsize=8.5, color=c)
+    ax.set_title("(a) クラスを固定し、その中で $x$ の割合を見る", fontsize=9.5)
+    # (b) continuous: heights of the two class densities at the observed x
+    ax = axes[1]
+    x = np.linspace(0, 10, 400); xo = 6.0
+    pdf = lambda m, s: np.exp(-(x - m) ** 2 / (2 * s ** 2)) / np.sqrt(2 * np.pi * s ** 2)
+    h1 = np.exp(-(xo - 7) ** 2 / (2 * 1.2 ** 2)) / np.sqrt(2 * np.pi * 1.2 ** 2)
+    h0 = np.exp(-(xo - 3) ** 2 / (2 * 1.5 ** 2)) / np.sqrt(2 * np.pi * 1.5 ** 2)
+    ax.plot(x, pdf(7, 1.2), color=RED, lw=1.8, label="$p(x \\mid y=$迷惑$)$")
+    ax.plot(x, pdf(3, 1.5), color=BLUE, lw=1.8, label="$p(x \\mid y=$通常$)$")
+    ax.axvline(xo, color=INK_T, lw=1.0, ls="--")
+    ax.plot([xo, xo], [0, h1], color=RED, lw=3, alpha=0.6); ax.plot([xo, xo], [0, h0], color=BLUE, lw=3, alpha=0.6)
+    ax.plot(xo, h1, "o", color=RED, ms=5); ax.plot(xo, h0, "o", color=BLUE, ms=5)
+    ax.annotate(f"尤度 {h1:.2f}", xy=(xo, h1), xytext=(xo + 0.5, h1 + 0.04), fontsize=8.5, color=RED, arrowprops=dict(arrowstyle="-", color=RED, lw=0.6))
+    ax.annotate(f"尤度 {h0:.2f}", xy=(xo, h0), xytext=(xo + 0.5, h0 + 0.06), fontsize=8.5, color=BLUE, arrowprops=dict(arrowstyle="-", color=BLUE, lw=0.6))
+    ax.text(xo, -0.045, "観測した $x$", ha="center", fontsize=8.5)
+    ax.set_ylim(-0.06, 0.42); ax.set_xlabel("連続な特徴 $x$（例：本文中の「!」の個数）"); ax.set_ylabel("密度")
+    ax.set_title("(b) 観測した $x$ での各クラスの密度の高さ", fontsize=9.5); ax.legend(fontsize=7.5, loc="upper left"); ax.grid(alpha=0.25)
+    # (c) likelihood x prior -> posterior for the discrete example
+    ax = axes[2]
+    cats = ["尤度\n$p(x \\mid y)$", "× 事前\n$P(y)$", "= 積\n$p(x \\mid y)P(y)$", "÷ 0.16 = 事後\n$P(y \\mid x)$"]
+    spam = [0.60, 0.20, 0.12, 0.75]; ham = [0.05, 0.80, 0.04, 0.25]
+    xs = np.arange(4); wdt = 0.36
+    ax.bar(xs - wdt / 2, spam, wdt, color=RED, alpha=0.75, label="迷惑")
+    ax.bar(xs + wdt / 2, ham, wdt, color=BLUE, alpha=0.75, label="通常")
+    for i, (a, b) in enumerate(zip(spam, ham)):
+        ax.text(i - wdt / 2, a + 0.02, f"{a:.2f}", ha="center", fontsize=8); ax.text(i + wdt / 2, b + 0.02, f"{b:.2f}", ha="center", fontsize=8)
+    ax.set_xticks(xs); ax.set_xticklabels(cats, fontsize=8); ax.set_ylim(0, 1.02); ax.grid(alpha=0.25, axis="y")
+    ax.set_title("(c) 「無料」ありのメール：尤度 × 事前 → 事後", fontsize=9.5); ax.legend(fontsize=8, loc="upper right")
+    save(fig, "ch8_likelihood")
+
+
+def fig_naive_graph():
+    """Dependency graph of naive Bayes and the number of parameters per class with/without the assumption."""
+    fig, axes = plt.subplots(1, 2, figsize=(8.4, 3.0), gridspec_kw={"width_ratios": [1.15, 1]})
+    ax = axes[0]; ax.set_axis_off(); ax.set_xlim(0, 10); ax.set_ylim(0, 5.2)
+    ax.add_patch(plt.Circle((5, 4.2), 0.55, fc="#FBE3E0", ec=RED, lw=1.4))
+    ax.text(5, 4.2, "$y$", ha="center", va="center", fontsize=12)
+    ax.text(6.0, 4.55, "クラス（迷惑／通常）", fontsize=8.5, va="center")
+    xs = [1.2, 3.1, 5.0, 6.9, 8.8]
+    labels = ["$x_1$", "$x_2$", "$x_3$", "$\\cdots$", "$x_d$"]
+    for xc, lb in zip(xs, labels):
+        if lb == "$\\cdots$":
+            ax.text(xc, 1.3, lb, ha="center", va="center", fontsize=12); continue
+        ax.add_patch(plt.Circle((xc, 1.3), 0.5, fc="#E3ECF5", ec=NAVY, lw=1.4))
+        ax.text(xc, 1.3, lb, ha="center", va="center", fontsize=11)
+        ax.annotate("", xy=(xc, 1.85), xytext=(5, 3.65), arrowprops=dict(arrowstyle="->", color=INK_T, lw=1.1))
+    ax.text(5, 0.35, "各単語の有無。$y$ が決まれば互いに独立（矢印は $y$ からだけ）", ha="center", fontsize=8.5)
+    ax.set_title("条件付き独立の仮定（$p(\\boldsymbol{x} \\mid y) = \\prod_j p(x_j \\mid y)$）", fontsize=9.5)
+    ax = axes[1]
+    d = np.arange(1, 21)
+    ax.semilogy(d, 2.0 ** d - 1, color=RED, lw=1.8, marker="o", ms=3, label="仮定なし：$2^d - 1$ 個")
+    ax.semilogy(d, d, color=NAVY, lw=1.8, marker="s", ms=3, label="ナイーブベイズ：$d$ 個")
+    ax.axhline(1000, color=GRAY, ls=":", lw=1.0); ax.text(1.2, 1300, "訓練データ 1000 通", fontsize=8, color=GRAY)
+    ax.set_xticks([1, 5, 10, 15, 20]); ax.set_xlabel("単語の数 $d$"); ax.set_ylabel("1クラスあたりのパラメータ数")
+    ax.set_title("パラメータ数の比較", fontsize=9.5); ax.legend(fontsize=8, loc="upper left"); ax.grid(alpha=0.25, which="both")
+    save(fig, "ch8_naive_graph")
+
+
+# word table shared by the text (Table 8.1) and the figure
+_WORDS = ["無料", "当選", "会議", "資料", "本日"]
+_TH_SPAM = np.array([0.60, 0.40, 0.05, 0.10, 0.30])
+_TH_HAM = np.array([0.05, 0.02, 0.50, 0.40, 0.30])
+_PRIOR_SPAM = 0.20
+
+
+def fig_spam_weights():
+    """Waterfall chart: log-odds of 'spam' accumulated word by word for two example mails.
+
+    Each band is one term of a(x) = log P(1)/P(0) + sum_j log p(x_j|1)/p(x_j|0): it starts at the
+    running total so far and its height is that term; red = positive (spam-ward), blue = negative."""
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    mails = (("メールA：無料・当選・本日 を含む", np.array([1, 1, 0, 0, 1])),
+             ("メールB：無料・会議・資料 を含む", np.array([1, 0, 1, 1, 0])))
+    fig, axes = plt.subplots(1, 2, figsize=(8.8, 3.6), sharey=True)
+    for k, (ax, (title, x)) in enumerate(zip(axes, mails)):
+        contrib = np.where(x == 1, np.log(_TH_SPAM / _TH_HAM), np.log((1 - _TH_SPAM) / (1 - _TH_HAM)))
+        prior = np.log(_PRIOR_SPAM / (1 - _PRIOR_SPAM))
+        steps = np.r_[prior, contrib]
+        names = ["事前\n$\\log\\frac{0.2}{0.8}$"] + [f"{w}\n{'あり' if xi else 'なし'}" for w, xi in zip(_WORDS, x)]
+        cum = np.cumsum(steps)
+        base = np.r_[0, cum[:-1]]
+        cols = [RED if s > 0 else BLUE for s in steps]
+        ax.bar(range(len(steps)), steps, bottom=base, color=cols, alpha=0.8, width=0.55, edgecolor=INK_T, lw=0.5)
+        for i in range(len(steps) - 1):                     # the end of one band is the start of the next
+            ax.plot([i + 0.275, i + 1 - 0.275], [cum[i], cum[i]], color=INK_T, ls=":", lw=0.9)
+        ax.axhline(0, color=INK_T, lw=0.9)
+        for i, (s, c, b) in enumerate(zip(steps, cum, base)):
+            if abs(s) < 1e-9:                             # weight 0: no band, just a mark
+                ax.text(i, c + 0.15, "0", ha="center", va="bottom", fontsize=7.5, color=GRAY, fontweight="bold")
+                continue
+            ax.text(i + 0.36, (b + c) / 2, f"{s:+.2f}", ha="left", va="center", fontsize=7.5,
+                    color=RED if s > 0 else BLUE, fontweight="bold")
+        pr = _sigmoid(cum[-1])
+        ax.annotate(f"合計 $a = {cum[-1]:+.2f}$\n$P($迷惑$ \\mid \\boldsymbol{{x}}) = \\frac{{1}}{{1+e^{{-a}}}} = {pr:.3f}$",
+                    xy=(len(steps) - 1 + 0.275, cum[-1]), xytext=(len(steps) - 0.55, cum[-1] + (1.4 if cum[-1] > 0 else -1.4)),
+                    fontsize=8, ha="right", va="bottom" if cum[-1] > 0 else "top",
+                    arrowprops=dict(arrowstyle="-", color=INK_T, lw=0.7),
+                    bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=GRAY, lw=0.6))
+        ax.set_xticks(range(len(steps))); ax.set_xticklabels(names, fontsize=7.5)
+        ax.set_title(title, fontsize=9.5); ax.grid(alpha=0.25, axis="y"); ax.set_ylim(-7.4, 8.4); ax.set_xlim(-0.6, len(steps) - 0.2)
+        ax.text(0.02, 0.97, "正なら迷惑メール寄り", transform=ax.transAxes, fontsize=8, va="top", color=RED)
+        ax.text(0.02, 0.03, "負なら通常メール寄り", transform=ax.transAxes, fontsize=8, va="bottom", color=BLUE)
+        if k == 0:
+            ax.annotate("帯の高さ = その単語の証拠の重さ\n「無料あり」$= \\log\\frac{0.60}{0.05} = +2.48$（表8.1）",
+                        xy=(1.275, (base[1] + cum[1]) / 2), xytext=(1.9, -3.6), fontsize=7.5, ha="left", va="top",
+                        arrowprops=dict(arrowstyle="->", color=INK_T, lw=0.8),
+                        bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=GRAY, lw=0.6))
+            ax.annotate("出発点：\n事前の対数オッズ", xy=(0, cum[0]), xytext=(0, -3.4), fontsize=7.5, ha="center", va="top",
+                        arrowprops=dict(arrowstyle="->", color=INK_T, lw=0.8))
+    axes[0].set_ylabel("迷惑メールの対数オッズ $a(\\boldsymbol{x})$\n（左から順に足した途中の値）")
+    handles = [Patch(fc=RED, alpha=0.8, ec=INK_T, lw=0.5, label="迷惑寄りの証拠（上へ積む）"),
+               Patch(fc=BLUE, alpha=0.8, ec=INK_T, lw=0.5, label="通常寄りの証拠（下へ積む）"),
+               Line2D([], [], color=INK_T, ls=":", lw=0.9, label="前の帯の終わり ＝ 次の帯の始まり")]
+    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=8, frameon=False, bbox_to_anchor=(0.5, -0.02))
+    fig.subplots_adjust(bottom=0.27)
+    save(fig, "ch8_spam_weights")
+
+
+def fig_loglik():
+    """Bernoulli likelihood and log-likelihood for n = 10, k = 7: same maximiser, log is concave."""
+    th = np.linspace(0.001, 0.999, 500); n, k = 10, 7
+    lik = th ** k * (1 - th) ** (n - k); ll = k * np.log(th) + (n - k) * np.log(1 - th)
+    fig, axes = plt.subplots(1, 2, figsize=(8.4, 2.9))
+    axes[0].plot(th, lik, color=NAVY, lw=1.8); axes[0].set_title("尤度 $p(D \\mid \\theta) = \\theta^{7}(1-\\theta)^{3}$", fontsize=9.5)
+    axes[0].set_ylabel("尤度"); axes[0].ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    axes[1].plot(th, ll, color=RED, lw=1.8); axes[1].set_title("対数尤度 $\\ell(\\theta) = 7\\log\\theta + 3\\log(1-\\theta)$", fontsize=9.5)
+    axes[1].set_ylabel("対数尤度"); axes[1].set_ylim(-25, 0)
+    for ax in axes:
+        ax.axvline(0.7, color=INK_T, ls="--", lw=0.9); ax.set_xlabel("$\\theta$"); ax.grid(alpha=0.25)
+        ax.text(0.71, ax.get_ylim()[0] + 0.08 * (ax.get_ylim()[1] - ax.get_ylim()[0]), "$\\hat{\\theta} = k/n = 0.7$", fontsize=8.5)
+    axes[1].text(0.05, -3, "上に凸（凹関数）：\n極大点は一つ", fontsize=8.5, va="top")
+    save(fig, "ch8_loglik")
+
+
+def fig_smoothing():
+    """Zero-frequency problem (k = 0) and how a Beta(2, 2) prior / Laplace smoothing fixes it."""
+    th = np.linspace(0.001, 0.999, 500)
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.0))
+    ax = axes[0]; n, k = 3, 0
+    ll = k * np.log(th) + (n - k) * np.log(1 - th)
+    lpost = ll + np.log(th) + np.log(1 - th)          # + log Beta(2,2) prior (up to const)
+    ax.plot(th, ll, color=RED, lw=1.8, label="対数尤度 $3\\log(1-\\theta)$（最大は $\\theta = 0$）")
+    ax.plot(th, lpost, color=NAVY, lw=1.8, label="対数事後 ＝ 対数尤度 ＋ $\\log\\theta + \\log(1-\\theta)$")
+    ax.axvline(0.2, color=NAVY, ls="--", lw=0.9)
+    ax.annotate("最大点 $\\hat{\\theta}_{\\mathrm{MAP}} = \\frac{0+1}{3+2} = 0.2$\n（内側に移った）", xy=(0.2, -2.5), xytext=(0.33, -4.6),
+                fontsize=8.5, color=NAVY, arrowprops=dict(arrowstyle="->", color=NAVY, lw=0.8))
+    ax.annotate("最尤推定の最大点は端 $\\theta = 0$", xy=(0.0, 0.0), xytext=(0.12, 0.0), fontsize=8.5, color=RED, va="center",
+                arrowprops=dict(arrowstyle="->", color=RED, lw=0.8))
+    ax.set_ylim(-10, 1.0); ax.set_xlabel("$\\theta$"); ax.set_ylabel("対数尤度 / 対数事後確率（定数を除く）")
+    ax.set_title("3通とも単語なし（$n = 3$、$k = 0$）", fontsize=9.5)
+    ax.legend(fontsize=7.5, loc="lower left"); ax.grid(alpha=0.25)
+    ax = axes[1]
+    rng = np.random.default_rng(5); theta_true = 0.1
+    xs = (rng.random(300) < theta_true).astype(int)
+    nn = np.arange(1, 301); kk = np.cumsum(xs)
+    ax.plot(nn, kk / nn, color=RED, lw=1.4, label="最尤推定 $k/n$")
+    ax.plot(nn, (kk + 1) / (nn + 2), color=NAVY, lw=1.4, label="ラプラス平滑化 $(k+1)/(n+2)$")
+    ax.axhline(theta_true, color=INK_T, ls="--", lw=0.9); ax.text(1.15, theta_true + 0.015, "真の値 $\\theta = 0.1$", fontsize=8.5)
+    first = int(np.argmax(xs)) + 1
+    ax.annotate(f"最初の {first - 1} 通は 0 回 → 最尤推定は 0", xy=(first - 1, 0), xytext=(4.5, 0.52), fontsize=8,
+                arrowprops=dict(arrowstyle="->", color=INK_T, lw=0.9))
+    ax.annotate("跳ね上がり＝単語を含む\nメールが来た（$k$ が 1 増える）\nその後は $n$ が増えるぶん下がる", xy=(first, kk[first - 1] / first),
+                xytext=(1.05, 0.84), fontsize=8, va="top", arrowprops=dict(arrowstyle="->", color=INK_T, lw=0.8))
+    ax.annotate("$n = 1$ でも $(0+1)/(1+2) = 0.33$", xy=(1, 1 / 3), xytext=(1.5, 0.42), fontsize=8, color=NAVY,
+                arrowprops=dict(arrowstyle="->", color=NAVY, lw=0.8))
+    ax.set_xscale("log"); ax.set_xlabel("観測したメールの数 $n$（対数目盛）"); ax.set_ylabel("$\\theta$ の推定値")
+    ax.set_ylim(-0.02, 0.86); ax.set_title("データが増えると両者は一致する", fontsize=9.5); ax.legend(fontsize=7.5, loc="upper right", handlelength=1.2); ax.grid(alpha=0.25, which="both")
+    save(fig, "ch8_smoothing")
+
+
+def fig_mle_map_bayes():
+    """Three stances on a parameter: MLE (no distribution), MAP (distribution, then mode), Bayes (keep distribution)."""
+    from scipy.stats import beta as beta_dist
+    n, k, a, b = 10, 2, 2, 2
+    th = np.linspace(0.001, 0.999, 600)
+    lik = th ** k * (1 - th) ** (n - k); lik = lik / lik.max()
+    prior = beta_dist(a, b).pdf(th)
+    post = beta_dist(k + a, n - k + b)
+    mle = k / n; mapv = (k + a - 1) / (n + a + b - 2); mean = (k + a) / (n + a + b)
+    lo, hi = post.ppf(0.025), post.ppf(0.975)
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 3.1), sharex=True)
+    # (a) MLE: likelihood is a function of theta, not a distribution over theta
+    ax = axes[0]
+    ax.plot(th, lik, color=RED, lw=1.8, label="尤度 $L(\\theta)$（最大値で割った）")
+    ax.axvline(mle, color=RED, ls="--", lw=1.0)
+    ax.plot(mle, 1.0, "o", color=RED, ms=6)
+    ax.text(mle + 0.03, 0.97, f"$\\hat{{\\theta}}_{{\\mathrm{{MLE}}}} = k/n = {mle:.2f}$", fontsize=8.5, color=RED, va="top")
+    ax.text(0.98, 0.55, "$\\theta$ は定数\n分布を置かない\n尤度の最大点を選ぶ", fontsize=8.5, ha="right", va="center", color=INK_T)
+    ax.set_title("(a) 最尤推定", fontsize=10); ax.set_ylabel("尤度（相対値）")
+    ax.set_ylim(0, 1.15); ax.legend(fontsize=7.5, loc="upper right"); ax.grid(alpha=0.25)
+    # (b) MAP: put a prior on theta, take the mode of the posterior
+    ax = axes[1]
+    ax.plot(th, prior, color=GRAY, lw=1.4, ls="--", label="事前分布 $\\mathrm{Beta}(2, 2)$")
+    ax.plot(th, post.pdf(th), color=NAVY, lw=1.8, label="事後分布 $\\mathrm{Beta}(2{+}2,\\, 8{+}2) = \\mathrm{Beta}(4, 10)$")
+    ax.axvline(mapv, color=NAVY, ls="--", lw=1.0)
+    ax.plot(mapv, post.pdf(mapv), "o", color=NAVY, ms=6)
+    ax.text(mapv + 0.03, post.pdf(mapv) + 0.15, f"$\\hat{{\\theta}}_{{\\mathrm{{MAP}}}} = \\frac{{4-1}}{{4+10-2}} = {mapv:.2f}$", fontsize=8.5, color=NAVY, va="bottom")
+    ax.axvline(mle, color=RED, ls=":", lw=0.9); ax.text(mle - 0.02, 4.0, "最尤", fontsize=7.5, color=RED, ha="right")
+    ax.text(0.98, 1.9, "$\\theta$ は確率変数\n分布を置くが\n最頻値1点に潰す", fontsize=8.5, ha="right", va="center", color=INK_T)
+    ax.set_title("(b) MAP推定", fontsize=10); ax.set_ylabel("密度")
+    ax.set_ylim(0, 5.3); ax.legend(fontsize=7.5, loc="upper right"); ax.grid(alpha=0.25)
+    # (c) Bayes: keep the whole posterior (mean, spread, predictive)
+    ax = axes[2]
+    mask = (th >= lo) & (th <= hi)
+    ax.fill_between(th[mask], 0, post.pdf(th[mask]), color=NAVY, alpha=0.18, label=f"95%区間 [{lo:.2f}, {hi:.2f}]")
+    ax.plot(th, post.pdf(th), color=NAVY, lw=1.8, label="事後分布 $\\mathrm{Beta}(4, 10)$")
+    ax.axvline(mean, color=GREEN, ls="--", lw=1.2)
+    ax.text(mean + 0.03, 3.95, f"事後平均 $= \\frac{{4}}{{4+10}} = {mean:.2f}$\n（事後予測確率）", fontsize=8.5, color=GREEN, va="top")
+    ax.axvline(mle, color=RED, ls=":", lw=0.9); ax.text(mle - 0.02, 4.0, "最尤", fontsize=7.5, color=RED, ha="right")
+    ax.text(0.98, 1.9, "$\\theta$ は確率変数\n分布のまま使う\n（平均・幅・予測）", fontsize=8.5, ha="right", va="center", color=INK_T)
+    ax.set_title("(c) ベイズ推定", fontsize=10); ax.set_ylabel("密度")
+    ax.set_ylim(0, 5.3); ax.legend(fontsize=7.5, loc="upper right"); ax.grid(alpha=0.25)
+    for ax in axes:
+        ax.set_xlabel("$\\theta$"); ax.set_xlim(0, 1)
+    fig.suptitle(f"単語を {n} 通中 {k} 通で観測（$n = {n}$、$k = {k}$、尤度 $\\theta^{{{k}}}(1-\\theta)^{{{n-k}}}$）：パラメータ $\\theta$ をどう扱うか", fontsize=10, y=1.02)
+    save(fig, "ch8_mle_map_bayes")
+
+def fig_gauss_nb():
+    """Gaussian naive Bayes: shared variance gives a linear boundary, class-specific variance a quadratic one."""
+    rng = np.random.default_rng(11); n = 70
+    gx, gy = np.meshgrid(np.linspace(-3.5, 6, 220), np.linspace(-3.5, 5.5, 220)); G = np.stack([gx, gy], axis=-1)
+    cases = (("分散がクラス間で共通：境界は直線", np.array([0.0, 0.0]), np.array([1.0, 1.0]), np.array([2.8, 1.8]), np.array([1.0, 1.0])),
+             ("分散がクラスで異なる：境界は2次曲線", np.array([0.0, 0.0]), np.array([1.0, 1.0]), np.array([2.8, 1.8]), np.array([0.25, 2.5])))
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.6))
+    for ax, (title, m0, v0, m1, v1) in zip(axes, cases):
+        X0 = m0 + rng.normal(size=(n, 2)) * np.sqrt(v0); X1 = m1 + rng.normal(size=(n, 2)) * np.sqrt(v1)
+        for Xc, c in ((X0, BLUE), (X1, RED)):
+            m, v = Xc.mean(0), Xc.var(0)
+            ax.contour(gx, gy, np.exp(_diag_gauss_logpdf(G, m, v)), levels=4, colors=c, linewidths=0.9, alpha=0.8)
+            ax.scatter(Xc[:, 0], Xc[:, 1], s=11, color=c, zorder=4)
+            ax.plot(m[0], m[1], marker="x", color=c, ms=9, mew=2, zorder=5)
+        lp = _diag_gauss_logpdf(G, X1.mean(0), X1.var(0)) - _diag_gauss_logpdf(G, X0.mean(0), X0.var(0))
+        ax.contour(gx, gy, lp, levels=[0.0], colors=INK_T, linewidths=1.8)
+        ax.set_title(title, fontsize=9.5); ax.set_xlabel("$x_1$"); ax.set_ylabel("$x_2$"); ax.grid(alpha=0.25)
+        ax.set_xlim(-3.5, 6); ax.set_ylim(-3.5, 5.5)
+    axes[0].text(5.8, -3.3, "点：訓練データ（青 $y=0$、赤 $y=1$）、×：各クラスの平均（最尤推定）\n細線：学習した $p(\\boldsymbol{x} \\mid y)$ の等高線（軸に沿った楕円＝条件付き独立）\n太線：決定境界 $P(y=1 \\mid \\boldsymbol{x}) = 0.5$（左右どちらも同じ約束）",
+                 fontsize=7.5, va="bottom", ha="right", bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=GRAY, lw=0.6))
+    axes[1].annotate("赤は $x_1$ 方向の分散が小さい。赤の平均から\n離れると裾の広い青の密度が再び上回り、\n右にも境界が現れる（赤の領域は2本の間）", xy=(4.65, 2.6), xytext=(-3.3, 5.3),
+                     fontsize=7, va="top", ha="left", arrowprops=dict(arrowstyle="->", color=INK_T, lw=0.8),
+                     bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=GRAY, lw=0.6))
+    save(fig, "ch8_gauss_nb")
+
+
+def fig_sigmoid():
+    """From two 1-D Gaussians (shared variance) to a linear log-odds and a sigmoid posterior."""
+    x = np.linspace(-4, 6, 500); m0, m1, s2 = 0.0, 2.0, 1.0; pi1 = 0.5
+    g = lambda m: np.exp(-(x - m) ** 2 / (2 * s2)) / np.sqrt(2 * np.pi * s2)
+    a = (m1 - m0) / s2 * x + (m0 ** 2 - m1 ** 2) / (2 * s2) + np.log(pi1 / (1 - pi1))
+    fig, axes = plt.subplots(1, 3, figsize=(9.0, 2.7))
+    ax = axes[0]
+    ax.plot(x, (1 - pi1) * g(m0), color=BLUE, lw=1.8, label="$p(x \\mid y=0)P(y=0)$"); ax.plot(x, pi1 * g(m1), color=RED, lw=1.8, label="$p(x \\mid y=1)P(y=1)$")
+    ax.set_title("各クラスの密度 × 事前確率", fontsize=9.5); ax.legend(fontsize=7, loc="center left"); ax.set_ylabel("密度")
+    ax.text(0.98, 0.36, "$\\mu_0 = 0$、$\\mu_1 = 2$\n$\\sigma^2 = 1$、$\\pi = 0.5$", transform=ax.transAxes, fontsize=7.5, ha="right", va="top")
+    ax.annotate("交点 $x = 1$\n（破線＝決定境界）", xy=(1.0, 0.123), xytext=(2.7, 0.17), fontsize=7.5, va="center",
+                arrowprops=dict(arrowstyle="->", color=INK_T, lw=0.8))
+    ax = axes[1]
+    ax.plot(x, a, color=NAVY, lw=1.8); ax.axhline(0, color=INK_T, lw=0.9)
+    ax.set_title("対数オッズ $a(x) = \\log\\frac{P(y=1 \\mid x)}{P(y=0 \\mid x)}$", fontsize=9.5); ax.set_ylabel("$a(x)$")
+    ax.text(-3.8, 4.5, "分散が共通なら\n$x$ の1次式 $wx + b$", fontsize=8.5, va="top")
+    ax.text(1.15, -4.0, "$a = 0$ ⇔ 2クラスの\n事後確率が等しい", fontsize=7.5, va="top")
+    ax = axes[2]
+    ax.plot(x, _sigmoid(a), color=RED, lw=1.8); ax.axhline(0.5, color=INK_T, lw=0.9, ls=":")
+    ax.set_title("事後確率 $P(y=1 \\mid x) = \\sigma(a(x))$", fontsize=9.5); ax.set_ylabel("$P(y=1 \\mid x)$"); ax.set_ylim(-0.03, 1.03)
+    ax.text(-3.8, 0.9, "シグモイド関数", fontsize=8.5, va="top")
+    ax.text(-3.8, 0.53, "点線：$P = 0.5$", fontsize=7.5, va="bottom")
+    ax.text(1.15, 0.05, "破線：$x = 1$ で\n$\\sigma(0) = 0.5$", fontsize=7.5, va="bottom")
+    for ax in axes:
+        ax.axvline((m0 + m1) / 2, color=GRAY, ls="--", lw=0.9); ax.set_xlabel("$x$"); ax.grid(alpha=0.25)
+    save(fig, "ch8_sigmoid")
+
+
 if __name__ == "__main__":
     print("generating figures...")
     fig_fit(); fig_error_curve()
@@ -2605,3 +2944,4 @@ if __name__ == "__main__":
     fig_gd_1d(); fig_gd_path(); fig_gd_ls_update(); fig_scaling(); fig_correlation(); fig_eigen_recap(); fig_optimizers(); fig_minibatch(); fig_epoch(); fig_convex_set(); fig_convex()
     fig_poly_ridge(); fig_ridge_path(); fig_rent_ridge(); fig_shrink(); fig_validation(); fig_kfold(); fig_bias_variance(); fig_constraint()
     fig_events(); fig_addition(); fig_cond_prob(); fig_total_prob(); fig_test_tree(); fig_gaussian(); fig_expectation(); fig_lln(); fig_coin_likelihood(); fig_coin_update(); fig_coin_posterior()
+    fig_gen_disc(); fig_likelihood(); fig_naive_graph(); fig_spam_weights(); fig_loglik(); fig_smoothing(); fig_mle_map_bayes(); fig_gauss_nb(); fig_sigmoid()
